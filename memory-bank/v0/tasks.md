@@ -205,4 +205,49 @@ This document outlines the development tasks for building the TwinCore backend p
     - [ ] Steps:
         - [ ] Implement button callbacks using `requests` to call FastAPI endpoints.
         - [ ] Display JSON responses.
-    - [ ] Testing: Manual verification against running backend. 
+    - [ ] Testing: Manual verification against running backend.
+
+---
+
+## Phase 9: LLM-Based Knowledge Extraction (Post-Prototype Enhancement)
+
+*Note: This phase focuses on enriching the knowledge graph by extracting entities (Topics, Preferences, etc.) and relationships directly from text content using an LLM. It builds upon the foundation laid in Phases 1-8.*
+
+- [ ] **Task 9.1: Design Extraction Schema & Prompts**
+    - [ ] Steps:
+        - [ ] Define the target entities and relationships to extract (e.g., `Topic`, `Preference`, `Decision`, `ActionItem`, `MENTIONS`, `STATES_PREFERENCE`).
+        - [ ] Design the structured output format (e.g., JSON schema) expected from the LLM.
+        - [ ] Develop and refine prompts (and potentially function/tool schemas) for the chosen LLM (e.g., Gemini) to reliably extract the target information into the desired format.
+        - [ ] Select and configure the specific LLM API/model to use.
+    - [ ] Dependencies: Phase 1 (Config), `dataSchema.md` (understanding existing graph)
+
+- [ ] **Task 9.2: Implement KnowledgeExtractionService** (D: 9.1)
+    - [ ] Steps:
+        - [ ] Add LLM client library (e.g., `google-generativeai`) to `requirements.txt`. Install.
+        - [ ] Create `services/knowledge_extraction_service.py`.
+        - [ ] Implement `KnowledgeExtractionService` class. Include methods to:
+            - [ ] Initialize the LLM client (reading API keys/config).
+            - [ ] Call the LLM API with text and the designed prompt/schema.
+            - [ ] Parse the structured LLM response (handle potential errors/malformed output).
+        - [ ] [Unit] Write unit tests mocking the LLM API client. Test prompt formatting, response parsing, and error handling.
+
+- [ ] **Task 9.3: Update Neo4j DAL for Extracted Knowledge** (D: 3.3, 9.1)
+    - [ ] Steps:
+        - [ ] Add new methods to `dal/interfaces.py` and `dal/neo4j_dal.py` to handle merging extracted entities (e.g., `merge_topic`, `create_preference_node`) and relationships (e.g., `link_message_to_topic`, `link_user_to_preference`).
+        - [ ] [DAL Int] Write integration tests for these new DAL methods using the test Neo4j instance.
+
+- [ ] **Task 9.4: Integrate Extraction into IngestionService** (D: 3.5, 9.2, 9.3)
+    - [ ] Steps:
+        - [ ] Modify `services/ingestion_service.py`.
+        - [ ] Inject `KnowledgeExtractionService` as a dependency.
+        - [ ] Within the core ingestion logic (e.g., `ingest_message`, `ingest_document` chunk processing), *after* basic metadata processing, call the `KnowledgeExtractionService` with the text content.
+        - [ ] Use the parsed results from the extraction service to call the new Neo4j DAL methods (Task 9.3) to update the graph with extracted knowledge.
+        - [ ] Decide whether/how to add extracted info (e.g., topic IDs) to the Qdrant payload (requires potential update to Task 3.4/3.5 logic).
+        - [ ] [Service Int] Update integration tests for `IngestionService`. Mock the `KnowledgeExtractionService` and the updated DAL methods. Verify that the extraction service is called and the relevant DAL methods for graph enrichment are subsequently called with the correct data.
+
+- [ ] **Task 9.5: End-to-End Testing for Knowledge Extraction** (D: 4.4, 5.1, 5.2, 9.4)
+    - [ ] Steps:
+        - [ ] [E2E] Write new E2E tests or modify existing ones.
+        - [ ] Ingest sample text containing clear topics, preferences, etc.
+        - [ ] Directly query Neo4j to verify that the corresponding `Topic`, `Preference` nodes and `MENTIONS`, `STATES_PREFERENCE` relationships were created correctly, linked to the source message/document and user.
+        - [ ] (Optional) Test retrieval mechanisms that leverage this extracted knowledge (likely requires new retrieval logic/endpoints in a subsequent phase). 

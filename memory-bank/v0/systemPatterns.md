@@ -18,6 +18,7 @@ graph LR
         GDrive[Google Drive API]
         GCal[Google Calendar API]
         FileUpload[File Upload Interface]
+        LLM_API[LLM API (e.g., Gemini)]
     end
 
     subgraph TwinCore Service (Dev B - FastAPI App)
@@ -33,6 +34,7 @@ graph LR
             Service_Ingestion[IngestionService]
             Service_Preference[PreferenceService]
             Service_Embedding[EmbeddingService]
+            Service_KnowledgeExtract[KnowledgeExtractionService]
         end
 
         subgraph Data Access Layer (dal/)
@@ -66,10 +68,14 @@ graph LR
     Router_Query -- Uses --> Service_Preference; %% And potentially Service_Retrieval
     Router_Ingest & Router_Retrieve & Router_Query -- Use --> Models_Pydantic;
 
+    Service_Ingestion -- Calls --> Service_KnowledgeExtract;
     Service_Ingestion -- Uses --> Service_Embedding;
     Service_Ingestion -- Uses --> DAL_Qdrant;
     Service_Ingestion -- Uses --> DAL_Neo4j;
     Service_Ingestion -- Uses --> DAL_Postgres_Twin; %% If needed for twin-specific tables
+
+    Service_KnowledgeExtract -- Calls --> LLM_API;
+    Service_KnowledgeExtract -- Updates Via --> DAL_Neo4j;
 
     Service_Retrieval -- Uses --> DAL_Qdrant;
     Service_Retrieval -- Uses --> DAL_Neo4j;
@@ -97,7 +103,7 @@ graph LR
     PG_Shared -- Read By --> DAL_Postgres_Shared;
 
     %% Dependencies %%
-    Service_Retrieval & Service_Ingestion & Service_Preference & Service_Embedding --> Config & Logging;
+    Service_Retrieval & Service_Ingestion & Service_Preference & Service_Embedding & Service_KnowledgeExtract --> Config & Logging;
     DAL_Qdrant & DAL_Neo4j & DAL_Postgres_Shared & DAL_Postgres_Twin --> Config & Logging;
 
 ```
@@ -112,11 +118,12 @@ graph LR
 2.  **Business Logic Layer (`services/`)**
     *   **Technology:** Plain Python classes/modules.
     *   **Responsibility:** Orchestrate the steps needed to fulfill an API request. Contains the core "how-to" logic. It doesn't know *how* data is stored, only *what* data access functions to call (via the DAL).
-        *   `EmbeddingService`: Abstracts sentence-transformer. `get_embedding(text)` method. Easy to swap the underlying model later.
-        *   `IngestionService`: Coordinates getting data -> embedding -> calling DAL methods (`upsert_vector`, `create_node`, `create_relationship`).
-        *   `RetrievalService`: Coordinates getting context IDs (e.g., participants from Neo4j DAL) -> building filters -> calling semantic search (Qdrant DAL) -> potentially enriching with data from Postgres DAL.
-        *   `PreferenceService`: Logic for interpreting preferences from retrieved data, handling votes, etc.
-    *   **Extensibility:** Add new service methods for new features. If logic gets complex, split services further. Uses Dependency Injection (FastAPI `Depends`) to get instances of DALs or other services.
+        *   `EmbeddingService`: Abstracts sentence-transformer/LLM embedding model. `get_embedding(text)` method.
+        *   `IngestionService`: Coordinates getting data -> embedding -> optional knowledge extraction -> calling DAL methods (`upsert_vector`, `create_node`, `create_relationship`, `merge_extracted_knowledge`).
+        *   `RetrievalService`: Coordinates getting context IDs -> building filters -> calling semantic search -> potentially enriching with data from Postgres DAL.
+        *   `PreferenceService`: Logic for interpreting preferences from retrieved data.
+        *   `KnowledgeExtractionService`: (Phase 9) Calls external LLM API to extract structured information (topics, preferences, etc.) from text. Parses the result.
+    *   **Extensibility:** Add new service methods for new features. If logic gets complex, split services further. Uses Dependency Injection (FastAPI `Depends`).
 
 3.  **Data Access Layer (`dal/`)**
     *   **Technology:** Python modules using specific DB clients (`qdrant-client`, `neo4j`, `sqlalchemy` or `psycopg2` for Postgres).
@@ -146,6 +153,11 @@ graph LR
     2.  These methods might require new DAL functions (e.g., `neo4j_dal.find_voting_patterns(...)`). Implement these in the relevant DAL module (`dal/neo4j_dal.py`).
     3.  Expose the new feature via a new endpoint in the API layer (`api/query_router.py`).
 *   **Swapping Databases/Services:** The DAL provides the abstraction. If you wanted to swap Qdrant for Weaviate, you'd primarily rewrite `dal/qdrant_dal.py` to be `dal/weaviate_dal.py` (implementing the same method signatures) and update the client initialization in `core/`. Business logic is largely unaffected. Same for the embedding model via `EmbeddingService`.
+*   **Adding LLM-Based Knowledge Extraction (Phase 9):**
+    1.  Implement `KnowledgeExtractionService` responsible for calling the LLM API and parsing results.
+    2.  Add new methods to `Neo4j DAL` to handle merging extracted entities (Topics, Preferences) and relationships (`MENTIONS`, `STATES_PREFERENCE`).
+    3.  Modify `IngestionService` to call `KnowledgeExtractionService` after embedding and before finalizing DB writes. Use the extraction results to call the new Neo4j DAL methods.
+    4.  This isolates the LLM dependency and complex extraction logic within the new service and specific DAL updates.
 
 **Prototype Implementation:**
 
@@ -201,7 +213,8 @@ twincore_backend/
 │   ├── embedding_service.py   # Handles text embedding
 │   ├── ingestion_service.py   # Orchestrates data ingestion
 │   ├── retrieval_service.py   # Orchestrates data retrieval
-│   └── preference_service.py  # Orchestrates preference querying
+│   ├── preference_service.py  # Orchestrates preference querying
+│   └── knowledge_extraction_service.py # (Phase 9) Extracts knowledge via LLM
 │
 ├── tests/                     # Automated tests (mirrors source structure)
 │   ├── __init__.py

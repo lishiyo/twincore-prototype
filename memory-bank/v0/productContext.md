@@ -16,7 +16,9 @@ This document outlines the product goals, scope, features, and simulated context
 *   **Data:** Simulated historical documents and chat messages, plus data generated via API interactions during testing (uploads, chat).
 *   **API Focus:** Implementation and testing of core `ingest` (`/message`, `/document`), `retrieve` (`/context`, `/private_memory`), and `query` (`/user_preference`) endpoints.
 *   **UI:** A *minimal* Streamlit UI will be created solely for interaction and verification of the backend API during development. It is *not* the primary product focus.
-*   **Out of Scope (Prototype):** Real external data connectors (GDrive, GCal), complex NLP/inference for preferences (start with retrieval), sophisticated UI, advanced governance features, performance optimization, user authentication (assume IDs are passed correctly).
+*   **LLM extraction:** LLM-based extraction of topics, preferences, decisions, etc., from text content to enrich the knowledge graph; potentially more complex inference/query capabilities based on extracted knowledge.
+*   **Out of Scope (Initial Prototype - Phases 1-8):** Real external data connectors (GDrive, GCal), sophisticated UI, advanced governance features, performance optimization, user authentication (assume IDs are passed correctly).
+
 
 **3. Core Features (Backend API Endpoints):**
 
@@ -25,7 +27,7 @@ This document outlines the product goals, scope, features, and simulated context
 *   `POST /api/ingest/document`: Simulates file upload. Chunks text, stores in Qdrant/Neo4j with metadata (including privacy flag).
 *   `POST /api/retrieve/context`: Simulates Canvas Agent request. Retrieves relevant public/group context for a given session/project based on query text.
 *   `POST /api/retrieve/private_memory`: Simulates User->Twin chat/query. Retrieves context filtered *only* for the requesting user (and optional scope). Also ingests the user's query as a twin interaction.
-*   `POST /api/query/user_preference`: Simulates Canvas Agent request. Retrieves past statements/data relevant to a user's preference on a specific topic within a context.
+*   `POST /api/query/user_preference`: Simulates Canvas Agent request. Retrieves past statements/data relevant to a user's preference on a specific topic within a context. *(Accuracy enhanced in Phase 9+)*
 
 **4. Simulated Interaction Model (`separationStrategy.md`):**
 

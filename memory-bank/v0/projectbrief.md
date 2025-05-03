@@ -19,7 +19,8 @@ Tech Stack (python):
     *   Simulated historical data (docs/chat from past sessions/projects).
     *   Simulated API calls representing Canvas Agent needs.
     *   Minimal Streamlit UI for interaction and verification.
-    *   Focus on `ingest` and `retrieve` API logic.
+    *   Focus on `ingest` and `retrieve` API logic for the initial prototype (Phases 1-8).
+    *   Defer complex knowledge extraction (Topics, Preferences from text) to a later phase (Phase 9+).
 
 **II. Mocked Data & Constants**
 
@@ -99,10 +100,11 @@ for chunk in initial_data_chunks:
     *   `POST /api/ingest/document`: Simulates file upload. Accepts text content, `user_id`, `doc_name`, context (`project_id`, `session_id`), `is_private: bool`. Chunks the text (simple split for prototype), embeds chunks, stores in Qdrant with metadata (incl. `doc_id`), updates Neo4j.
     *   `POST /api/retrieve/context`: (Simulates Canvas Agent call) Takes `session_id`, `project_id`, `query_text`. Finds participants in Neo4j for the session, performs filtered Qdrant search across *all* relevant docs/messages in that session/project context. Returns ranked list of text chunks + metadata.
     *   `POST /api/retrieve/private_memory`: (Simulates User->Twin call) Takes `user_id`, `query_text`, optional `session_id`, `project_id` for scoping. Performs Qdrant search filtered *only* by `user_id` (+ optional scope), potentially boosting recent items or items from specified context. Returns ranked list. *Crucially, this endpoint also ingests the `query_text` as a twin chat message for the user.*
-    *   `POST /api/query/user_preference`: (Simulates Canvas Agent -> Twin call) Takes `user_id`, `session_id`, `project_id`, `decision_topic` (e.g., "LLM Choice", "Roadmap Priority"). Queries Neo4j/Qdrant for past statements, votes (if implemented), or relevant messages by that `user_id` related to the topic in the given context. Returns a summary or relevant snippets. (Could use an LLM here eventually, but start with retrieval).
+    *   `POST /api/query/user_preference`: (Simulates Canvas Agent -> Twin call) Takes `user_id`, `session_id`, `project_id`, `decision_topic`. Queries Neo4j/Qdrant for past statements/data by that `user_id` related to the topic in context. Returns relevant snippets. *(Relies on explicit data in prototype; enriched by LLM extraction in Phase 9+)*.
 *   **Internal Logic:**
-    *   **Ingestion:** Function to handle embedding, Qdrant upsert (vector + payload), and Neo4j MERGE operations for nodes and relationships based on metadata.
-    *   **Retrieval:** Functions to build Qdrant filters dynamically based on API parameters, perform searches, and potentially query Neo4j first for IDs (like session participants).
+    *   **Ingestion:** Function to handle embedding, Qdrant upsert, and Neo4j MERGE based on *provided* metadata. *(Phase 9 adds LLM extraction step before Neo4j MERGE)*.
+    *   **Retrieval:** Functions to build Qdrant filters dynamically, perform searches, potentially query Neo4j for IDs.
+    *   **(Phase 9) Knowledge Extraction:** Service to call LLM API, parse results (Topics, Prefs), and update Neo4j graph.
 
 **IV. Minimal UI (Streamlit App)**
 
@@ -127,19 +129,13 @@ for chunk in initial_data_chunks:
 
 **V. Development Steps & Verification**
 
-1.  **Setup:** Install tools, DBs. Create `twin_core_mock_data.py`.
-2.  **Backend API Shell:** Build FastAPI app, define Pydantic models, basic endpoint structure.
-3.  **DB Connection:** Add Qdrant/Neo4j client initialization.
-4.  **Implement Seeding:** Build `/api/seed_data` endpoint and the core ingestion logic (embed -> Qdrant upsert -> Neo4j MERGE). Run it once.
-5.  **Implement Ingestion Endpoints:** Build `/ingest/message` and `/ingest/document`.
-6.  **Implement Retrieval Endpoints:** Build `/retrieve/context`, `/retrieve/private_memory`, `/query/user_preference`. Focus on correct filtering and data retrieval logic.
-7.  **Build Streamlit UI:** Create the layout and widgets.
-8.  **Connect UI <-> Backend:** Use `requests` in Streamlit button callbacks to hit FastAPI endpoints. Display results.
-9.  **Test Scenarios:**
-    *   Select Alice. Ask Twin "What did I say about cover art?". Verify personal doc retrieval.
-    *   Ask Twin "What did Bob say about the roadmap?". Verify current session group chat retrieval *filtered by Bob*.
-    *   Simulate Canvas Agent: "Get Session Context" for "Roadmap". Verify group chat messages from Alice, Bob, Charlie are returned.
-    *   Simulate Canvas Agent: "Ask Twin Preference" for Alice about "Roadmap Priority". Verify it retrieves Alice's related statements (or lack thereof).
-    *   Upload a new "Private Document" as Bob. Ask Twin (as Bob) about it. Verify retrieval. Ask Twin (as Alice) about it. Verify it's *not* retrieved.
-    *   Verify twin chat history is ingested by asking the twin about something you just asked it.
-10. **Iterate:** Debug and refine based on test results.
+1.  **Setup (Phase 1):** Install tools, DBs via Docker. Create project structure, basic FastAPI app, config, testing setup.
+2.  **Core Models & DB Setup (Phase 2):** Define Pydantic models. Implement DB client initialization. Implement scripts/tests for Qdrant collection & Neo4j constraint creation.
+3.  **Embedding & Core DAL/Ingestion (Phase 3):** Implement `EmbeddingService`. Define DAL interfaces. Implement core Neo4j/Qdrant DAL methods (`MERGE`/`upsert`). Implement core `IngestionService` logic (orchestrating embedding & DAL calls based on metadata). Write Unit & Integration tests (DAL/Service levels).
+4.  **Seeding Endpoint (Phase 4):** Implement mock data module. Implement `seed_initial_data` in `IngestionService`. Create `/api/seed_data` endpoint. Write E2E test for seeding.
+5.  **Ingestion Endpoints (Phase 5):** Implement `/ingest/message` & `/ingest/document` endpoints and underlying service logic (including basic chunking). Write corresponding Service Int, API/Contract, E2E tests.
+6.  **Retrieval Endpoints (Phase 6):** Implement `RetrievalService` and necessary DAL filtering/query methods. Implement `/retrieve/context` & `/retrieve/private_memory` (including query ingestion). Write corresponding DAL Int, Service Int, API/Contract, E2E tests, focusing on filtering logic.
+7.  **Preference Endpoint (Phase 7):** Implement `PreferenceService` (simple retrieval). Implement `/query/user_preference` endpoint. Write corresponding tests.
+8.  **Verification UI (Phase 8):** Build minimal Streamlit app connecting to the API endpoints for manual verification.
+9.  **(Future) Knowledge Extraction (Phase 9):** Design extraction schema/prompts. Implement `KnowledgeExtractionService` (LLM calls). Update Neo4j DAL. Integrate into `IngestionService`. Write Unit, Integration, and E2E tests for extraction.
+10. **Test & Iterate:** Continuously test and refine based on results throughout all phases.

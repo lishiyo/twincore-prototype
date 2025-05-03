@@ -8,7 +8,8 @@ This document summarizes the technical aspects of the TwinCore backend prototype
 *   **Vector Database:** Qdrant (for semantic search)
 *   **Graph Database:** Neo4j (for relationship modeling)
 *   **Relational Database (Source of Truth/External):** Postgres (Initially mocked/read-only via DAL for core IDs like Users, Projects, Sessions provided by Dev A's system)
-*   **Embedding Model:** Sentence Transformers (OpenAI, abstracted via `EmbeddingService`)
+*   **Embedding Model:** Sentence Transformers (Specific model TBD, abstracted via `EmbeddingService`)
+*   **Knowledge Extraction LLM:** Gemini (or other suitable LLM, via `KnowledgeExtractionService` - Phase 9)
 *   **Named Entity Extraction:** Use Gemini flash
 *   **API Modeling:** Pydantic
 *   **Testing Framework:** `pytest`
@@ -19,7 +20,7 @@ This document summarizes the technical aspects of the TwinCore backend prototype
 
 *   **Pattern:** Layered Architecture (API Layer, Business Logic Layer, Data Access Layer, Ingestion Pipeline, Core Utilities)
 *   **API Layer (`api/`):** FastAPI routers, Pydantic models. Defines the contract for Dev A.
-*   **Service Layer (`services/`):** Business logic orchestration (Retrieval, Ingestion, Preference, Embedding). Uses Dependency Injection.
+*   **Service Layer (`services/`):** Business logic orchestration (Retrieval, Ingestion, Preference, Embedding). Uses Dependency Injection. Includes `KnowledgeExtractionService` (Phase 9) for LLM-based extraction.
 *   **Data Access Layer (DAL) (`dal/`):** **Crucial Abstraction.** Hides DB interaction specifics. Modules for Qdrant, Neo4j, and Shared Postgres (read-only interface to Dev A's data).
 *   **Ingestion Pipeline (`ingestion/`):** Modular design for handling data intake (API triggers initially, extensible for GDrive, GCal etc. via Connectors/Processors).
 *   **Core Utilities (`core/`):** DB Clients, Config, Logging.
