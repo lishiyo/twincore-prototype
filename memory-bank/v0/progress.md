@@ -2,6 +2,43 @@
 
 REMEMBER TO PUT YOUR LATEST UPDATE AT TOP!
 
+## Fri May  2 23:33:52 PDT 2025 - Completed Task 4.1: Mock Data Module
+
+## Changes since last update
+- Implemented the mock data module in `twincore_backend/core/mock_data.py`:
+  - Created core entity IDs for users (Alice, Bob, Charlie), projects, and sessions
+  - Defined sample data chunks representing various content types:
+    - Personal documents (private)
+    - Project documents
+    - Session transcripts
+    - Chat messages
+    - Twin interactions (private conversations with user twins)
+  - Added proper metadata including privacy flags and twin interaction indicators
+  - Included advanced examples with topic tagging for future knowledge extraction phases
+  - Created example search queries for testing
+  - Implemented helper functions to normalize chunks and retrieve user/project information
+  - Added comprehensive testing/display code for verification
+
+## Design decisions
+- Used UUIDs for all entity IDs to simulate real-world application
+- Added timestamps with appropriate historical distribution using datetime operations
+- Used consistent metadata structure across all chunks (with normalization)
+- Included both required fields from the project brief and additional fields for future phases
+- Created helper functions to make the data easier to work with in the application
+- Organized chunks by source context (personal, project, session) for clarity
+
+## Learnings
+- Proper metadata structure is essential for effective filtering and relationship modeling
+- The normalization function ensures consistent structure across all data chunks, reducing errors
+- Including example queries helps document intended usage patterns
+- The test output confirms data is structured correctly
+
+## Next steps
+- Implement seeding logic in the IngestionService (Task 4.2)
+- Create the seeding API endpoint (Task 4.3)
+- Write end-to-end tests for the seeding process (Task 4.4)
+
+
 ## Fri May  2 23:22:03 PDT 2025 - Completed Task 3.5: Ingestion Service (Core Logic)
 
 ## Changes since last update
@@ -41,7 +78,6 @@ REMEMBER TO PUT YOUR LATEST UPDATE AT TOP!
 - Add seeding functionality to Ingestion Service (Task 4.2)
 - Create seeding API endpoint (Task 4.3)
 - Write E2E tests for seeding (Task 4.4)
-
 
 ## Fri May  2 23:14:46 PDT 2025 - Completed Task 3.4: Qdrant DAL Implementation
 

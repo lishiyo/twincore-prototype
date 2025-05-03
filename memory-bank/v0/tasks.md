@@ -101,10 +101,10 @@ This document outlines the development tasks for building the TwinCore backend p
 
 ## Phase 4: Seeding Endpoint (`/api/seed_data`)
 
-- [ ] **Task 4.1: Mock Data Module**
-    - [ ] Steps:
-        - [ ] Create `core/mock_data.py` based on [PRD](./projectbrief.md).
-    - [ ] Dependencies: None
+- [x] **Task 4.1: Mock Data Module**
+    - [x] Steps:
+        - [x] Create `core/mock_data.py` based on [PRD](./projectbrief.md).
+    - [x] Dependencies: None
 
 - [ ] **Task 4.2: Seeding Logic in Ingestion Service** (D: 3.5, 4.1)
     - [ ] Steps:
