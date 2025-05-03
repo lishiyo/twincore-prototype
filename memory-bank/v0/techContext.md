@@ -32,7 +32,7 @@ This document summarizes the technical aspects of the TwinCore backend prototype
     *   Payload includes: `chunk_id`, `text_content`, `source_type`, `timestamp`, foreign keys (`user_id`, `session_id`, `project_id`, `doc_id`, `message_id`), flags (`is_twin_interaction`, `is_private`), and optional future fields.
 *   **Neo4j:**
     *   Models relationships between `User`, `Project`, `Session`, `Document`, `Message` nodes (initially).
-    *   Future nodes: `Preference`, `Topic`, `Vote`, `Organization`, `Team`.
+    *   Also nodes: `Preference`, `Topic`, `Vote`, `Organization`, `Team`.
     *   Relationships capture participation, authorship, upload source, context, etc. (`PARTICIPATED_IN`, `AUTHORED`, `UPLOADED`, `POSTED_IN`, `PART_OF`).
 *   **Postgres (Shared/Mocked):** Provides canonical IDs for `User`, `Project`, `Session`. Accessed via `DAL_Postgres_Shared`.
 

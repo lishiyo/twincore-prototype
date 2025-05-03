@@ -83,26 +83,29 @@ graph TD
 
 **Key API Contract: Digital Twin API (Examples)**
 
-*(Endpoints Dev B builds, Dev A calls)*
+*(Endpoints Dev B builds, Dev A calls. NOTE: These examples illustrate the core interactions. Formal Pydantic models should be defined in `api/models.py` for robust validation. Authentication/Authorization via tokens will be necessary.)*
+
+**IMPORTANT**: See [api.md](./api.md) for the detailed api.
 
 *   `POST /v1/ingest/message`
-    *   Body: `{ "user_id": "uuid", "session_id": "uuid", "project_id": "uuid", "message_text": "...", "timestamp": "isoformat", ... }`
-    *   Action: Ingests the message, creates embeddings, stores in Qdrant, updates Neo4j relationships.
-*   `POST /v1/ingest/document_chunk`
-    *   Body: `{ "user_id": "uuid | null", "doc_id": "uuid", "project_id": "uuid | null", "chunk_text": "...", "metadata": {...}, ... }`
-    *   Action: Ingests document chunk.
+    *   Body: `{ "user_id": "uuid", "session_id": "uuid", "project_id": "uuid" (optional, can be derived from session), "message_id": "uuid" (optional, source system ID), "message_text": "...", "timestamp": "isoformat", ... }`
+    *   Action: Ingests the message, creates embeddings, stores in Qdrant, updates Neo4j relationships. Requires `user_id` and `session_id`.
+*   `POST /v1/ingest/document`
+    *   Body: `{ "user_id": "uuid", "doc_id": "uuid", "project_id": "uuid | null", "session_id": "uuid | null", "text": "...", "metadata": {...}, ... }`
+    *   Action: Ingests document. Requires `user_id` and `doc_id`. Requires at least one of `project_id` or `session_id` to provide context. Document text will be chunked by this service.
 *   `GET /v1/retrieve/context`
-    *   Params: `user_id=uuid`, `session_id=uuid | null`, `project_id=uuid | null`, `query_text=str`, `limit=int`
-    *   Action: Performs combined Qdrant/Neo4j search based on scope and semantic query.
-    *   Response: `[{ "chunk_id": "uuid", "text": "...", "score": float, "metadata": {...} }, ...]`
+    *   Params: `user_id=uuid`, `session_id=uuid | null`, `project_id=uuid | null`, `query=str`, `limit=int`
+    *   Action: Performs combined Qdrant/Neo4j search based on scope and semantic query. Requires `user_id`.
+    *   Response: `[{ "chunk_id": "uuid", "text": "...", "score": float, "metadata": {"source_doc_id": "uuid", ...} }, ...]` (Structure defined by Pydantic model).
 *   `GET /v1/retrieve/preferences`
     *   Params: `user_id=uuid`, `project_id=uuid | null`, `topic=str | null`
-    *   Action: Queries Neo4j/Postgres/Qdrant for explicit preferences or relevant voting history.
-    *   Response: `{ "explicit": [...], "inferred_from_votes": [...], "relevant_statements": [...] }`
-*   `GET /v1/query/group`
-    *   Params: `session_id=uuid | project_id=uuid`, `topic=str`, `metadata=object`
-    *   Action: Queries Neo4j/Qdrant across participants in the scope to find relevant experience, preferences, memories.
-    *   Response: `[{ "user_id": "uuid", "evidence_snippets": [...] }, ...]`
+    *   Action: Queries Neo4j/Postgres/Qdrant for explicit preferences or relevant voting history. Requires `user_id`.
+    *   Response: `{ "explicit": [...], "inferred_from_votes": [...], "relevant_statements": [...] }` (Structure defined by Pydantic models).
+*   `GET /v1/retrieve/group`
+    *   Params: Exactly one of `session_id=uuid` OR `project_id=uuid` OR `team_id=uuid`, plus `query=str` and optional `metadata`.
+    *   Action: Queries Neo4j/Qdrant across participants in the specified scope to find relevant experience, preferences, or memories; the filtering can be in the `metadata`.
+    *   Response: `[{ "user_id": "uuid", "results": [{ "chunk_id": "uuid", ... }] }, ...]` (Structure defined by Pydantic models).
+
 
 **Workflow & Communication:**
 
