@@ -10,9 +10,64 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 
 ---
 
-## 1. Ingestion Endpoints
+## 1. Admin Endpoints
 
-### 1.1 Ingest Message
+### 1.1 Seed Data
+
+*   **Endpoint:** `POST /admin/api/seed_data`
+*   **Description:** Seeds the system with initial mock data for testing and demonstration purposes.
+*   **Request Body:** None
+*   **Responses:**
+    *   `202 Accepted`: Seeding operation started.
+      ```json
+      {
+        "status": "success",
+        "message": "Successfully seeded X items",
+        "data": {
+          "total": 15,
+          "counts_by_type": {
+            "message": 8,
+            "document_chunk": 7
+          }
+        }
+      }
+      ```
+    *   `500 Internal Server Error`: If seeding operation fails. Details in response body.
+    *   `401 Unauthorized`: Missing or invalid authentication token.
+
+### 1.2 Clear Data
+
+*   **Endpoint:** `POST /admin/api/clear_data`
+*   **Description:** Clears all data from the system. This is a destructive operation useful for testing, development, or resetting the system to a clean state.
+*   **Request Body:** None
+*   **Responses:**
+    *   `202 Accepted`: Clearing operation started.
+      ```json
+      {
+        "status": "success",
+        "message": "All data successfully cleared",
+        "data": {
+          "details": {
+            "neo4j": {
+              "nodes_deleted": 25,
+              "relationships_deleted": 40
+            },
+            "qdrant": {
+              "vectors_deleted": 30,
+              "collection": "twin_memory"
+            }
+          }
+        }
+      }
+      ```
+    *   `500 Internal Server Error`: If clearing operation fails. Details in response body.
+    *   `401 Unauthorized`: Missing or invalid authentication token.
+
+---
+
+## 2. Ingestion Endpoints
+
+### 2.1 Ingest Message
 
 *   **Endpoint:** `POST /ingest/message`
 *   **Description:** Ingests a single message into the user's memory within a specific session context. The service handles embedding and storage.
@@ -40,7 +95,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `401 Unauthorized`: Missing or invalid authentication token.
     *   `422 Unprocessable Entity`: Validation error (FastAPI default).
 
-### 1.2 Ingest Document (Text Content)
+### 2.2 Ingest Document (Text Content)
 
 *   **Endpoint:** `POST /ingest/document`
 *   **Description:** Ingests **pre-extracted text content** of a document. The service handles chunking, embedding, and storage, associating it with the user and appropriate context (project/session). Use this when the calling service already has the document's text.
@@ -71,7 +126,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `401 Unauthorized`: Missing or invalid authentication token.
     *   `422 Unprocessable Entity`: Validation error.
 
-### 1.3 Ingest Document (File Upload)
+### 2.3 Ingest Document (File Upload)
 
 *   **Endpoint:** `POST /ingest/document/upload`
 *   **Description:** Ingests a document by **direct file upload**. The service handles file reading, text extraction (if necessary, e.g., for PDF), chunking, embedding, and storage.
@@ -101,9 +156,9 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 
 ---
 
-## 2. Retrieval Endpoints
+## 3. Retrieval Endpoints
 
-### 2.1 Retrieve Context
+### 3.1 Retrieve Context
 
 *   **Endpoint:** `GET /retrieve/context`
 *   **Description:** Retrieves relevant text chunks based on a semantic query within a specified user and scope (project/session).
@@ -141,7 +196,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `401 Unauthorized`: Missing or invalid authentication token.
     *   `404 Not Found`: If specified `user_id`, `session_id`, or `project_id` do not exist (optional check).
 
-### 2.2 Retrieve Preferences
+### 3.2 Retrieve Preferences
 
 *   **Endpoint:** `GET /retrieve/preferences`
 *   **Description:** Retrieves known preferences for a user, potentially filtered by project or topic. Combines explicit statements, inferred preferences, and relevant chat history.
@@ -173,7 +228,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `400 Bad Request`: Missing required query parameter (`user_id`).
     *   `401 Unauthorized`: Missing or invalid authentication token.
 
-### 2.3 Retrieve Group Context
+### 3.3 Retrieve Group Context
 
 *   **Endpoint:** `GET /retrieve/group`
 *   **Description:** Retrieves relevant information (experiences, preferences, or memories) from multiple participants within a defined group scope (session, project, or team) based on a query.

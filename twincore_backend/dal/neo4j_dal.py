@@ -43,6 +43,68 @@ class Neo4jDAL(INeo4jDAL):
         # Driver is guaranteed to be initialized by __init__
         return self._driver
 
+    async def delete_all_data(self) -> Dict[str, Any]:
+        """Delete all nodes and relationships from the database (async).
+        
+        This is a destructive operation that removes all nodes and relationships.
+        Use with caution - generally only for testing, development, or resetting.
+        
+        Returns:
+            Dict: Information about what was deleted
+            
+        Raises:
+            ClientError, DatabaseError, ServiceUnavailable: If Neo4j errors occur
+            Exception: For any other unexpected errors
+        """
+        try:
+            driver = self.driver
+            
+            # Cypher query to get counts before deletion
+            count_query = """
+            MATCH (n)
+            RETURN count(n) as nodeCount
+            """
+            
+            # Cypher query to get relationship count before deletion
+            rel_count_query = """
+            MATCH ()-[r]->()
+            RETURN count(r) as relationshipCount
+            """
+            
+            # Cypher query to delete all relationships first, then all nodes
+            delete_query = """
+            MATCH (n)
+            DETACH DELETE n
+            """
+            
+            # Run the queries
+            async with driver.session() as session:
+                # Get current node count
+                count_result = await session.run(count_query)
+                node_count_record = await count_result.single()
+                node_count = node_count_record["nodeCount"] if node_count_record else 0
+                
+                # Get current relationship count
+                rel_count_result = await session.run(rel_count_query)
+                rel_count_record = await rel_count_result.single()
+                rel_count = rel_count_record["relationshipCount"] if rel_count_record else 0
+                
+                # Execute the deletion
+                await session.run(delete_query)
+                
+                # Return information about the deletion
+                return {
+                    "nodes_deleted": node_count,
+                    "relationships_deleted": rel_count
+                }
+                
+        except (ServiceUnavailable, ClientError, DatabaseError) as e:
+            logger.error(f"Neo4j error deleting all data: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error deleting all data: {str(e)}")
+            raise
+
     async def create_node_if_not_exists(
         self,
         label: str,

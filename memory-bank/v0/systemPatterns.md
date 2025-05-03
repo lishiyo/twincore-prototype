@@ -34,6 +34,7 @@ graph LR
             Service_Retrieval[RetrievalService]
             Service_Ingestion[IngestionService]
             Service_DataSeeder[DataSeederService]
+            Service_DataManagement[DataManagementService]
             Service_Preference[PreferenceService]
             Service_Embedding[EmbeddingService]
             Service_KnowledgeExtract[KnowledgeExtractionService]
@@ -76,10 +77,14 @@ graph LR
     Router_Retrieve -- Uses --> Service_Retrieval;
     Router_Query -- Uses --> Service_Preference; %% And potentially Service_Retrieval
     Router_Admin -- Uses --> Service_DataSeeder;
+    Router_Admin -- Uses --> Service_DataManagement;
     Router_Ingest & Router_Retrieve & Router_Query & Router_Admin -- Use --> Models_Pydantic;
 
     Service_DataSeeder -- Uses --> Service_Ingestion;
     Service_DataSeeder -- Reads From --> Mock_Data;
+    
+    Service_DataManagement -- Uses --> DAL_Qdrant;
+    Service_DataManagement -- Uses --> DAL_Neo4j;
     
     Service_Ingestion -- Calls --> Service_KnowledgeExtract;
     Service_Ingestion -- Uses --> Service_Embedding;
@@ -121,7 +126,7 @@ graph LR
     PG_Shared -- Read By --> DAL_Postgres_Shared;
 
     %% Dependencies %%
-    Service_Retrieval & Service_Ingestion & Service_Preference & Service_Embedding & Service_DataSeeder & Service_KnowledgeExtract --> Config & Logging;
+    Service_Retrieval & Service_Ingestion & Service_Preference & Service_Embedding & Service_DataSeeder & Service_DataManagement & Service_KnowledgeExtract --> Config & Logging;
     DAL_Qdrant & DAL_Neo4j & DAL_Postgres_Shared & DAL_Postgres_Twin --> Config & Logging;
 
 ```
@@ -139,6 +144,7 @@ graph LR
         *   `EmbeddingService`: Abstracts sentence-transformer/LLM embedding model. `get_embedding(text)` method.
         *   `IngestionService`: Coordinates getting data -> embedding -> optional knowledge extraction -> calling DAL methods (`upsert_vector`, `create_node`, `create_relationship`, `merge_extracted_knowledge`).
         *   `DataSeederService`: Responsible for seeding the system with mock or custom data. Uses `IngestionService` to handle the actual data ingestion, maintaining a clean separation of concerns.
+        *   `DataManagementService`: Manages administrative operations on the system's data stores, such as clearing all data from Qdrant and Neo4j. Ensures data integrity across multiple databases.
         *   `RetrievalService`: Coordinates getting context IDs -> building filters -> calling semantic search -> potentially enriching with data from Postgres DAL.
         *   `PreferenceService`: Logic for interpreting preferences from retrieved data.
         *   `KnowledgeExtractionService`: (Phase 9) Calls external LLM API to extract structured information (topics, preferences, etc.) from text. Parses the result.
@@ -240,6 +246,7 @@ twincore_backend/
 │   ├── embedding_service.py   # Handles text embedding
 │   ├── ingestion_service.py   # Orchestrates data ingestion
 │   ├── data_seeder_service.py # Coordinates seeding of initial and custom data
+│   ├── data_management_service.py # Manages administrative operations on data stores
 │   ├── retrieval_service.py   # Orchestrates data retrieval
 │   ├── preference_service.py  # Orchestrates preference querying
 │   └── knowledge_extraction_service.py # (Phase 9) Extracts knowledge via LLM

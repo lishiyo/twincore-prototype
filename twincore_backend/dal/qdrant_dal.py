@@ -47,6 +47,53 @@ class QdrantDAL(IQdrantDAL):
         """
         return self._client
 
+    async def delete_all_vectors(self) -> Dict[str, Any]:
+        """Delete all vectors from the Qdrant collection.
+        
+        This is a destructive operation that removes all vectors.
+        Use with caution - generally only for testing, development, or resetting.
+        
+        Returns:
+            Dict: Information about what was deleted
+            
+        Raises:
+            UnexpectedResponse: If Qdrant errors occur
+            Exception: For any other unexpected errors
+        """
+        try:
+            logger.info(f"Deleting all vectors from collection {self._collection_name}")
+            
+            # First, count how many vectors we have
+            count_result = await self._client.count(
+                collection_name=self._collection_name
+            )
+            total_vectors = count_result.count
+            
+            # Use an empty filter to match all points
+            empty_filter = models.Filter()
+            points_selector = models.FilterSelector(filter=empty_filter)
+            
+            # Delete all points
+            await self._client.delete(
+                collection_name=self._collection_name,
+                points_selector=points_selector,
+                wait=True
+            )
+            
+            logger.info(f"Successfully deleted all {total_vectors} vectors from collection {self._collection_name}")
+            
+            return {
+                "vectors_deleted": total_vectors,
+                "collection": self._collection_name
+            }
+            
+        except UnexpectedResponse as e:
+            logger.error(f"Qdrant error deleting all vectors: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error deleting all vectors: {str(e)}")
+            raise
+
     async def upsert_vector(
         self,
         chunk_id: str,

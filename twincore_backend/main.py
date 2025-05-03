@@ -8,6 +8,7 @@ from dal.neo4j_dal import Neo4jDAL
 from services.embedding_service import EmbeddingService
 from services.ingestion_service import IngestionService
 from services.data_seeder_service import DataSeederService
+from services.data_management_service import DataManagementService
 from api.routers import admin_router
 
 app = FastAPI(
@@ -53,11 +54,23 @@ async def get_data_seeder_service(
     """Create and cache the DataSeederService."""
     return DataSeederService(ingestion_service=ingestion_service)
 
+@lru_cache
+async def get_data_management_service(
+    qdrant_dal: QdrantDAL = Depends(get_qdrant_dal),
+    neo4j_dal: Neo4jDAL = Depends(get_neo4j_dal)
+) -> DataManagementService:
+    """Create and cache the DataManagementService."""
+    return DataManagementService(
+        qdrant_dal=qdrant_dal,
+        neo4j_dal=neo4j_dal
+    )
+
 # Register routers
 app.include_router(admin_router.router)
 
 # Set up application-level dependency overrides
 app.dependency_overrides[admin_router.get_data_seeder_service] = get_data_seeder_service
+app.dependency_overrides[admin_router.get_data_management_service] = get_data_management_service
 
 @app.get("/")
 async def root():

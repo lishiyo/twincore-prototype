@@ -1,4 +1,4 @@
-# TwinCore Active Context - Fri May  2 23:49:19 PDT 2025
+# TwinCore Active Context - Fri May  3 00:17:36 PDT 2025
 
 ## Current Work Focus
 - Implementing TwinCore backend prototype
@@ -16,7 +16,8 @@
 - Completed Task 3.5: Core Ingestion Service Logic
 - Completed Task 4.1: Mock Data Module
 - Completed Task 4.2: Seeding Logic (implemented via dedicated DataSeederService)
-- Moving to Task 4.3: Seeding API Endpoint
+- Completed Task 4.3: Seeding API Endpoint (with data clearing capability)
+- Moving to Task 4.4: Seeding End-to-End Test
 
 ## Project State
 ### What's Working
@@ -54,6 +55,14 @@
   - Takes IngestionService as dependency
   - Methods for seeding initial mock data and custom data
   - Comprehensive tests with mocked dependencies
+- Admin API Router with endpoints for system operations:
+  - `POST /v1/admin/api/seed_data` for initializing the system with mock data
+  - `POST /v1/admin/api/clear_data` for clearing all data from the system
+  - Tests for both success and error cases
+- DataManagementService for system-wide database operations:
+  - Method for coordinating data clearing across all databases
+  - Proper separation of concerns from seeding functionality
+  - Tests with mocked dependencies
 
 ### What's Broken
 - Nothing currently broken
@@ -79,7 +88,10 @@
 - Verified Qdrant client 1.7.0 works with server 1.7.4; adjusted `delete_vectors` implementation for compatibility
 - Created a coordinated ingestion pipeline through the IngestionService
 - Created comprehensive mock data representing the prototype's requirements
-- **Created a dedicated `DataSeederService` to separate seeding concerns from the `IngestionService`, adhering to the Single Responsibility Principle.**
+- Created a dedicated `DataSeederService` to separate seeding concerns from the `IngestionService`, adhering to the Single Responsibility Principle
+- Created a dedicated `DataManagementService` for operations that affect system-wide data state
+- Using application-level dependency overrides in FastAPI for cleaner dependency injection
+- Standardized API path convention to use `/v1` prefix for all endpoints
 
 ## Tech Stack
 - Backend: FastAPI (Python)
@@ -92,6 +104,5 @@
 - Qdrant Client: 1.7.0
 
 ## Next Steps
-- Implement Seeding API Endpoint (Task 4.3)
-- Write E2E tests for seeding (Task 4.4)
+- Implement End-to-End tests for seeding (Task 4.4)
 - Move on to Phase 5: Ingestion Endpoints (`/api/ingest/*`)

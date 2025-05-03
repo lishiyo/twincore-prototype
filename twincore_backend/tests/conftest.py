@@ -21,8 +21,13 @@ mock_data_seeder_instance = AsyncMock()
 mock_data_seeder_instance.seed_initial_data = AsyncMock()
 mock_data_seeder_service.return_value = mock_data_seeder_instance
 
+# Create mock for data management service
+mock_data_management_instance = AsyncMock()
+mock_data_management_instance.clear_all_data = AsyncMock()
+
 # Set up app-level dependency overrides - this is the key fix
 app.dependency_overrides[admin_router.get_data_seeder_service] = lambda: mock_data_seeder_instance
+app.dependency_overrides[admin_router.get_data_management_service] = lambda: mock_data_management_instance
 
 
 @pytest.fixture
@@ -37,6 +42,14 @@ def mock_seed_data():
     # Reset any side effects before each test
     mock_data_seeder_instance.seed_initial_data.reset_mock()
     return mock_data_seeder_instance.seed_initial_data
+
+
+@pytest.fixture
+def mock_clear_data():
+    """Return the mock for clear_all_data method."""
+    # Reset any side effects before each test
+    mock_data_management_instance.clear_all_data.reset_mock()
+    return mock_data_management_instance.clear_all_data
 
 
 @pytest.fixture(autouse=True)
