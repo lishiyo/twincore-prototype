@@ -2,39 +2,59 @@
 
 REMEMBER TO PUT YOUR LATEST UPDATE AT TOP!
 
-## Fri May  2 19:58:57 PDT 2025
+## Fri May  2 20:22:01 PDT 2025 - Completed Task 3.2: DAL Interfaces
 
-### Changes
-- Completed Task 3.1: Embedding Service
-  - Added OpenAI to requirements.txt
-  - Created `services/embedding_service.py` with the `EmbeddingService` class
-  - Implemented async `get_embedding` method with the following features:
-    - Support for single text or lists of texts
-    - Proper error handling for empty/invalid inputs
-    - Uses OpenAI embeddings API with "text-embedding-ada-002" model
-    - Returns embeddings in the format required for Qdrant
-  - Added proper exception classes for embedding-related errors
-    - `EmbeddingServiceError` as base class
-    - `ModelConfigurationError` for API key and model issues
-    - `EmbeddingProcessError` for embedding generation errors
-  - Created comprehensive unit tests in `tests/services/test_embedding_service.py`
-    - Tests for initialization with default and custom parameters
-    - Tests for successful embedding generation (single and multiple texts)
-    - Tests for error handling (empty input, invalid input, API errors)
-    - Used AsyncMock to properly test async methods
+## Changes since last update
+- Defined abstract base classes for all three database types in `twincore_backend/dal/interfaces.py`:
+  - `IQdrantDAL`: Interface for vector database operations, with methods for upserting, searching, and deleting vectors
+  - `INeo4jDAL`: Interface for graph database operations, with methods for creating nodes, relationships, and retrieving context data
+  - `IPostgresSharedDAL`: Read-only interface for interacting with the shared Postgres database
 
-### Commands
-- `cd twincore_backend && pip install openai` - Install OpenAI dependency
-- `cd twincore_backend && python -m pytest tests/services/test_embedding_service.py -v` - Run embedding service tests
+## Design decisions
+- Using Python's ABC (Abstract Base Class) approach for defining interfaces
+- All interface methods defined as asynchronous (async/await) for consistent async pattern throughout the application
+- Comprehensive method signatures with detailed typing information using Python's typing module
+- Clear documentation for all methods with Args and Returns sections
+- Thoughtful default parameters to simplify common use cases
+- Designed interfaces that capture the core functionality needed while keeping implementation details hidden
 
-### Errors & Learnings
-- Learned to properly mock async API calls using AsyncMock instead of regular MagicMock
-- Ensured test isolation by using proper mocking for the OpenAI client
-- Used robust error handling for all potential failure points in the embedding process
+## Next steps
+- Implement Neo4j DAL (Task 3.3) - the concrete implementation of the INeo4jDAL interface
+- Write integration tests for Neo4j DAL implementation
+- Ensure proper error handling and connection management
 
-### Next Steps
-- Continue with Task 3.2: DAL Interfaces
-- Define interfaces/protocols for Qdrant and Neo4j DALs in `dal/interfaces.py`
+## Fri May  2 19:58:57 PDT 2025 - Completed Task 3.1: Embedding Service
+
+## Changes since last update
+- Implemented the `EmbeddingService` in `twincore_backend/services/embedding_service.py`:
+  - Created an async interface for generating embeddings using OpenAI's API
+  - Implemented comprehensive error handling for various failure scenarios
+  - Added caching of model information to reduce API calls
+  - Added an `EmbeddingError` class for custom error handling
+- Added unit tests for the embedding service in `tests/services/test_embedding_service.py`:
+  - Tests for successful embedding generation
+  - Tests for different error cases
+  - Tests for proper class initialization
+  - Mocked OpenAI responses for testing
+- Updated requirements to include OpenAI client library
+
+## Design decisions
+- Using OpenAI's text-embedding-ada-002 as the default embedding model
+- Implementing asynchronous methods for better scalability
+- Setting up proper error handling and custom exceptions
+- Following the single responsibility principle - the service only handles embedding generation
+- Using environment variables for API key and model configuration
+- Setting proper dimensions and error handling
+
+## Learnings
+- OpenAI's embeddings API returns normalized vectors by default
+- The embedding dimensions for "text-embedding-ada-002" model is 1536
+- Added proper error handling for rate limits, invalid inputs, and other potential failures
+- Performance considerations: batch embedding requests when possible in future enhancements
+
+## Next steps
+- Define DAL Interfaces (Task 3.2)
+- Implement Neo4j DAL (Task 3.3)
 
 ## Fri May  2 19:49:59 PDT 2025
 

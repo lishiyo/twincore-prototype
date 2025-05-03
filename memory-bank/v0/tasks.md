@@ -65,17 +65,17 @@ This document outlines the development tasks for building the TwinCore backend p
 
 ## Phase 3: Embedding & Core Ingestion Logic
 
-- [ ] **Task 3.1: Embedding Service** (D: 1.1)
-    - [ ] Steps:
-        - [ ] Add openai to `requirements.txt` for the embedding model. Install.
-        - [ ] Create `services/embedding_service.py`.
-        - [ ] Implement `EmbeddingService` class (loads model from config, `get_embedding` method).
-        - [ ] [Unit] Write unit tests mocking model loading, verify method signature and error handling.
+- [x] **Task 3.1: Embedding Service** (D: 1.1)
+    - [x] Steps:
+        - [x] Add openai to `requirements.txt` for the embedding model. Install.
+        - [x] Create `services/embedding_service.py`.
+        - [x] Implement `EmbeddingService` class (loads model from config, `get_embedding` method).
+        - [x] [Unit] Write unit tests mocking model loading, verify method signature and error handling.
 
-- [ ] **Task 3.2: DAL Interfaces (ABCs/Protocols)**
-    - [ ] Steps:
-        - [ ] Define interfaces in `dal/interfaces.py` (`IQdrantDAL`, `INeo4jDAL`) outlining core methods.
-    - [ ] Dependencies: None
+- [x] **Task 3.2: DAL Interfaces (ABCs/Protocols)**
+    - [x] Steps:
+        - [x] Define interfaces in `dal/interfaces.py` (`IQdrantDAL`, `INeo4jDAL`) outlining core methods.
+    - [x] Dependencies: None
 
 - [ ] **Task 3.3: Neo4j DAL Implementation (Core)** (D: 1.3, 2.2, 2.4, 3.2)
     - [ ] Steps:
