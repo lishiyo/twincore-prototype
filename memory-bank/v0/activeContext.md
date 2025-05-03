@@ -1,4 +1,4 @@
-# TwinCore Active Context - Fri May  2 19:49:59 PDT 2025
+# TwinCore Active Context - Fri May  2 19:58:57 PDT 2025
 
 ## Current Work Focus
 - Implementing TwinCore backend prototype
@@ -9,8 +9,8 @@
 - Completed Task 2.2: Database Client Initialization
 - Completed Task 2.3: Qdrant Collection Setup
 - Completed Task 2.4: Neo4j Constraints Setup
-- Refactored database setup code into modular structure
-- Moving to Task 3.1: Embedding Service
+- Completed Task 3.1: Embedding Service
+- Moving to Task 3.2: DAL Interfaces (ABCs/Protocols)
 
 ## Project State
 ### What's Working
@@ -27,6 +27,7 @@
   - Qdrant collection setup (`qdrant_setup.py`)
   - Neo4j constraint setup (`neo4j_setup.py`) for all entity types
 - Testing environment with properly configured test databases
+- OpenAI-based Embedding Service with proper error handling and tests
 
 ### What's Broken
 - Nothing currently broken
@@ -44,16 +45,18 @@
 - Using latest Neo4j 5.15.0 with proper configuration parameters
 - Refactored code to have smaller, more focused modules (< 500 lines)
 - Removed synchronous client code in favor of fully async implementations
+- Using OpenAI for embedding generation with default model "text-embedding-ada-002"
 
 ## Tech Stack
 - Backend: FastAPI (Python)
 - Vector DB: Qdrant (configured via Docker)
 - Graph DB: Neo4j (configured via Docker)
-- Embedding: Sentence Transformers (not yet implemented - assumed size 384 for Qdrant)
+- Embedding: OpenAI (text-embedding-ada-002)
 - Knowledge Extraction: Gemini (Phase 9)
 - Testing: pytest, httpx, pytest-asyncio, pytest-mock, pytest-cov, Schemathesis
 - Configuration: pydantic-settings with environment variables
 
 ## Next Steps
-- Set up Embedding Service (Task 3.1)
-- Start implementing core ingestion logic
+- Define DAL Interfaces (Task 3.2)
+- Implement Neo4j DAL (Task 3.3) and Qdrant DAL (Task 3.4)
+- Develop core ingestion logic (Task 3.5)
