@@ -83,11 +83,13 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] Implement `create_node_if_not_exists`, `create_relationship_if_not_exists` using Cypher MERGE/CREATE.
         - [x] [DAL Int] Write integration tests against test Neo4j: test node/relationship creation, properties, idempotency, cleanup.
 
-- [ ] **Task 3.4: Qdrant DAL Implementation (Core)** (D: 1.3, 2.2, 2.3, 3.2)
-    - [ ] Steps:
-        - [ ] Create `dal/qdrant_dal.py` implementing `IQdrantDAL`.
-        - [ ] Implement `upsert_vector`, basic `search_vectors`.
-        - [ ] [DAL Int] Write integration tests against test Qdrant: test upsert, payload verification, basic search, cleanup.
+- [x] **Task 3.4: Qdrant DAL Implementation (Core)** (D: 1.3, 2.2, 2.3, 3.2)
+    - [x] Steps:
+        - [x] Create `dal/qdrant_dal.py` implementing `IQdrantDAL`.
+        - [x] Implement `upsert_vector`, basic `search_vectors`.
+        - [x] [DAL Int] Write integration tests against test Qdrant: test upsert, payload verification, basic search, cleanup.
+        - [x] Implement `delete_vectors`.
+        - [x] [DAL Int] Write integration tests against test Qdrant: test delete, verification, cleanup.
 
 - [ ] **Task 3.5: Ingestion Service (Core Logic)** (D: 3.1, 3.3, 3.4)
     - [ ] Steps:
@@ -148,81 +150,4 @@ This document outlines the development tasks for building the TwinCore backend p
 
 - [ ] **Task 6.1: Retrieval Service & DAL Methods** (D: 3.3, 3.4, Phase 4)
     - [ ] Steps:
-        - [ ] Define & Implement retrieval methods in `dal/interfaces.py`, `dal/neo4j_dal.py`, `dal/qdrant_dal.py` (e.g., `get_session_participants`, `search_with_filters`). Focus on filter logic.
-        - [ ] Create `services/retrieval_service.py`. Implement `RetrievalService` taking DAL dependencies.
-        - [ ] Implement core logic (`retrieve_session_context`, `retrieve_private_memory`).
-        - [ ] [TDD Steps]:
-            - [ ] [DAL Int] Test new DAL retrieval/filtering methods thoroughly.
-            - [ ] [Service Int] Test `RetrievalService`, mocking DALs, verify filter construction & data flow.
-
-- [ ] **Task 6.2: Retrieve Context Endpoint** (D: 2.1, 6.1)
-    - [ ] Steps:
-        - [ ] Create `api/routers/retrieve_router.py`. Define `POST /api/retrieve/context`. Use Pydantic models. Inject `RetrievalService`. Register router.
-        - [ ] [TDD Steps]:
-            - [ ] [API/Contract] Test endpoint schema/status.
-            - [ ] [E2E] Seed data, call endpoint (various scopes/queries), verify returned chunks match DB state.
-
-- [ ] **Task 6.3: Retrieve Private Memory Endpoint** (D: 5.1, 6.2)
-    - [ ] Steps:
-        - [ ] Implement dual logic in the endpoint: ingest query via `IngestionService`, then retrieve via `RetrievalService` with strict user/privacy filtering.
-        - [ ] Define `POST /api/retrieve/private_memory` endpoint in `retrieve_router.py`.
-        - [ ] [TDD Steps]:
-            - [ ] [Service Int] Update tests for `IngestionService` (twin interaction type) & `RetrievalService` (private filtering).
-            - [ ] [API/Contract] Test endpoint schema/status.
-            - [ ] [E2E] Seed public/private data, call endpoint as different users, verify query ingestion AND correct data/privacy filtering in results.
-
----
-
-## Phase 7: Preference Endpoint (`/api/query/user_preference`)
-
-- [ ] **Task 7.1: Preference Service & DAL Methods** (D: 6.1)
-    - [ ] Steps:
-        - [ ] Define & Implement necessary DAL methods for finding user statements/messages related to a topic (simple retrieval focus for prototype).
-        - [ ] Create `services/preference_service.py`. Implement `PreferenceService`.
-        - [ ] Implement `query_user_preference(user_id, topic, scope)` logic.
-        - [ ] [TDD Steps]:
-            - [ ] [DAL Int] Test preference-related DAL queries.
-            - [ ] [Service Int] Test `PreferenceService` logic.
-
-- [ ] **Task 7.2: User Preference Endpoint** (D: 7.1)
-    - [ ] Steps:
-        - [ ] Create `api/routers/query_router.py`. Define `POST /api/query/user_preference`. Use Pydantic models. Inject `PreferenceService`. Register router.
-        - [ ] [TDD Steps]:
-            - [ ] [API/Contract] Test endpoint schema/status.
-            - [ ] [E2E] Seed relevant data, call endpoint, verify correct snippets are returned based on user/topic/scope.
-
----
-
-## Phase 8: Verification UI (Minimal Streamlit App)
-
-- [ ] **Task 8.1: Streamlit App Setup** (D: None)
-    - [ ] Steps:
-        - [ ] Create `streamlit_app.py`.
-        - [ ] Add `streamlit`, `requests` to `requirements.txt`. Install.
-        - [ ] Set up basic UI layout per `projectbrief.md`.
-
-- [ ] **Task 8.2: Connect UI to Backend** (D: 8.1, Phase 4-7 API Endpoints)
-    - [ ] Steps:
-        - [ ] Implement button callbacks using `requests` to call FastAPI endpoints.
-        - [ ] Display JSON responses.
-    - [ ] Testing: Manual verification against running backend.
-
----
-
-## Phase 9: LLM-Based Knowledge Extraction (Post-Prototype Enhancement)
-
-*Note: This phase focuses on enriching the knowledge graph by extracting entities (Topics, Preferences, etc.) and relationships directly from text content using an LLM. It builds upon the foundation laid in Phases 1-8.*
-
-- [ ] **Task 9.1: Design Extraction Schema & Prompts**
-    - [ ] Steps:
-        - [ ] Define the target entities and relationships to extract (e.g., `Topic`, `Preference`, `Decision`, `ActionItem`, `MENTIONS`, `STATES_PREFERENCE`).
-        - [ ] Design the structured output format (e.g., JSON schema) expected from the LLM.
-        - [ ] Develop and refine prompts (and potentially function/tool schemas) for the chosen LLM (e.g., Gemini) to reliably extract the target information into the desired format.
-        - [ ] Select and configure the specific LLM API/model to use.
-    - [ ] Dependencies: Phase 1 (Config), `dataSchema.md` (understanding existing graph)
-
-- [ ] **Task 9.2: Implement KnowledgeExtractionService** (D: 9.1)
-    - [ ] Steps:
-        - [ ] Add LLM client library (e.g., `google-generativeai`) to `requirements.txt`. Install.
-        - [ ] Create `services/knowledge_extraction_service.py`.
-        - [ ] Implement `
+        - [ ] Define & Implement retrieval methods in `dal/interfaces.py`, `dal/neo4j_dal.py`, `dal/qdrant_dal.py`

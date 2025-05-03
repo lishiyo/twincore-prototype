@@ -37,10 +37,10 @@ class Settings(BaseSettings):
     
     # Embedding Model Settings
     embedding_model_name: str = Field(
-        default="BAAI/bge-small-en-v1.5", 
+        default="text-embedding-3-small", 
         description="Name of the sentence transformer model for embeddings"
     )
-    embedding_dimension: int = Field(default=384, description="Dimension of the embedding vectors")
+    embedding_dimension: int = Field(default=1536, description="Dimension of the embedding vectors")
     openai_api_key: Optional[str] = Field(default=None, description="OpenAI API key for embeddings (if using OpenAI)")
     
     # Model settings for configuring environment variables

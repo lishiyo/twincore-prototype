@@ -1,4 +1,4 @@
-# TwinCore Active Context - Fri May  2 20:27:07 PDT 2025
+# TwinCore Active Context - Fri May  2 23:14:46 PDT 2025
 
 ## Current Work Focus
 - Implementing TwinCore backend prototype
@@ -12,7 +12,8 @@
 - Completed Task 3.1: Embedding Service
 - Completed Task 3.2: DAL Interfaces (ABCs/Protocols)
 - Completed Task 3.3: Neo4j DAL Implementation
-- Moving to Task 3.4: Qdrant DAL Implementation
+- Completed Task 3.4: Qdrant DAL Implementation
+- Moving to Task 3.5: Core Ingestion Service Logic
 
 ## Project State
 ### What's Working
@@ -34,11 +35,8 @@
   - IQdrantDAL: Vector database operations interface
   - INeo4jDAL: Graph database operations interface  
   - IPostgresSharedDAL: Read-only interface for shared Postgres
-- Neo4j DAL implementation with all core CRUD operations:
-  - Creating nodes with MERGE functionality for upsert behavior
-  - Creating relationships between existing nodes
-  - Retrieving session participants and project context
-  - Comprehensive integration tests for all methods
+- Neo4j DAL implementation with all core CRUD operations and tests
+- Qdrant DAL implementation with core `upsert`, `search`, and `delete` operations and integration tests
 
 ### What's Broken
 - Nothing currently broken
@@ -61,16 +59,19 @@
 - Using Cypher MERGE operations for idempotent node/relationship creation in Neo4j
 - Implementing thorough error handling in all database operations
 - Setting up test fixtures for clean database state between tests
+- Verified Qdrant client 1.7.0 works with server 1.7.4; adjusted `delete_vectors` implementation for compatibility
 
 ## Tech Stack
 - Backend: FastAPI (Python)
-- Vector DB: Qdrant (configured via Docker)
-- Graph DB: Neo4j (configured via Docker)
+- Vector DB: Qdrant 1.7.4 (via Docker)
+- Graph DB: Neo4j 5.15.0 (via Docker)
 - Embedding: OpenAI (text-embedding-ada-002)
 - Knowledge Extraction: Gemini (Phase 9)
 - Testing: pytest, httpx, pytest-asyncio, pytest-mock, pytest-cov, Schemathesis
 - Configuration: pydantic-settings with environment variables
+- Qdrant Client: 1.7.0
 
 ## Next Steps
-- Implement Qdrant DAL (Task 3.4)
-- Develop core ingestion logic (Task 3.5)
+- Implement core ingestion logic (Task 3.5)
+- Develop Ingestion Service
+- Write integration tests for Ingestion Service

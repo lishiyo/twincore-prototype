@@ -2,6 +2,43 @@
 
 REMEMBER TO PUT YOUR LATEST UPDATE AT TOP!
 
+## Fri May  2 23:14:46 PDT 2025 - Completed Task 3.4: Qdrant DAL Implementation
+
+### Changes since last update
+- Implemented Qdrant DAL in `twincore_backend/dal/qdrant_dal.py`:
+  - Created `QdrantDAL` class implementing the `IQdrantDAL` interface
+  - Implemented core vector database operations:
+    - `upsert_vector`: Handles point creation and updates, includes metadata and timestamp handling.
+    - `search_vectors`: Implements semantic search with multiple filtering options (user, project, session, source type, privacy, twin interactions, timestamps).
+    - `delete_vectors`: Handles deletion by chunk IDs or by various metadata filters.
+  - Added error handling for Qdrant-specific and general exceptions.
+- Created integration tests in `twincore_backend/tests/dal/test_qdrant_dal.py`:
+  - Set up test fixtures for Qdrant client and DAL instance.
+  - Implemented test collection fixture (`clean_test_collection`) ensuring clean state.
+  - Added tests for all methods:
+    - Upsert (new and update scenarios, optional fields, auto-ID generation).
+    - Search (no filters, various single/multiple filters, timestamp ranges).
+    - Delete (by chunk ID, by user ID, multiple filters, safety check for no filters).
+  - Used cosine similarity for vector comparisons in tests.
+
+### Design decisions
+- Used injected async Qdrant client for testability.
+- Handled timestamp conversion to Unix floats for Qdrant range queries.
+- Implemented detailed filtering logic in `search_vectors` using Qdrant's `models.Filter` and `models.FieldCondition`.
+- Implemented deletion by ID using `delete` with `PointIdsList` and by filter using `delete` with `FilterSelector`.
+- Added pre-counting logic to `delete_vectors` to return an approximate count, necessary due to API limitations.
+
+### Errors & Learnings
+- Encountered significant challenges with Qdrant client/server compatibility (initially client 1.14.2 vs server 1.7.4).
+- The Qdrant `delete` API operation does not return a reliable count of deleted items in older versions, requiring workarounds in the DAL method and tests.
+- Debugging involved adding detailed logging, verifying API reference docs, and confirming client method signatures (`delete` vs `delete_points`).
+- Resolved issues by downgrading the Qdrant client to 1.7.0 to match the server and adjusting the `delete_vectors` implementation and tests accordingly.
+- Learned the importance of checking client/server compatibility and relying on actual state verification (retrieving points) in tests rather than API return values when APIs lack certain features.
+
+### Next steps
+- Implement core Ingestion Service logic (Task 3.5)
+- Write integration tests for Ingestion Service
+
 ## Fri May  2 20:27:07 PDT 2025 - Completed Task 3.3: Neo4j DAL Implementation
 
 ## Changes since last update
