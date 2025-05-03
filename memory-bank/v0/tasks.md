@@ -154,4 +154,129 @@ This document outlines the development tasks for building the TwinCore backend p
 
 - [ ] **Task 6.1: Retrieval Service & DAL Methods** (D: 3.3, 3.4, Phase 4)
     - [ ] Steps:
-        - [ ] Define & Implement retrieval methods in `dal/interfaces.py`, `dal/neo4j_dal.py`, `dal/qdrant_dal.py`
+        - [ ] Define & Implement retrieval methods in `dal/interfaces.py`, `dal/neo4j_dal.py`, `dal/qdrant_dal.py` (e.g., get_session_participants, search_with_filters). Focus on filter logic.
+        - [ ] [TDD Steps]:
+            - [ ] [DAL Int] Test retrieval methods against test DBs (filtering, scoring, limits).
+            - [ ] [Service Int] Implement `RetrievalService`, mock DALs, test logic combining search results.
+            - [ ] [API/Contract] Test endpoint schema/status for `/retrieve/*` endpoints.
+            - [ ] [E2E] Call endpoints, verify correct filtered data is retrieved from Qdrant/Neo4j.
+
+- [ ] **Task 6.2: Context Retrieval Endpoint (`/api/retrieve/context`)** (D: 2.1, 6.1)
+    - [ ] Steps:
+        - [ ] Implement `retrieve_context(data)` logic in `RetrievalService`.
+        - [ ] Define `POST /api/retrieve/context` endpoint in `retrieve_router.py`. Use Pydantic models. Inject RetrievalService. Register router.
+        - [ ] [TDD Steps]:
+            - [ ] [API/Contract] Verify specific request/response for this endpoint.
+            - [ ] [E2E] Test scenario simulating Canvas Agent call, verify group context retrieval.
+
+- [ ] **Task 6.3: Private Memory Retrieval Endpoint (`/api/retrieve/private_memory`)** (D: 2.1, 6.1)
+    - [ ] Steps:
+        - [ ] Implement dual logic in the endpoint: ingest query via IngestionService, then retrieve via RetrievalService with strict user/privacy filtering.
+            - [ ] Implement `retrieve_private_memory(data)` logic in `RetrievalService`.
+            - [ ] **Important:** Ensure this service method *also* calls `IngestionService.ingest_message` to store the user's query as a twin interaction (as per `projectbrief.md`).
+        - [ ] Define `POST /api/retrieve/private_memory` endpoint in `retrieve_router.py`.
+        - [ ] [TDD Steps]:
+            - [ ] [Service Int] Test combined retrieval + ingestion logic for private memory.
+            - [ ] [API/Contract] Verify specific request/response for this endpoint.
+            - [ ] [E2E] Test scenario simulating User->Twin call, verify private filtering AND query ingestion.
+            - [ ] [E2E] Seed public/private data, call endpoint as different users, verify query ingestion AND correct data/privacy filtering in results.
+
+---
+
+## Phase 7: Preference Endpoint (`/api/query/user_preference`)
+
+- [ ] **Task 7.1: Preference Service & DAL Methods** (D: 3.3, 3.4, Phase 4)
+    - [ ] Steps:
+        - [ ] Define & Implement necessary DAL methods for finding user statements/messages related to a topic (querying past statements/data) in `dal/qdrant_dal.py` and/or `dal/neo4j_dal.py`. *Note: Relies on existing data/embeddings for prototype; explicit Preference nodes are phase 9.*
+        - [ ] Create `services/preference_service.py`. Implement `PreferenceService` taking DAL dependencies.
+        - [ ] Implement `query_user_preference(data)` logic in `PreferenceService`.
+        - [ ] [TDD Steps]:
+            - [ ] [DAL Int] Test preference retrieval queries against test DBs with seeded relevant data.
+            - [ ] [Service Int] Implement `PreferenceService`, mock DALs, test logic for interpreting/returning preferences.
+
+- [ ] **Task 7.2: Preference API Endpoint** (D: 2.1, 7.1)
+    - [ ] Steps:
+        - [ ] Create `api/routers/query_router.py`. Define `POST /api/query/user_preference`. Use Pydantic models. Inject service. Register router.
+        - [ ] [TDD Steps]:
+            - [ ] [API/Contract] Test endpoint schema/status.
+
+- [ ] **Task 7.3: Preference End-to-End Test** (D: 7.2, Phase 4)
+    - [ ] Steps:
+        - [ ] [E2E] Write E2E test simulating Canvas Agent call. Call endpoint, verify relevant past statements/data are returned based on seeded mock data.
+        - [ ] Ingest real data, call endpoint, verify responses look correct.
+
+---
+
+## Phase 8: Verification UI (Streamlit)
+
+- [ ] **Task 8.1: Streamlit App Setup** (D: 1.1)
+    - [ ] Steps:
+        - [ ] Create `streamlit_app.py`.
+        - [ ] Add `streamlit`, `requests` to `requirements.txt`. Install.
+        - [ ] Basic app structure and title.
+
+- [ ] **Task 8.2: UI Layout & Components** (D: 8.1)
+    - [ ] Steps:
+        - [ ] Implement User Selector (`st.selectbox`).
+        - [ ] Implement Canvas Agent Simulation section (text inputs, buttons for context/preference).
+        - [ ] Implement User <> Twin Interaction section (text area, button).
+        - [ ] Implement Document Upload Simulation section (text inputs, checkbox, button).
+        - [ ] Implement Output Display area (`st.text_area` or `st.json`).
+
+- [ ] **Task 8.3: Backend API Integration** (D: 4.3, 5.1, 5.2, 6.2, 6.3, 7.2, 8.2)
+    - [ ] Steps:
+        - [ ] Add `requests` calls within button callbacks to hit the corresponding backend API endpoints (`/retrieve/context`, `/query/user_preference`, `/retrieve/private_memory`, `/ingest/document`, `/ingest/message` implicitly via private memory).
+        - [ ] Pass appropriate data (selected user ID, text inputs, context IDs) to the API calls.
+        - [ ] Display API responses in the Output Display area.
+
+- [ ] **Task 8.4: (Bonus) DB Stats Display** (D: 8.3, potentially new admin endpoints)
+    - [ ] Steps:
+        - [ ] (Optional) Create simple backend endpoints in `admin_router.py` to return counts from Qdrant/Neo4j (e.g., `/api/stats/qdrant_count`, `/api/stats/neo4j_nodes`). Test these endpoints.
+        - [ ] Add a "Show DB Stats" button to Streamlit UI.
+        - [ ] Call the stats endpoints and display results.
+
+---
+
+## Phase 9: Knowledge Extraction
+
+*Note: This phase focuses on enriching the knowledge graph by extracting entities (Topics, Preferences, etc.) and relationships directly from text content using an LLM. It builds upon the foundation laid in Phases 1-8.*
+
+- [ ] **Task 9.1: Knowledge Extraction Service** (D: 1.1)
+    - [ ] Steps:
+        - [ ] Design extraction schema/prompts (Topics, Preferences, Entities etc.).
+        - [ ] Create `services/knowledge_extraction_service.py`.
+        - [ ] Implement `KnowledgeExtractionService` class, including logic to call LLM API (e.g., Gemini) and parse results.
+        - [ ] [TDD Steps]:
+            - [ ] [Unit] Test LLM result parsing logic (mock LLM response).
+
+- [ ] **Task 9.2: Update Neo4j DAL for Extraction** (D: 3.3, 9.1)
+    - [ ] Steps:
+        - [ ] Define new node labels (e.g., `Topic`, `Preference`) and relationship types (e.g., `MENTIONS`, `STATES_PREFERENCE`) in `dataSchema.md` (if not already drafted).
+        - [ ] Add methods to `dal/neo4j_dal.py` to merge/create extracted entities and relationships based on parsed LLM results.
+        - [ ] [TDD Steps]:
+            - [ ] [DAL Int] Test new DAL methods against test Neo4j, verifying graph structure updates.
+
+- [ ] **Task 9.3: Integrate Extraction into Ingestion Service** (D: 3.5, 9.1, 9.2)
+    - [ ] Steps:
+        - [ ] Modify `services/ingestion_service.py` methods (`ingest_message`, `ingest_document`).
+        - [ ] Add step to call `KnowledgeExtractionService` after embedding.
+        - [ ] Add step to call new Neo4j DAL methods with extracted information.
+        - [ ] [TDD Steps]:
+            - [ ] [Service Int] Test modified ingestion logic, mocking extraction service and DALs, verify correct methods are called.
+
+- [ ] **Task 9.4: Extraction Testing** (D: 9.3)
+    - [ ] Steps:
+        - [ ] [E2E] Write E2E tests: ingest data via API, then query Neo4j directly to verify extracted entities/relationships exist.
+
+---
+
+## Phase 10: Final Testing & Refinement
+
+- [ ] **Task 10.1: Final Testing & Refinement** (D: All Phases 1-8)
+    - [ ] Steps:
+        - [ ] Run all automated tests (`pytest`). Ensure 100% pass rate.
+        - [ ] Check code coverage (`pytest --cov`). Address major gaps.
+        - [ ] Perform manual testing using the Streamlit UI (Phase 8) to cover key user flows.
+        - [ ] Review code for clarity, consistency, and adherence to patterns (`systemPatterns.md`).
+        - [ ] Refactor code as needed based on testing and review.
+        - [ ] Update `README.md` with final usage instructions.
