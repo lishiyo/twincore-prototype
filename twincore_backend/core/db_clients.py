@@ -9,7 +9,7 @@ from functools import lru_cache
 import logging
 from typing import Optional
 
-from neo4j import GraphDatabase, Driver
+from neo4j import AsyncGraphDatabase, AsyncDriver
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.exceptions import UnexpectedResponse
 
@@ -47,24 +47,25 @@ def get_async_qdrant_client() -> AsyncQdrantClient:
 
 
 @lru_cache
-def get_neo4j_driver() -> Driver:
+async def get_neo4j_driver() -> AsyncDriver:
     """
-    Initialize and return a Neo4j driver.
+    Initialize and return an asynchronous Neo4j driver.
     Uses LRU cache to prevent multiple driver instances.
     
     Returns:
-        Driver: A configured Neo4j driver instance
+        AsyncDriver: A configured async Neo4j driver instance
     """
     try:
-        logger.info(f"Initializing Neo4j driver at {settings.neo4j_uri}")
-        driver = GraphDatabase.driver(
+        logger.info(f"Initializing async Neo4j driver at {settings.neo4j_uri}")
+        # Use AsyncGraphDatabase to explicitly get an async driver
+        driver = AsyncGraphDatabase.driver(
             settings.neo4j_uri,
-            auth=(settings.neo4j_user, settings.neo4j_password)
+            auth=(settings.neo4j_user, settings.neo4j_password),
         )
-        # Verify connection
-        with driver.session() as session:
-            session.run("RETURN 1")
-        logger.info("Neo4j driver initialized successfully")
+        # Verify connection asynchronously
+        async with driver.session() as session:
+            await session.run("RETURN 1")
+        logger.info("Async Neo4j driver initialized successfully")
         return driver
     except Exception as e:
         logger.error(f"Failed to connect to Neo4j database: {e}")
@@ -75,6 +76,10 @@ def get_neo4j_driver() -> Driver:
 def clear_all_client_caches():
     """Clear all client LRU caches."""
     get_async_qdrant_client.cache_clear()
-    get_neo4j_driver.cache_clear()
+    # Note: get_neo4j_driver is now async and its cache won't be cleared here.
+    # We need to handle cache clearing for async functions differently if needed,
+    # or manage the driver lifecycle explicitly in tests.
+    # For now, removing this call as it won't work correctly.
+    # get_neo4j_driver.cache_clear()
 
 # Helper functions for testing removed, as they are replaced by fixture in conftest.py 

@@ -4,7 +4,7 @@ These tests mock the external dependencies to focus on testing the initializatio
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 
 from core.db_clients import get_async_qdrant_client, get_neo4j_driver
 
@@ -73,17 +73,28 @@ class TestAsyncQdrantClient:
 
 class TestNeo4jDriver:
     
-    @patch('core.db_clients.GraphDatabase')
-    def test_get_neo4j_driver_success(self, mock_graph_db, mock_settings):
+    @pytest.mark.asyncio
+    @patch('core.db_clients.AsyncGraphDatabase')
+    async def test_get_neo4j_driver_success(self, mock_graph_db, mock_settings):
         """Test successful Neo4j driver initialization."""
-        # Configure the mock
+        # Create session mock that will be used inside the context manager
+        mock_session = AsyncMock()
+        mock_session.run = AsyncMock()
+        
+        # Create a mock session context manager
+        mock_session_ctx = MagicMock()
+        mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
+        
+        # Create driver mock
         mock_driver = MagicMock()
+        mock_driver.session = MagicMock(return_value=mock_session_ctx)
+        
+        # Configure the mock driver factory
         mock_graph_db.driver.return_value = mock_driver
-        mock_session = MagicMock()
-        mock_driver.session.return_value.__enter__.return_value = mock_session
         
         # Call the function
-        driver = get_neo4j_driver()
+        driver = await get_neo4j_driver()
         
         # Verify correct parameters were used
         mock_graph_db.driver.assert_called_once_with(
@@ -98,41 +109,61 @@ class TestNeo4jDriver:
         # Verify the return value
         assert driver == mock_driver
     
-    @patch('core.db_clients.GraphDatabase')
-    def test_get_neo4j_driver_connection_error(self, mock_graph_db, mock_settings):
+    @pytest.mark.asyncio
+    @patch('core.db_clients.AsyncGraphDatabase')
+    async def test_get_neo4j_driver_connection_error(self, mock_graph_db, mock_settings):
         """Test Neo4j driver initialization with connection error."""
-        # Need to fix issue with how we set up the mocking
-        # Configure the correct location for the error
+        # Create session mock that will be used inside the context manager
+        mock_session = AsyncMock()
+        mock_session.run = AsyncMock(side_effect=Exception("Connection error"))
+        
+        # Create a mock session context manager
+        mock_session_ctx = MagicMock()
+        mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
+        
+        # Create driver mock
         mock_driver = MagicMock()
+        mock_driver.session = MagicMock(return_value=mock_session_ctx)
+        
+        # Configure the mock driver factory
         mock_graph_db.driver.return_value = mock_driver
-        # Make session creation work but make the run method raise an exception
-        mock_session = MagicMock()
-        mock_driver.session.return_value.__enter__.return_value = mock_session
-        mock_session.run.side_effect = Exception("Connection error")
         
         # Call the function and verify it raises the expected error
         with pytest.raises(Exception):
-            get_neo4j_driver()
+            await get_neo4j_driver()
 
 
 class TestDatabaseClients:
     
+    @pytest.mark.asyncio
     @patch('core.db_clients.AsyncQdrantClient')
-    @patch('core.db_clients.GraphDatabase')
-    def test_get_database_clients(self, mock_graph_db, mock_async_qdrant):
+    @patch('core.db_clients.AsyncGraphDatabase')
+    async def test_get_database_clients(self, mock_graph_db, mock_async_qdrant):
         """Test that both client initialization functions work independently."""
-        # Configure mocks
+        # Configure Qdrant mock
         mock_async_client = MagicMock()
-        mock_driver = MagicMock()
         mock_async_qdrant.return_value = mock_async_client
-        mock_graph_db.driver.return_value = mock_driver
         
-        mock_session = MagicMock()
-        mock_driver.session.return_value.__enter__.return_value = mock_session
+        # Create Neo4j session mock
+        mock_session = AsyncMock()
+        mock_session.run = AsyncMock()
+        
+        # Create a mock session context manager
+        mock_session_ctx = MagicMock()
+        mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
+        
+        # Create Neo4j driver mock
+        mock_driver = MagicMock()
+        mock_driver.session = MagicMock(return_value=mock_session_ctx)
+        
+        # Configure the mock driver factory
+        mock_graph_db.driver.return_value = mock_driver
         
         # Call the functions directly
         qdrant = get_async_qdrant_client()
-        neo4j = get_neo4j_driver()
+        neo4j = await get_neo4j_driver()
         
         # Verify both clients are initialized correctly
         assert qdrant is not None

@@ -77,11 +77,11 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] Define interfaces in `dal/interfaces.py` (`IQdrantDAL`, `INeo4jDAL`) outlining core methods.
     - [x] Dependencies: None
 
-- [ ] **Task 3.3: Neo4j DAL Implementation (Core)** (D: 1.3, 2.2, 2.4, 3.2)
-    - [ ] Steps:
-        - [ ] Create `dal/neo4j_dal.py` implementing `INeo4jDAL`.
-        - [ ] Implement `create_node_if_not_exists`, `create_relationship_if_not_exists` using Cypher MERGE/CREATE.
-        - [ ] [DAL Int] Write integration tests against test Neo4j: test node/relationship creation, properties, idempotency, cleanup.
+- [x] **Task 3.3: Neo4j DAL Implementation (Core)** (D: 1.3, 2.2, 2.4, 3.2)
+    - [x] Steps:
+        - [x] Create `dal/neo4j_dal.py` implementing `INeo4jDAL`.
+        - [x] Implement `create_node_if_not_exists`, `create_relationship_if_not_exists` using Cypher MERGE/CREATE.
+        - [x] [DAL Int] Write integration tests against test Neo4j: test node/relationship creation, properties, idempotency, cleanup.
 
 - [ ] **Task 3.4: Qdrant DAL Implementation (Core)** (D: 1.3, 2.2, 2.3, 3.2)
     - [ ] Steps:
