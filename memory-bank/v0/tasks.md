@@ -10,24 +10,24 @@ This document outlines the development tasks for building the TwinCore backend p
 
 ## Phase 1: Setup & Core Structure
 
-- [ ] **Task 1.1: Project Initialization**
-    - [ ] Steps:
-        - [ ] Create project directory (`twincore_backend`).
-        - [ ] Initialize Python environment (`venv`).
-        - [ ] Create `requirements.txt` (FastAPI, Uvicorn, python-dotenv, Pydantic).
-        - [ ] Create `.gitignore`.
-        - [ ] Set up basic FastAPI app structure (`main.py`, `api/`, `services/`, `dal/`, `core/`, `tests/`).
-        - [ ] Create `core/config.py` (e.g., using `pydantic-settings`).
-        - [ ] Create `main.py` with root `/` endpoint.
-        - [ ] [API/Contract] Write basic API test for `/` endpoint in `tests/test_main.py`. Implement endpoint to pass.
-    - [ ] Dependencies: None
+- [x] **Task 1.1: Project Initialization**
+    - [x] Steps:
+        - [x] Create project directory (`twincore_backend`).
+        - [x] Initialize Python environment (`venv`).
+        - [x] Create `requirements.txt` (FastAPI, Uvicorn, python-dotenv, Pydantic).
+        - [x] Create `.gitignore`.
+        - [x] Set up basic FastAPI app structure (`main.py`, `api/`, `services/`, `dal/`, `core/`, `tests/`).
+        - [x] Create `core/config.py` (e.g., using `pydantic-settings`).
+        - [x] Create `main.py` with root `/` endpoint.
+        - [x] [API/Contract] Write basic API test for `/` endpoint in `tests/test_main.py`. Implement endpoint to pass.
+    - [x] Dependencies: None
 
 - [ ] **Task 1.2: Testing Setup** (D: 1.1)
     - [ ] Steps:
         - [ ] Add testing dependencies to `requirements.txt` (`pytest`, `pytest-asyncio`, `httpx`, `pytest-mock`, `pytest-cov`, `schemathesis`). Install.
-        - [ ] Create `pytest.ini`.
-        - [ ] Create basic test fixtures (e.g., `httpx` client in `tests/conftest.py`).
-        - [ ] Ensure Task 1.1 test runs via `pytest`.
+        - [x] Create `pytest.ini`.
+        - [x] Create basic test fixtures (e.g., `httpx` client in `tests/conftest.py`).
+        - [x] Ensure Task 1.1 test runs via `pytest`.
 
 - [ ] **Task 1.3: Docker Setup for Databases**
     - [ ] Steps:
@@ -40,10 +40,10 @@ This document outlines the development tasks for building the TwinCore backend p
 
 ## Phase 2: Core Data Models & DB Setup
 
-- [ ] **Task 2.1: Pydantic API Models**
-    - [ ] Steps:
-        - [ ] Define core Pydantic models in `api/models.py` based on `dataSchema.md` & `projectbrief.md`.
-    - [ ] Dependencies: None
+- [x] **Task 2.1: Pydantic API Models**
+    - [x] Steps:
+        - [x] Define core Pydantic models in `api/models.py` based on `dataSchema.md` & `projectbrief.md`.
+    - [x] Dependencies: None
 
 - [ ] **Task 2.2: Database Client Initialization** (D: 1.1, 1.3)
     - [ ] Steps:
@@ -250,4 +250,4 @@ This document outlines the development tasks for building the TwinCore backend p
         - [ ] [E2E] Write new E2E tests or modify existing ones.
         - [ ] Ingest sample text containing clear topics, preferences, etc.
         - [ ] Directly query Neo4j to verify that the corresponding `Topic`, `Preference` nodes and `MENTIONS`, `STATES_PREFERENCE` relationships were created correctly, linked to the source message/document and user.
-        - [ ] (Optional) Test retrieval mechanisms that leverage this extracted knowledge (likely requires new retrieval logic/endpoints in a subsequent phase). 
+        - [ ] (Optional) Test retrieval mechanisms that leverage this extracted knowledge (likely requires new retrieval logic/endpoints in a subsequent phase).
