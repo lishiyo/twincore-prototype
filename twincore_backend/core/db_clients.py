@@ -10,43 +10,12 @@ import logging
 from typing import Optional
 
 from neo4j import GraphDatabase, Driver
-from qdrant_client import QdrantClient, AsyncQdrantClient
+from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.exceptions import UnexpectedResponse
 
 from core.config import settings
 
 logger = logging.getLogger(__name__)
-
-
-@lru_cache
-def get_qdrant_client() -> QdrantClient:
-    """
-    Initialize and return a Qdrant client.
-    Uses LRU cache to prevent multiple client instances.
-    
-    Returns:
-        QdrantClient: A configured Qdrant client instance
-    """
-    try:
-        logger.info(f"Initializing Qdrant client at {settings.qdrant_host}:{settings.qdrant_port}")
-        client = QdrantClient(
-            host=settings.qdrant_host,
-            port=settings.qdrant_port,
-            api_key=settings.qdrant_api_key,
-            prefer_grpc=settings.qdrant_prefer_grpc,
-            grpc_port=settings.qdrant_grpc_port,
-            https=False,  # Explicitly use HTTP instead of HTTPS for local development
-        )
-        # Simple health check
-        client.get_collections()
-        logger.info("Qdrant client initialized successfully")
-        return client
-    except UnexpectedResponse as e:
-        logger.error(f"Failed to connect to Qdrant: {e}")
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error initializing Qdrant client: {e}")
-        raise
 
 
 @lru_cache
@@ -102,24 +71,10 @@ def get_neo4j_driver() -> Driver:
         raise
 
 
-# Convenience function to get both clients
-@lru_cache
-def get_database_clients():
-    """
-    Get both Qdrant client and Neo4j driver.
-    
-    Returns:
-        tuple: (QdrantClient, Neo4j Driver)
-    """
-    return get_qdrant_client(), get_neo4j_driver()
-
-
 # Helper function to clear caches for testing
 def clear_all_client_caches():
     """Clear all client LRU caches."""
-    get_qdrant_client.cache_clear()
     get_async_qdrant_client.cache_clear()
     get_neo4j_driver.cache_clear()
-    get_database_clients.cache_clear()
 
 # Helper functions for testing removed, as they are replaced by fixture in conftest.py 

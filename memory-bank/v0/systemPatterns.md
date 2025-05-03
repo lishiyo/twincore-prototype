@@ -55,6 +55,11 @@ graph LR
             Config[Configuration Loading]
             Logging[Logging Setup]
             DB_Clients[Database Clients (Qdrant, Neo4j, SQLAlchemy)]
+            subgraph DB Setup (core/db_setup/)
+                DB_Setup_Qdrant[qdrant_setup.py]
+                DB_Setup_Neo4j[neo4j_setup.py]
+                DB_Setup_Init[__init__.py (Initializer)]
+            end
         end
     end
 
@@ -90,6 +95,11 @@ graph LR
     DAL_Neo4j -- Interacts --> DB_Clients;
     DAL_Postgres_Shared -- Interacts --> DB_Clients;
     DAL_Postgres_Twin -- Interacts --> DB_Clients;
+    
+    %% DB Setup Connections %%
+    DB_Setup_Init -- Calls --> DB_Setup_Qdrant & DB_Setup_Neo4j;
+    DB_Setup_Qdrant -- Uses --> DB_Clients;
+    DB_Setup_Neo4j -- Uses --> DB_Clients;
 
     %% Ingestion Flow %%
     Ingestion_API -- Triggers --> Service_Ingestion; %% Direct API uploads/messages
@@ -142,7 +152,12 @@ graph LR
     *   **Extensibility:** **Highly extensible.** Add a new `XYZConnector.py` module and potentially a processor step. Wire it into the scheduler or create a new API endpoint to trigger it. The core `IngestionService` and DALs don't need to change much.
 
 5.  **Core Utilities (`core/`)**
-    *   **Responsibility:** Cross-cutting concerns. Database client initialization (connections pools), configuration loading (`pydantic-settings` or `.env`), logging setup.
+    *   **Responsibility:** Cross-cutting concerns. Database client initialization (connections pools), configuration loading (`pydantic-settings` or `.env`), logging setup, and database schema setup.
+    *   **`core/db_clients.py`**: Initializes Qdrant and Neo4j clients/drivers.
+    *   **`core/db_setup/`**: Contains scripts/functions for initializing database structures (e.g., creating Qdrant collections, setting Neo4j constraints).
+        *   `qdrant_setup.py`: Logic specific to Qdrant setup.
+        *   `neo4j_setup.py`: Logic specific to Neo4j setup.
+        *   `__init__.py`: Orchestrates the individual setup steps (e.g., `initialize_databases`).
 
 **How This Addresses Extensibility:**
 
@@ -197,8 +212,11 @@ twincore_backend/
 │   ├── __init__.py
 │   ├── config.py              # Configuration loading (e.g., Pydantic Settings)
 │   ├── db_clients.py          # Database client initialization (Qdrant, Neo4j)
-│   ├── db_setup.py            # Scripts/functions for DB initialization (collections, constraints)
-│   └── mock_data.py           # Mock data definitions for seeding/testing
+│   ├── db_setup/              # Scripts/functions for DB initialization
+│   │   ├── __init__.py        # Orchestrates setup (e.g., initialize_databases)
+│   │   ├── neo4j_setup.py     # Neo4j specific setup (constraints, indices)
+│   │   └── qdrant_setup.py    # Qdrant specific setup (collection creation)
+│   ├── mock_data.py           # Mock data definitions for seeding/testing
 │   └── utils.py               # Common utility functions (e.g., chunking)
 │
 ├── dal/                       # Data Access Layer
@@ -222,6 +240,9 @@ twincore_backend/
 │   ├── api/                   # API/Contract tests
 │   │   └── ...
 │   ├── core/                  # Unit tests for core utilities
+│   │   └── db_setup/          # Tests for db_setup components
+│   │       ├── __init__.py
+│   │       └── test_setup.py  # Combined tests for setup logic
 │   │   └── ...
 │   ├── dal/                   # DAL Integration tests
 │   │   └── ...

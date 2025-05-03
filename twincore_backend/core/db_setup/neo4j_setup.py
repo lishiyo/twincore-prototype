@@ -1,54 +1,10 @@
 import logging
-from qdrant_client import models, AsyncQdrantClient
-from qdrant_client.http.exceptions import UnexpectedResponse
 from neo4j import Driver
 
-from core.db_clients import get_async_qdrant_client, get_neo4j_driver
+from core.db_clients import get_neo4j_driver
 from core.config import settings
 
 logger = logging.getLogger(__name__)
-
-# Define Qdrant distance model (Collection name and vector size come from settings)
-QDRANT_DISTANCE = models.Distance.COSINE
-
-
-async def setup_qdrant_collection():
-    """
-    Ensures the Qdrant collection specified in settings exists and has the correct configuration.
-    """
-    qdrant_client = get_async_qdrant_client()
-    collection_name = settings.qdrant_collection_name
-    vector_size = settings.embedding_dimension
-
-    try:
-        logger.info(f"Checking if Qdrant collection '{collection_name}' exists...")
-        try:
-            # Check if collection exists
-            await qdrant_client.get_collection(collection_name=collection_name)
-            logger.info(f"Collection '{collection_name}' already exists.")
-            # Optional: Verify existing collection parameters if necessary,
-            # e.g., vector size and distance. For simplicity, we assume recreation
-            # or manual intervention if parameters mismatch severely.
-
-        except (UnexpectedResponse, ValueError) as e:
-            # ValueError can be raised for 404 Not Found, UnexpectedResponse for others
-             if isinstance(e, ValueError) or (isinstance(e, UnexpectedResponse) and e.status_code == 404):
-                logger.info(f"Collection '{collection_name}' not found. Creating...")
-                await qdrant_client.create_collection(
-                    collection_name=collection_name,
-                    vectors_config=models.VectorParams(
-                        size=vector_size, distance=QDRANT_DISTANCE
-                    ),
-                    # Add other configurations like HNSW parameters if needed later
-                )
-                logger.info(f"Successfully created Qdrant collection '{collection_name}'.")
-             else:
-                 # Re-raise unexpected errors
-                 raise e
-
-    except Exception as e:
-        logger.error(f"Failed to setup Qdrant collection '{collection_name}': {e}", exc_info=True)
-        raise
 
 
 async def setup_neo4j_constraints(driver: Driver = None, database: str = None):
@@ -76,7 +32,6 @@ async def setup_neo4j_constraints(driver: Driver = None, database: str = None):
         "CREATE CONSTRAINT chunk_unique_id IF NOT EXISTS FOR (c:Chunk) REQUIRE c.chunk_id IS UNIQUE",
         "CREATE CONSTRAINT document_unique_id IF NOT EXISTS FOR (d:Document) REQUIRE d.document_id IS UNIQUE",
         "CREATE CONSTRAINT topic_unique_name IF NOT EXISTS FOR (t:Topic) REQUIRE t.name IS UNIQUE",
-        # Add missing constraints for all node types in dataSchema.md
         "CREATE CONSTRAINT organization_unique_id IF NOT EXISTS FOR (o:Organization) REQUIRE o.org_id IS UNIQUE",
         "CREATE CONSTRAINT team_unique_id IF NOT EXISTS FOR (t:Team) REQUIRE t.team_id IS UNIQUE",
         "CREATE CONSTRAINT project_unique_id IF NOT EXISTS FOR (p:Project) REQUIRE p.project_id IS UNIQUE",
@@ -106,18 +61,4 @@ async def setup_neo4j_constraints(driver: Driver = None, database: str = None):
     finally:
         # Only close the driver if we created a new one
         if driver is None and use_driver is not None:
-            use_driver.close()
-
-async def initialize_databases():
-    """
-    Initializes all database setups (collections, constraints, etc.).
-    """
-    logger.info("Starting database initialization...")
-    await setup_qdrant_collection()
-    await setup_neo4j_constraints()
-    logger.info("Database initialization finished.")
-
-# Example of how this might be called at startup (e.g., in main.py)
-# if __name__ == "__main__":
-#     import asyncio
-#     asyncio.run(initialize_databases()) 
+            use_driver.close() 

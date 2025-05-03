@@ -1,4 +1,4 @@
-# TwinCore Active Context - Fri May  2 19:39:49 PDT 2025
+# TwinCore Active Context - Fri May  2 19:49:59 PDT 2025
 
 ## Current Work Focus
 - Implementing TwinCore backend prototype
@@ -7,8 +7,9 @@
 - Completed Task 1.3: Docker Setup for Databases
 - Completed Task 2.1: Pydantic API Models
 - Completed Task 2.2: Database Client Initialization
-- Completed Task 2.3: Qdrant Collection Setup (fixed test issue)
+- Completed Task 2.3: Qdrant Collection Setup
 - Completed Task 2.4: Neo4j Constraints Setup
+- Refactored database setup code into modular structure
 - Moving to Task 3.1: Embedding Service
 
 ## Project State
@@ -22,8 +23,9 @@
 - Full testing setup including pytest, pytest-asyncio, httpx, pytest-mock, pytest-cov, schemathesis
 - Docker Compose files for both development and testing environments
 - Database client initialization for Qdrant and Neo4j with proper error handling
-- Qdrant collection setup utility (`core/db_setup.py`) and integration test
-- Neo4j constraint setup utility with complete constraint set for all entity types
+- Modular database setup utilities in `core/db_setup/` directory:
+  - Qdrant collection setup (`qdrant_setup.py`)
+  - Neo4j constraint setup (`neo4j_setup.py`) for all entity types
 - Testing environment with properly configured test databases
 
 ### What's Broken
@@ -40,6 +42,8 @@
 - Added flexible CollectionInfo attribute checking to handle potential Qdrant API changes
 - Implementing dependency injection pattern for better testability (e.g., optional driver parameter)
 - Using latest Neo4j 5.15.0 with proper configuration parameters
+- Refactored code to have smaller, more focused modules (< 500 lines)
+- Removed synchronous client code in favor of fully async implementations
 
 ## Tech Stack
 - Backend: FastAPI (Python)

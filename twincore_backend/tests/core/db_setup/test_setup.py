@@ -4,7 +4,8 @@ from qdrant_client import AsyncQdrantClient, models
 from qdrant_client.http.exceptions import UnexpectedResponse
 from neo4j import Driver, GraphDatabase
 
-from core.db_setup import setup_qdrant_collection, setup_neo4j_constraints, QDRANT_DISTANCE
+from core.db_setup.qdrant_setup import setup_qdrant_collection, QDRANT_DISTANCE
+from core.db_setup.neo4j_setup import setup_neo4j_constraints
 from core.config import settings
 from core.db_clients import get_async_qdrant_client, get_neo4j_driver, clear_all_client_caches  # Used import
 

@@ -2,6 +2,32 @@
 
 REMEMBER TO PUT YOUR LATEST UPDATE AT TOP!
 
+## Fri May  2 19:49:59 PDT 2025
+
+### Changes
+- Refactored database setup code for better modularity:
+  - Created a dedicated directory `core/db_setup/` for database setup functions
+  - Split functionality into focused modules:
+    - `__init__.py` with the main `initialize_databases` function
+    - `qdrant_setup.py` for Qdrant collection configuration 
+    - `neo4j_setup.py` for Neo4j constraints setup
+  - Moved code from monolithic `db_setup.py` to these modular files
+- Removed synchronous client code in favor of fully async implementations
+- Aligned structure with project's architectural guidelines for small, encapsulated modules
+
+### Commands
+- Refactoring was done manually, no specific commands to report
+- Tested refactored code with existing test suite
+
+### Errors & Learnings
+- Smaller, focused modules are easier to maintain and test
+- Following the architecture guidelines from `systemPatterns.md` leads to more maintainable code
+- Removing synchronous code simplifies the codebase and avoids duplication
+
+### Next Steps
+- Continue with Phase 3: Embedding & Core Ingestion Logic
+- Implement Task 3.1: Embedding Service
+
 ## Fri May  2 19:39:49 PDT 2025
 
 ### Changes
