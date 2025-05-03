@@ -115,7 +115,9 @@ This document outlines the development tasks for building the TwinCore backend p
 
 - [ ] **Task 4.3: Seeding API Endpoint** (D: 1.1, 4.2)
     - [ ] Steps:
-        - [ ] Create `api/routers/admin_router.py`. Define `POST /api/seed_data`. Inject `DataSeederService` via `Depends`. Call `seed_initial_data()`. Register router in `main.py`.
+        - [ ] Create `api/routers/admin_router.py`. Define `POST /api/seed_data`. Inject `DataSeederService` via `Depends`. Call `seed_initial_data()`. Register router in `main.py`. Review [api.md](./api.md) for the expected API contract.
+        - [ ] [API/Contract] Write API test asserting 200 OK.
+        - [ ] Create endpoint to clear out all data. That lets us revert the `seed_initial_data`.
         - [ ] [API/Contract] Write API test asserting 200 OK.
 
 - [ ] **Task 4.4: Seeding End-to-End Test** (D: 1.3, 2.2, 4.3)
