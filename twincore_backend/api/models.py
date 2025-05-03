@@ -86,4 +86,49 @@ class ContentChunk(BaseModel):
 class ChunksResponse(BaseModel):
     """Response model for retrieval endpoints."""
     chunks: List[ContentChunk] = Field(..., description="List of content chunks")
-    total: int = Field(..., description="Total number of results found") 
+    total: int = Field(..., description="Total number of results found")
+
+
+# Request Models
+class SeedDataRequest(BaseModel):
+    """Request model for seeding data."""
+    force: bool = Field(default=False, description="Force re-seeding even if data exists")
+
+
+class ClearDataRequest(BaseModel):
+    """Request model for clearing data."""
+    confirm: bool = Field(description="Confirmation to clear all data")
+
+
+class IngestMessageRequest(BaseModel):
+    """Request model for ingesting a message."""
+    message_id: Optional[str] = Field(default=None, description="Unique identifier for the message (optional)")
+    content: str = Field(description="The message text content")
+    user_id: str = Field(description="ID of the user who authored the message")
+    project_id: Optional[str] = Field(default=None, description="Project ID the message belongs to")
+    session_id: Optional[str] = Field(default=None, description="Session ID the message belongs to")
+    timestamp: Optional[str] = Field(default=None, description="Timestamp of message creation")
+    is_twin_interaction: bool = Field(default=False, description="Whether this is part of a twin interaction")
+    is_private: bool = Field(default=False, description="Whether this message is private to the user")
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional metadata")
+
+
+# Response Models
+class SeedDataResponse(BaseModel):
+    """Response model for seeding data."""
+    success: bool = Field(description="Whether the operation was successful")
+    message: str = Field(description="Status message")
+
+
+class ClearDataResponse(BaseModel):
+    """Response model for clearing data."""
+    success: bool = Field(description="Whether the operation was successful")
+    message: str = Field(description="Status message")
+
+
+class IngestMessageResponse(BaseModel):
+    """Response model for ingesting a message."""
+    message_id: str = Field(description="Unique identifier of the message")
+    chunk_id: str = Field(description="Unique identifier of the chunk")
+    timestamp: str = Field(description="Timestamp when the message was ingested")
+    success: bool = Field(description="Whether the operation was successful") 

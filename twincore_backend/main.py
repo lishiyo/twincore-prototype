@@ -7,9 +7,10 @@ from dal.qdrant_dal import QdrantDAL
 from dal.neo4j_dal import Neo4jDAL
 from services.embedding_service import EmbeddingService
 from services.ingestion_service import IngestionService
+from services.message_ingestion_service import MessageIngestionService
 from services.data_seeder_service import DataSeederService
 from services.data_management_service import DataManagementService
-from api.routers import admin_router
+from api.routers import admin_router, ingest_router
 
 app = FastAPI(
     title="TwinCore API",
@@ -48,6 +49,13 @@ async def get_ingestion_service(
     )
 
 @lru_cache
+async def get_message_ingestion_service(
+    ingestion_service: IngestionService = Depends(get_ingestion_service)
+) -> MessageIngestionService:
+    """Create and cache the MessageIngestionService."""
+    return MessageIngestionService(ingestion_service=ingestion_service)
+
+@lru_cache
 async def get_data_seeder_service(
     ingestion_service: IngestionService = Depends(get_ingestion_service)
 ) -> DataSeederService:
@@ -67,10 +75,12 @@ async def get_data_management_service(
 
 # Register routers
 app.include_router(admin_router.router)
+app.include_router(ingest_router.router)
 
 # Set up application-level dependency overrides
 app.dependency_overrides[admin_router.get_data_seeder_service] = get_data_seeder_service
 app.dependency_overrides[admin_router.get_data_management_service] = get_data_management_service
+app.dependency_overrides[ingest_router.get_message_ingestion_service] = get_message_ingestion_service
 
 @app.get("/")
 async def root():

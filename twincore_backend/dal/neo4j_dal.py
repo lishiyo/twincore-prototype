@@ -341,4 +341,135 @@ class Neo4jDAL(INeo4jDAL):
             raise
         except Exception as e:
             logger.error(f"Unexpected error getting project context: {str(e)}")
+            raise
+
+    async def delete_node(self, label: str, properties: Dict[str, Any]) -> bool:
+        """Delete a node with the given label and identifying properties.
+        
+        Args:
+            label: The label of the node to delete
+            properties: Properties to identify the node
+            
+        Returns:
+            bool: True if deletion was successful
+            
+        Raises:
+            Neo4jDALError: If deletion operation fails
+        """
+        try:
+            # Build property match string for the WHERE clause
+            where_clause = " AND ".join([f"n.{key} = ${key}" for key in properties])
+            
+            # Construct the Cypher query
+            query = f"""
+            MATCH (n:{label})
+            WHERE {where_clause}
+            DETACH DELETE n
+            """
+            
+            # Execute query
+            async with self.driver.session() as session:
+                result = await session.run(query, **properties)
+                summary = await result.consume()
+                
+                return summary.counters.nodes_deleted > 0
+                
+        except Exception as e:
+            logger.error(f"Failed to delete node: {str(e)}")
+            raise
+            
+    async def get_node(self, label: str, properties: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Get a node with the given label and identifying properties.
+        
+        Args:
+            label: The label of the node to retrieve
+            properties: Properties to identify the node
+            
+        Returns:
+            Dict containing the node properties, or None if not found
+            
+        Raises:
+            Neo4jDALError: If retrieval operation fails
+        """
+        try:
+            # Build property match string for the WHERE clause
+            where_clause = " AND ".join([f"n.{key} = ${key}" for key in properties])
+            
+            # Construct the Cypher query
+            query = f"""
+            MATCH (n:{label})
+            WHERE {where_clause}
+            RETURN n
+            """
+            
+            # Execute query
+            async with self.driver.session() as session:
+                result = await session.run(query, **properties)
+                record = await result.single()
+                
+                if record is None:
+                    return None
+                
+                # Convert Node object to dict
+                node = record["n"]
+                return dict(node)
+                
+        except Exception as e:
+            logger.error(f"Failed to get node: {str(e)}")
+            raise
+            
+    async def get_relationship(
+        self,
+        source_label: str,
+        source_properties: Dict[str, Any],
+        target_label: str,
+        target_properties: Dict[str, Any],
+        relationship_type: str
+    ) -> Optional[Dict[str, Any]]:
+        """Get a relationship between two nodes.
+        
+        Args:
+            source_label: Label of the source node
+            source_properties: Properties to identify the source node
+            target_label: Label of the target node
+            target_properties: Properties to identify the target node
+            relationship_type: Type of relationship to find
+            
+        Returns:
+            Dict containing the relationship properties, or None if not found
+            
+        Raises:
+            Neo4jDALError: If retrieval operation fails
+        """
+        try:
+            # Build property match strings for the WHERE clauses
+            source_where = " AND ".join([f"source.{key} = ${key}" for key in source_properties])
+            target_where = " AND ".join([f"target.{key} = ${key}_target" for key in target_properties])
+            
+            # Prepare parameters with "_target" suffix for target node to avoid key conflicts
+            params = {**source_properties}
+            for key, value in target_properties.items():
+                params[f"{key}_target"] = value
+            
+            # Construct the Cypher query
+            query = f"""
+            MATCH (source:{source_label})-[r:{relationship_type}]->(target:{target_label})
+            WHERE {source_where} AND {target_where}
+            RETURN r
+            """
+            
+            # Execute query
+            async with self.driver.session() as session:
+                result = await session.run(query, **params)
+                record = await result.single()
+                
+                if record is None:
+                    return None
+                
+                # Convert Relationship object to dict
+                rel = record["r"]
+                return dict(rel)
+                
+        except Exception as e:
+            logger.error(f"Failed to get relationship: {str(e)}")
             raise 
