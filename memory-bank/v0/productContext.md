@@ -1,6 +1,6 @@
 # TwinCore Prototype - Product Context
 
-This document outlines the product goals, scope, features, and simulated context for the TwinCore backend prototype, derived from the PRD (`projectbrief.md`) and Separation Strategy.
+This document outlines the product goals, scope, features, and simulated context for the TwinCore backend prototype, derived from the PRD (`projectbrief.md`) and Separation Strategy (`separationStrategy.md`). See `vision_doc.md` for the full context on the larger project.
 
 **1. Core Goal:**
 

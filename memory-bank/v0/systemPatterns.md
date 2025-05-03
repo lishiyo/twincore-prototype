@@ -161,3 +161,70 @@ For the TwinCore prototype:
 8.  The `ingestion/` layer can start simply with the API endpoint handler calling `Service_Ingestion`. You don't need external connectors or task queues for the prototype.
 
 This layered approach provides a solid foundation. You start by implementing the core path (API -> Service -> DAL -> DBs) for your prototype features, and then adding new sources or features becomes a matter of adding specific modules/methods within this structure.
+
+**6. Recommended Directory Structure:**
+
+This structure organizes the codebase according to the layered architecture described above.
+
+```
+twincore_backend/
+│
+├── .venv/                     # Virtual environment files (ignored by Git)
+│
+├── api/                       # FastAPI API Layer
+│   ├── __init__.py
+│   ├── models.py              # Pydantic models for request/response validation
+│   └── routers/               # API Routers (group endpoints by feature)
+│       ├── __init__.py
+│       ├── admin_router.py    # e.g., for /seed_data
+│       ├── ingest_router.py   # Endpoints for /ingest/...
+│       ├── retrieve_router.py # Endpoints for /retrieve/...
+│       └── query_router.py    # Endpoints for /query/...
+│
+├── core/                      # Core utilities, configuration, and setup
+│   ├── __init__.py
+│   ├── config.py              # Configuration loading (e.g., Pydantic Settings)
+│   ├── db_clients.py          # Database client initialization (Qdrant, Neo4j)
+│   ├── db_setup.py            # Scripts/functions for DB initialization (collections, constraints)
+│   └── mock_data.py           # Mock data definitions for seeding/testing
+│   └── utils.py               # Common utility functions (e.g., chunking)
+│
+├── dal/                       # Data Access Layer
+│   ├── __init__.py
+│   ├── interfaces.py          # Abstract Base Classes/Protocols for DALs
+│   ├── neo4j_dal.py           # Neo4j specific data access logic
+│   └── qdrant_dal.py          # Qdrant specific data access logic
+│   └── postgres_shared_dal.py # Read-only access logic for shared Postgres (initially mocked)
+│
+├── services/                  # Business Logic Layer
+│   ├── __init__.py
+│   ├── embedding_service.py   # Handles text embedding
+│   ├── ingestion_service.py   # Orchestrates data ingestion
+│   ├── retrieval_service.py   # Orchestrates data retrieval
+│   └── preference_service.py  # Orchestrates preference querying
+│
+├── tests/                     # Automated tests (mirrors source structure)
+│   ├── __init__.py
+│   ├── conftest.py            # Pytest fixtures (e.g., test clients, DB fixtures)
+│   ├── api/                   # API/Contract tests
+│   │   └── ...
+│   ├── core/                  # Unit tests for core utilities
+│   │   └── ...
+│   ├── dal/                   # DAL Integration tests
+│   │   └── ...
+│   ├── services/              # Service Integration tests
+│   │   └── ...
+│   └── e2e/                   # End-to-end tests
+│       └── ...
+│
+├── .env                       # Environment variables (API keys, DB URIs) - (ignored by Git)
+├── .env.example               # Example environment file
+├── .gitignore                 # Git ignore rules
+├── docker-compose.yml         # Docker Compose for development databases
+├── docker-compose.test.yml    # Docker Compose for isolated test databases
+├── main.py                    # FastAPI application entry point
+├── pytest.ini                 # Pytest configuration
+├── README.md                  # Project overview, setup, and usage instructions
+├── requirements.txt           # Python package dependencies
+└── streamlit_app.py           # Minimal Streamlit UI for verification
+```
