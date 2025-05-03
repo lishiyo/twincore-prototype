@@ -1,6 +1,7 @@
 import logging
 from typing import List, Optional, Union
 import openai
+from openai import OpenAI, AsyncOpenAI
 from pydantic import ValidationError
 
 from core.config import settings
@@ -43,8 +44,8 @@ class EmbeddingService:
             raise ModelConfigurationError("OpenAI API key is required but not provided")
         
         try:
-            # Set the API key for the OpenAI client
-            openai.api_key = self.api_key
+            # Initialize the async OpenAI client
+            self.client = AsyncOpenAI(api_key=self.api_key)
             logger.info(f"EmbeddingService initialized with model: {self.model_name}")
         except Exception as e:
             raise ModelConfigurationError(f"Failed to initialize OpenAI client: {str(e)}")
@@ -77,14 +78,14 @@ class EmbeddingService:
             if not texts:
                 raise ValueError("All provided texts are empty after stripping whitespace")
             
-            # Get embeddings from OpenAI
-            response = await openai.Embedding.acreate(
+            # Get embeddings from OpenAI using the new client-based approach
+            response = await self.client.embeddings.create(
                 model=self.model_name,
                 input=texts
             )
             
             # Extract embeddings from response
-            embeddings = [data["embedding"] for data in response.data]
+            embeddings = [data.embedding for data in response.data]
             
             # Return a single embedding if input was a single string
             return embeddings[0] if is_single else embeddings

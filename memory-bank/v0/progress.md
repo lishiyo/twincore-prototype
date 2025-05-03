@@ -1,6 +1,78 @@
+## Sat May  3 11:22:14 PDT 2025 - Fixed Database Issues and API Compatibility
+
+## Changes since last update
+- Fixed issues with Neo4j user nodes missing the `name` property:
+  - Updated `ingestion_service.py` to correctly include user names from `mock_data.get_user_name()`
+  - Modified `test_seed_data_e2e.py` to verify both `user_id` and `name` properties on user nodes
+- Updated OpenAI embedding API to modern format:
+  - Refactored `embedding_service.py` to use the current AsyncOpenAI client-based approach
+  - Updated embedding service tests to mock the new client structure correctly
+  - All embedding service tests now pass with the newer API format
+- Improved Neo4j session handling:
+  - Enhanced `neo4j_setup.py` to properly handle both synchronous and asynchronous drivers
+  - Added type detection and appropriate session handling for each driver type
+  - Fixed session management in constraint creation functions
+- Standardized property naming conventions:
+  - Updated `dataSchema.md` to use consistent snake_case naming (e.g., `user_id` instead of `userId`)
+  - Updated Neo4j constraint definitions to match the standardized snake_case format
+  - Modified the ingestion service and tests to use consistent property naming
+
+## Learnings
+- Property naming standardization (snake_case vs camelCase) is critical for consistent database operations
+- OpenAI's embedding API has evolved, requiring updates to our client implementation
+- Proper session handling in Neo4j requires differentiating between sync and async drivers
+- End-to-end tests are valuable for detecting integration issues that unit tests miss
+
+## Next steps
+- Continue with Phase 5: Implement Ingestion Endpoints (`/api/ingest/*`)
+- Implement Task 5.1: Ingest Message Endpoint
+- Implement Task 5.2: Ingest Document Endpoint
+
 # TwinCore Backend Prototype - Progress Log
 
 REMEMBER TO PUT YOUR LATEST UPDATE AT TOP!
+
+## Fri May  3 00:46:10 PDT 2025 - Completed Task 4.4: Seeding End-to-End Test
+
+## Changes since last update
+- Created end-to-end (E2E) test for data seeding in `twincore_backend/tests/e2e/test_seed_data_e2e.py`:
+  - Implemented test that calls the `/api/seed_data` endpoint
+  - Added direct verification of data integrity in both Qdrant and Neo4j
+  - Verified specific data elements in both databases:
+    - Alice's private documents in Qdrant (user_id + is_private filters)
+    - Book project documents in Qdrant (project_id filter)
+    - User nodes in Neo4j (count matches expected users)
+    - Project, Document, and Message nodes in Neo4j
+    - Relationships between entities (PARTICIPATED_IN, AUTHORED)
+    - Specific user data integrity (e.g., Alice's name)
+- Implemented dedicated E2E testing infrastructure:
+  - Created `twincore_backend/tests/e2e/conftest.py` with specialized fixtures
+  - Added `initialized_app` fixture to ensure database setup
+  - Added `test_app_client` fixture for API calls with real dependencies
+  - Implemented `clear_test_data` fixture for clean test environment
+  - Created proper database cleanup before and after each test
+  - Ensured test fixtures don't inherit mocks from unit tests
+
+## Design decisions
+- Used isolated conftest.py for E2E tests to prevent dependency override conflicts
+- Implemented thorough database verification that checks both data existence and specific values
+- Added multiple verification points for both databases to ensure complete data integrity
+- Used AsyncClient for proper async testing of FastAPI endpoints
+- Implemented automatic database cleanup to ensure test isolation
+- Used real database instances (not mocks) to verify actual data persistence
+- Added proper error handling for database connection/cleanup
+
+## Learnings
+- E2E tests require different dependency handling than unit/integration tests
+- Test isolation is critical - each E2E test needs a clean database state
+- Thorough verification of both Qdrant and Neo4j is necessary to ensure data integrity
+- Connecting directly to the databases allows for detailed verification beyond API responses
+- Sleep intervals might be necessary to allow async operations to complete in E2E tests
+
+## Next steps
+- Move on to Phase 5: Implement Ingestion Endpoints (`/api/ingest/*`)
+- Implement Task 5.1: Ingest Message Endpoint
+- Implement Task 5.2: Ingest Document Endpoint
 
 ## Fri May  3 00:15:28 PDT 2025 - Completed Task 4.3: Seeding API Endpoint
 

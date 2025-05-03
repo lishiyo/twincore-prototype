@@ -1,4 +1,4 @@
-# TwinCore Active Context - Fri May  3 00:17:36 PDT 2025
+# TwinCore Active Context - Sat May  3 11:22:14 PDT 2025
 
 ## Current Work Focus
 - Implementing TwinCore backend prototype
@@ -17,7 +17,9 @@
 - Completed Task 4.1: Mock Data Module
 - Completed Task 4.2: Seeding Logic (implemented via dedicated DataSeederService)
 - Completed Task 4.3: Seeding API Endpoint (with data clearing capability)
-- Moving to Task 4.4: Seeding End-to-End Test
+- Completed Task 4.4: Seeding End-to-End Test
+- Fixed several database issues and API compatibility problems
+- Moving to Phase 5: Ingestion Endpoints (`/api/ingest/*`)
 
 ## Project State
 ### What's Working
@@ -34,7 +36,7 @@
   - Qdrant collection setup (`qdrant_setup.py`)
   - Neo4j constraint setup (`neo4j_setup.py`) for all entity types
 - Testing environment with properly configured test databases
-- OpenAI-based Embedding Service with proper error handling and tests
+- OpenAI-based Embedding Service with proper error handling and tests (updated to latest API format)
 - DAL interfaces defined with clear method signatures for all three database types:
   - IQdrantDAL: Vector database operations interface
   - INeo4jDAL: Graph database operations interface
@@ -45,6 +47,7 @@
   - Proper integration with EmbeddingService, QdrantDAL, and Neo4jDAL
   - Helper methods for preparing Qdrant points and updating Neo4j graph
   - Comprehensive tests with mocked dependencies
+  - Fixed user name property handling in Neo4j node creation
 - Mock data module with realistic test data:
   - User entities (Alice, Bob, Charlie)
   - Project and session entities
@@ -63,9 +66,10 @@
   - Method for coordinating data clearing across all databases
   - Proper separation of concerns from seeding functionality
   - Tests with mocked dependencies
+- End-to-end tests verifying the full data seeding pipeline
 
 ### What's Broken
-- Nothing currently broken
+- Nothing currently broken - fixed all identified issues
 
 ## Active Decisions & Considerations
 - Following the layered architecture defined in systemPatterns.md
@@ -92,6 +96,9 @@
 - Created a dedicated `DataManagementService` for operations that affect system-wide data state
 - Using application-level dependency overrides in FastAPI for cleaner dependency injection
 - Standardized API path convention to use `/v1` prefix for all endpoints
+- Standardized on snake_case for all database property names (e.g., `user_id` not `userId`)
+- Enhanced Neo4j session handling to support both synchronous and asynchronous drivers
+- Updated embedding service to use the latest OpenAI API format
 
 ## Tech Stack
 - Backend: FastAPI (Python)
@@ -104,5 +111,5 @@
 - Qdrant Client: 1.7.0
 
 ## Next Steps
-- Implement End-to-End tests for seeding (Task 4.4)
-- Move on to Phase 5: Ingestion Endpoints (`/api/ingest/*`)
+- Implement Task 5.1: Ingest Message Endpoint
+- Implement Task 5.2: Ingest Document Endpoint

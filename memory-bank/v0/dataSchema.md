@@ -62,31 +62,31 @@ Models relationships essential for context, authorship, and preference tracking 
 **Core Node Labels for Prototype:**
 
 *   `User`
-    *   Properties: `userId` (UUID, primary key), `name` (from mock)
+    *   Properties: `user_id` (UUID, primary key), `name` (from mock)
 *   `Organization`
-    *   Properties: `orgId` (UUID, primary key), `name`, `createdAt`
+    *   Properties: `org_id` (UUID, primary key), `name`, `created_at`
 *   `Team`
--    *   Properties: `teamId` (UUID, primary key), `name`, `createdAt`
+-    *   Properties: `team_id` (UUID, primary key), `name`, `created_at`
 *   `Project`
-    *   Properties: `projectId` (UUID, primary key), `name` (e.g., "Book Generator Agent")
+    *   Properties: `project_id` (UUID, primary key), `name` (e.g., "Book Generator Agent")
 *   `Session`
-    *   Properties: `sessionId` (UUID, primary key), `timestamp` (approx. start time)
+    *   Properties: `session_id` (UUID, primary key), `timestamp` (approx. start time)
 *   `Document`
-    *   Properties: `docId` (UUID, primary key), `name`, `sourceType`, `isPrivate` (boolean, mirrors Qdrant flag)
+    *   Properties: `document_id` (UUID, primary key), `name`, `source_type`, `is_private` (boolean, mirrors Qdrant flag)
 *   `Message`
-    *   Properties: `messageId` (UUID, primary key), `timestamp`, `isTwinInteraction` (boolean, mirrors Qdrant flag)
+    *   Properties: `message_id` (UUID, primary key), `timestamp`, `is_twin_interaction` (boolean, mirrors Qdrant flag)
 *   `Preference` *(Used if explicitly modeling stated preferences)*
-    *   Properties: `preferenceId` (UUID, primary key), `statement` (text), `timestamp`
+    *   Properties: `preference_id` (UUID, primary key), `statement` (text), `timestamp`
 *   `Topic`
-    *   Properties: `topicId` (UUID, primary key), `name` (e.g., "budget", "java", "ui-design")
+    *   Properties: `topic_id` (UUID, primary key), `name` (e.g., "budget", "java", "ui-design")
 *   `Vote`
-    *   Properties: `voteId` (UUID, primary key), `target` (text, e.g., "Variant A"), `value` (int/string), `timestamp`
+    *   Properties: `vote_id` (UUID, primary key), `target` (text, e.g., "Variant A"), `value` (int/string), `timestamp`
 
 *(Nodes like `Organization`, `Team`, `Topic`, `Vote` can be defined in the schema for future use but are not strictly required or populated by the prototype's initial data/features).*
 
 **Core Relationship Types for Prototype:**
 
-*   `(User)-[:MEMBER_OF {role: string, joinedAt: datetime}]->(Team)`
+*   `(User)-[:MEMBER_OF {role: string, joined_at: datetime}]->(Team)`
 *   `(Team)-[:BELONGS_TO]->(Organization)`
 *   `(Project)-[:OWNED_BY]->(Organization)` // Or potentially linked via Team
 *   `(Team)-[:WORKS_ON]->(Project)`
@@ -120,8 +120,8 @@ Models relationships essential for context, authorship, and preference tracking 
 1.  Canvas Agent asks (via API call `/api/retrieve/context`): "What was discussed about the roadmap in the current Book Gen session?" (`session_id=SESSION_BOOK_CURRENT_ID`, `project_id=PROJECT_BOOK_GEN_ID`, `query_text="roadmap"`)
 2.  **Neo4j Step:** Query to find participants (optional but good practice):
     ```cypher
-    MATCH (s:Session {sessionId: $session_id})<-[:PARTICIPATED_IN]-(u:User)
-    RETURN u.userId AS participantId
+    MATCH (s:Session {session_id: $session_id})<-[:PARTICIPATED_IN]-(u:User)
+    RETURN u.user_id AS participantId
     ```
     (Result: Alice_ID, Bob_ID, Charlie_ID)
 3.  **Qdrant Step:** Query Qdrant for vectors semantically similar to "roadmap".
@@ -138,7 +138,7 @@ Models relationships essential for context, authorship, and preference tracking 
 
 1.  **Ingestion:** Mock data or data from prototype UI (uploads, chats) comes into the API.
     *   Service layer coordinates embedding.
-    *   **Neo4j:** `MERGE` core nodes (`User`, `Project`, `Session`, `Document`, `Message`) and create core relationships (`PARTICIPATED_IN`, `UPLOADED`, `AUTHORED`, `POSTED_IN`, etc.) using provided UUIDs. Set `isPrivate`/`isTwinInteraction` properties on nodes.
+    *   **Neo4j:** `MERGE` core nodes (`User`, `Project`, `Session`, `Document`, `Message`) and create core relationships (`PARTICIPATED_IN`, `UPLOADED`, `AUTHORED`, `POSTED_IN`, etc.) using provided UUIDs. Set `is_private`/`is_twin_interaction` properties on nodes.
     *   **Qdrant:** Store text chunk embeddings with payloads containing all relevant UUIDs and the `is_private`/`is_twin_interaction` flags.
 2.  **Querying:** API endpoints trigger service layer.
     *   Services may query Neo4j first for context IDs (e.g., session participants).

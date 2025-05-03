@@ -1,5 +1,6 @@
 import logging
-from neo4j import Driver
+from typing import Union
+from neo4j import Driver, AsyncDriver
 
 from core.db_clients import get_neo4j_driver
 from core.config import settings
@@ -7,19 +8,18 @@ from core.config import settings
 logger = logging.getLogger(__name__)
 
 
-async def setup_neo4j_constraints(driver: Driver = None, database: str = None):
+async def setup_neo4j_constraints(driver: Union[Driver, AsyncDriver] = None, database: str = None):
     """
     Sets up the necessary uniqueness constraints in Neo4j.
     
     Args:
-        driver (Driver, optional): Neo4j driver instance. If None, a new driver will be created.
+        driver (Driver or AsyncDriver, optional): Neo4j driver instance. If None, a new driver will be created.
         database (str, optional): Database name to use. If None, uses the value from settings.
         
-    Note: Neo4j Python driver does not support native async/await,
-    so we use the synchronous API within our async function.
+    Note: This function handles both synchronous and asynchronous Neo4j driver instances.
     """
     # Use provided driver or get a new one
-    use_driver = driver or get_neo4j_driver()
+    use_driver = driver or await get_neo4j_driver()
     # Use provided database or get from settings
     use_database = database or settings.neo4j_database
     
@@ -41,17 +41,26 @@ async def setup_neo4j_constraints(driver: Driver = None, database: str = None):
 
     try:
         logger.info("Setting up Neo4j constraints...")
-        # Use standard session instead of async session
-        with use_driver.session(database=use_database) as session:
-            for i, constraint_query in enumerate(constraints):
-                try:
-                    # Use standard write_transaction instead of execute_write
-                    session.write_transaction(lambda tx: tx.run(constraint_query))
-                    logger.info(f"Successfully applied constraint {i+1}/{len(constraints)}.")
-                except Exception as constraint_error:
-                    # Log specific constraint error but continue trying others
-                    logger.error(f"Failed to apply constraint: {constraint_query} - Error: {constraint_error}", exc_info=True)
-                    # Depending on policy, you might want to raise an error here to stop the process
+        
+        # Check if we have an async or sync driver and handle accordingly
+        if isinstance(use_driver, AsyncDriver):
+            # Async driver handling
+            async with use_driver.session(database=use_database) as session:
+                for i, constraint_query in enumerate(constraints):
+                    try:
+                        await session.run(constraint_query)
+                        logger.info(f"Successfully applied constraint {i+1}/{len(constraints)}.")
+                    except Exception as constraint_error:
+                        logger.error(f"Failed to apply constraint: {constraint_query} - Error: {constraint_error}", exc_info=True)
+        else:
+            # Sync driver handling (for tests)
+            with use_driver.session(database=use_database) as session:
+                for i, constraint_query in enumerate(constraints):
+                    try:
+                        session.run(constraint_query)
+                        logger.info(f"Successfully applied constraint {i+1}/{len(constraints)}.")
+                    except Exception as constraint_error:
+                        logger.error(f"Failed to apply constraint: {constraint_query} - Error: {constraint_error}", exc_info=True)
 
         logger.info("Finished setting up Neo4j constraints.")
 
@@ -61,4 +70,8 @@ async def setup_neo4j_constraints(driver: Driver = None, database: str = None):
     finally:
         # Only close the driver if we created a new one
         if driver is None and use_driver is not None:
-            use_driver.close() 
+            # Different closing methods for sync vs async
+            if isinstance(use_driver, AsyncDriver):
+                await use_driver.close()
+            else:
+                use_driver.close() 

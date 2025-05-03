@@ -139,18 +139,18 @@ class TestIngestionService:
         # Check Chunk node creation
         chunk_call = [call for call in mock_neo4j_dal.create_node_if_not_exists.call_args_list 
                      if call[0][0] == "Chunk"][0]
-        assert chunk_call[0][1]["chunkId"] == chunk_id
+        assert chunk_call[0][1]["chunk_id"] == chunk_id
         assert chunk_call[0][1]["timestamp"] == timestamp
         
         # Check User node creation
         user_call = [call for call in mock_neo4j_dal.create_node_if_not_exists.call_args_list 
                     if call[0][0] == "User"][0]
-        assert user_call[0][1]["userId"] == user_id
+        assert user_call[0][1]["user_id"] == user_id
         
         # Check Message node creation
         message_call = [call for call in mock_neo4j_dal.create_node_if_not_exists.call_args_list 
                        if call[0][0] == "Message"][0]
-        assert message_call[0][1]["messageId"] == message_id
+        assert message_call[0][1]["message_id"] == message_id
         
         # Check relationships
         relationship_calls = mock_neo4j_dal.create_relationship_if_not_exists.call_args_list
@@ -199,9 +199,9 @@ class TestIngestionService:
         # Check Document node creation
         doc_call = [call for call in mock_neo4j_dal.create_node_if_not_exists.call_args_list 
                    if call[0][0] == "Document"][0]
-        assert doc_call[0][1]["documentId"] == doc_id
+        assert doc_call[0][1]["document_id"] == doc_id
         assert doc_call[0][1]["name"] == doc_name
-        assert doc_call[0][1]["isPrivate"] is True
+        assert doc_call[0][1]["is_private"] is True
         
         # Check relationships
         relationship_calls = mock_neo4j_dal.create_relationship_if_not_exists.call_args_list
@@ -270,7 +270,7 @@ class TestIngestionService:
         # Check that Chunk node was created
         chunk_call = [call for call in mock_neo4j_dal.create_node_if_not_exists.call_args_list 
                      if call[0][0] == "Chunk"][0]
-        assert chunk_call[0][1]["chunkId"] == chunk_id
+        assert chunk_call[0][1]["chunk_id"] == chunk_id
 
     @pytest.mark.asyncio
     async def test_ingestion_error_handling(self, ingestion_service, mock_embedding_service):

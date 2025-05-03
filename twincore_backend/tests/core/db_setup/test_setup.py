@@ -292,6 +292,9 @@ async def test_setup_neo4j_constraints_creates_constraints(test_neo4j_driver: Dr
         
         # Check that all our expected constraints exist
         missing = []
+        existing_prop_names = [property for _, property in existing_constraints]
+        print(f"\nActual property names in database: {existing_prop_names}")
+        
         for expected_label, expected_property in expected_constraints:
             if not any(label == expected_label and property == expected_property 
                     for label, property in existing_constraints):

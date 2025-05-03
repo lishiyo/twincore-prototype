@@ -113,16 +113,16 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] Use dependency injection with the `IngestionService` to process data
         - [x] [Service Int] Create comprehensive tests for `DataSeederService`
 
-- [ ] **Task 4.3: Seeding API Endpoint** (D: 1.1, 4.2)
-    - [ ] Steps:
+- [x] **Task 4.3: Seeding API Endpoint** (D: 1.1, 4.2)
+    - [x] Steps:
         - [x] Create `api/routers/admin_router.py`. Define `POST /api/seed_data`. Inject `DataSeederService` via `Depends`. Call `seed_initial_data()`. Register router in `main.py`. Review [api.md](./api.md) for the expected API contract.
         - [x] [API/Contract] Write API test asserting 200 OK.
         - [x] Create endpoint to clear out all data. That lets us revert the `seed_initial_data`.
         - [x] [API/Contract] Write API test asserting 200 OK.
 
-- [ ] **Task 4.4: Seeding End-to-End Test** (D: 1.3, 2.2, 4.3)
-    - [ ] Steps:
-        - [ ] [E2E] Write E2E test using `HTTPX` and real test DBs. Call `/api/seed_data`. Directly query test Qdrant/Neo4j to verify data integrity.
+- [x] **Task 4.4: Seeding End-to-End Test** (D: 1.3, 2.2, 4.3)
+    - [x] Steps:
+        - [x] [E2E] Write E2E test using `HTTPX` and real test DBs. Call `/api/seed_data`. Directly query test Qdrant/Neo4j to verify data integrity.
 
 ---
 
