@@ -37,10 +37,50 @@ TwinCore is a prototype backend service that demonstrates the Digital Twin's abi
 
 ### Running the Database Services
 
-Start the required databases using Docker Compose:
+#### Development Environment
+
+Start the required databases for development using Docker Compose:
 
 ```
 docker-compose up -d
+```
+
+This will start:
+- Qdrant on ports 6333 (API) and 6334 (Web UI)
+- Neo4j on ports 7474 (Browser UI) and 7687 (Bolt protocol)
+
+To check the status:
+```
+docker-compose ps
+```
+
+To view logs:
+```
+docker-compose logs -f
+```
+
+To stop the services:
+```
+docker-compose down
+```
+
+#### Testing Environment
+
+For testing, we use a separate docker-compose file to create isolated instances:
+
+```
+docker-compose -f docker-compose.test.yml up -d
+```
+
+This starts:
+- Qdrant test instance on port 7333 (API) and 7334 (Web UI)
+- Neo4j test instance on ports 8474 (Browser UI) and 8687 (Bolt protocol)
+
+The test databases are configured to use in-memory storage for faster testing.
+
+To stop the test services:
+```
+docker-compose -f docker-compose.test.yml down
 ```
 
 ### Running the API
@@ -72,3 +112,5 @@ pytest
 - `dal/`: Data Access Layer for database interactions
 - `services/`: Business logic services
 - `tests/`: Test suite 
+- `docker-compose.yml`: Docker configuration for development databases
+- `docker-compose.test.yml`: Docker configuration for isolated test databases 

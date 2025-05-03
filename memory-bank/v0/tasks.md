@@ -29,12 +29,12 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] Create basic test fixtures (e.g., `httpx` client in `tests/conftest.py`).
         - [x] Ensure Task 1.1 test runs via `pytest`.
 
-- [ ] **Task 1.3: Docker Setup for Databases**
-    - [ ] Steps:
-        - [ ] Create `docker-compose.yml` for Qdrant & Neo4j dev instances.
-        - [ ] Create `docker-compose.test.yml` (or profiles) for isolated test DB instances.
-        - [ ] Document basic `docker-compose` usage in README.
-    - [ ] Dependencies: None
+- [x] **Task 1.3: Docker Setup for Databases**
+    - [x] Steps:
+        - [x] Create `docker-compose.yml` for Qdrant & Neo4j dev instances.
+        - [x] Create `docker-compose.test.yml` (or profiles) for isolated test DB instances.
+        - [x] Document basic `docker-compose` usage in README.
+    - [x] Dependencies: None
 
 ---
 
