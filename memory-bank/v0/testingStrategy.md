@@ -79,7 +79,23 @@ For each new feature, endpoint, or significant logic change:
 *   **Test Coverage:** Aim for >85% line coverage as a starting point, measured by `pytest-cov`. Focus coverage on logic in services and DALs.
 *   **Passing Tests:** Maintain a 100% pass rate on the main development branch. Failed tests in CI should block merges.
 
-**9. Future Considerations**
+**9. Testing Caveats and Patterns**
+
+*   **Testing Cached Functions:** When testing functions decorated with `@lru_cache` or similar caching mechanisms:
+    *   Issue: Cache persistence between tests can cause test interference, leading to false positives or negatives.
+    *   Solution: Create a pytest fixture that clears relevant caches before each test:
+      ```python
+      @pytest.fixture(autouse=True)
+      def clear_lru_cache():
+          """Clear LRU cache before each test to ensure clean state."""
+          cached_function.cache_clear()
+          yield
+      ```
+    *   Setting `autouse=True` ensures the fixture runs for all tests without explicit reference.
+    *   This is especially important when testing error cases or functions with side effects.
+    *   Remember, the cache is useful in production for performance but needs careful handling in tests.
+
+**10. Future Considerations**
 
 *   **Performance Testing:** Introduce load testing (e.g., using `locust`) once core functionality is stable.
 *   **External Ingestion Tests:** Develop strategies for testing GDrive/GCal connectors (likely involving mocking the external APIs).
