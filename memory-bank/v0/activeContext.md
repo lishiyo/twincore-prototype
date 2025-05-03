@@ -1,4 +1,4 @@
-# TwinCore Active Context - Fri May  2 23:33:52 PDT 2025
+# TwinCore Active Context - Fri May  2 23:49:19 PDT 2025
 
 ## Current Work Focus
 - Implementing TwinCore backend prototype
@@ -15,7 +15,8 @@
 - Completed Task 3.4: Qdrant DAL Implementation
 - Completed Task 3.5: Core Ingestion Service Logic
 - Completed Task 4.1: Mock Data Module
-- Moving to Task 4.2: Seeding Logic in Ingestion Service
+- Completed Task 4.2: Seeding Logic (implemented via dedicated DataSeederService)
+- Moving to Task 4.3: Seeding API Endpoint
 
 ## Project State
 ### What's Working
@@ -35,8 +36,8 @@
 - OpenAI-based Embedding Service with proper error handling and tests
 - DAL interfaces defined with clear method signatures for all three database types:
   - IQdrantDAL: Vector database operations interface
-  - INeo4jDAL: Graph database operations interface  
-  - IPostgresSharedDAL: Read-only interface for shared Postgres
+  - INeo4jDAL: Graph database operations interface
+  - IPostgresSharedDAL: Read-only interface for shared Postgres (currently mocked/placeholder)
 - Neo4j DAL implementation with all core CRUD operations and tests
 - Qdrant DAL implementation with core `upsert`, `search`, and `delete` operations and integration tests
 - Core Ingestion Service implementation with:
@@ -49,6 +50,10 @@
   - Sample content (documents, messages, transcripts)
   - Private user content and twin interactions
   - Proper metadata structure with privacy flags
+- DataSeederService for handling initial data seeding:
+  - Takes IngestionService as dependency
+  - Methods for seeding initial mock data and custom data
+  - Comprehensive tests with mocked dependencies
 
 ### What's Broken
 - Nothing currently broken
@@ -72,16 +77,9 @@
 - Implementing thorough error handling in all database operations
 - Setting up test fixtures for clean database state between tests
 - Verified Qdrant client 1.7.0 works with server 1.7.4; adjusted `delete_vectors` implementation for compatibility
-- Created a coordinated ingestion pipeline through the IngestionService that:
-  - Handles text embedding generation
-  - Stores data in Qdrant with consistent metadata
-  - Creates and maintains the knowledge graph in Neo4j with proper relationships
-  - Properly handles different source types (messages, documents)
-  - Manages privacy and twin interaction flags across both databases
-- Created comprehensive mock data representing the prototype's requirements:
-  - Combined the project brief mock data with additional examples
-  - Added helper functions for easier data access and manipulation
-  - Included example queries to document intended usage patterns
+- Created a coordinated ingestion pipeline through the IngestionService
+- Created comprehensive mock data representing the prototype's requirements
+- **Created a dedicated `DataSeederService` to separate seeding concerns from the `IngestionService`, adhering to the Single Responsibility Principle.**
 
 ## Tech Stack
 - Backend: FastAPI (Python)
@@ -94,6 +92,6 @@
 - Qdrant Client: 1.7.0
 
 ## Next Steps
-- Implement seeding logic in Ingestion Service (Task 4.2)
-- Create seeding API endpoint (Task 4.3)
+- Implement Seeding API Endpoint (Task 4.3)
 - Write E2E tests for seeding (Task 4.4)
+- Move on to Phase 5: Ingestion Endpoints (`/api/ingest/*`)

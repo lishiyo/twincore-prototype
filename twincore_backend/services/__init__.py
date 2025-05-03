@@ -2,6 +2,7 @@
 
 from .embedding_service import EmbeddingService, EmbeddingServiceError, ModelConfigurationError, EmbeddingProcessError
 from .ingestion_service import IngestionService, IngestionServiceError
+from .data_seeder_service import DataSeederService, DataSeederServiceError
 
 __all__ = [
     "EmbeddingService",
@@ -10,4 +11,6 @@ __all__ = [
     "EmbeddingProcessError",
     "IngestionService",
     "IngestionServiceError",
+    "DataSeederService",
+    "DataSeederServiceError",
 ] 

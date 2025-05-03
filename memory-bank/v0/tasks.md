@@ -106,14 +106,16 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] Create `core/mock_data.py` based on [PRD](./projectbrief.md).
     - [x] Dependencies: None
 
-- [ ] **Task 4.2: Seeding Logic in Ingestion Service** (D: 3.5, 4.1)
-    - [ ] Steps:
-        - [ ] Add `seed_initial_data()` method to `IngestionService`. Iterate mock data, call internal processing/DAL methods.
-        - [ ] [Service Int] Update tests for `IngestionService` to cover `seed_initial_data`, verify DAL call sequences.
+- [x] **Task 4.2: Seeding Logic in Data Seeder Service** (D: 3.5, 4.1)
+    - [x] Steps:
+        - [x] Create a dedicated `DataSeederService` class to handle seeding operations
+        - [x] Implement `seed_initial_data()` method to load mock data from `core/mock_data.py`
+        - [x] Use dependency injection with the `IngestionService` to process data
+        - [x] [Service Int] Create comprehensive tests for `DataSeederService`
 
 - [ ] **Task 4.3: Seeding API Endpoint** (D: 1.1, 4.2)
     - [ ] Steps:
-        - [ ] Create `api/routers/admin_router.py`. Define `POST /api/seed_data`. Inject `IngestionService` via `Depends`. Call `seed_initial_data()`. Register router in `main.py`.
+        - [ ] Create `api/routers/admin_router.py`. Define `POST /api/seed_data`. Inject `DataSeederService` via `Depends`. Call `seed_initial_data()`. Register router in `main.py`.
         - [ ] [API/Contract] Write API test asserting 200 OK.
 
 - [ ] **Task 4.4: Seeding End-to-End Test** (D: 1.3, 2.2, 4.3)

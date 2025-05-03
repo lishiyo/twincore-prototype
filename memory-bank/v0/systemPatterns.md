@@ -26,12 +26,14 @@ graph LR
             Router_Ingest[Ingest Router (/ingest)]
             Router_Retrieve[Retrieve Router (/retrieve)]
             Router_Query[Query Router (/query)]
+            Router_Admin[Admin Router (/admin)]
             Models_Pydantic[Pydantic Models (Request/Response)]
         end
 
         subgraph Business Logic Layer (services/)
             Service_Retrieval[RetrievalService]
             Service_Ingestion[IngestionService]
+            Service_DataSeeder[DataSeederService]
             Service_Preference[PreferenceService]
             Service_Embedding[EmbeddingService]
             Service_KnowledgeExtract[KnowledgeExtractionService]
@@ -55,6 +57,7 @@ graph LR
             Config[Configuration Loading]
             Logging[Logging Setup]
             DB_Clients[Database Clients (Qdrant, Neo4j, SQLAlchemy)]
+            Mock_Data[Mock Data Module]
             subgraph DB Setup (core/db_setup/)
                 DB_Setup_Qdrant[qdrant_setup.py]
                 DB_Setup_Neo4j[neo4j_setup.py]
@@ -67,12 +70,17 @@ graph LR
     A -- HTTP Requests --> Router_Ingest;
     A -- HTTP Requests --> Router_Retrieve;
     A -- HTTP Requests --> Router_Query;
+    A -- HTTP Requests --> Router_Admin;
 
     Router_Ingest -- Uses --> Service_Ingestion;
     Router_Retrieve -- Uses --> Service_Retrieval;
     Router_Query -- Uses --> Service_Preference; %% And potentially Service_Retrieval
-    Router_Ingest & Router_Retrieve & Router_Query -- Use --> Models_Pydantic;
+    Router_Admin -- Uses --> Service_DataSeeder;
+    Router_Ingest & Router_Retrieve & Router_Query & Router_Admin -- Use --> Models_Pydantic;
 
+    Service_DataSeeder -- Uses --> Service_Ingestion;
+    Service_DataSeeder -- Reads From --> Mock_Data;
+    
     Service_Ingestion -- Calls --> Service_KnowledgeExtract;
     Service_Ingestion -- Uses --> Service_Embedding;
     Service_Ingestion -- Uses --> DAL_Qdrant;
@@ -113,7 +121,7 @@ graph LR
     PG_Shared -- Read By --> DAL_Postgres_Shared;
 
     %% Dependencies %%
-    Service_Retrieval & Service_Ingestion & Service_Preference & Service_Embedding & Service_KnowledgeExtract --> Config & Logging;
+    Service_Retrieval & Service_Ingestion & Service_Preference & Service_Embedding & Service_DataSeeder & Service_KnowledgeExtract --> Config & Logging;
     DAL_Qdrant & DAL_Neo4j & DAL_Postgres_Shared & DAL_Postgres_Twin --> Config & Logging;
 
 ```
@@ -130,6 +138,7 @@ graph LR
     *   **Responsibility:** Orchestrate the steps needed to fulfill an API request. Contains the core "how-to" logic. It doesn't know *how* data is stored, only *what* data access functions to call (via the DAL).
         *   `EmbeddingService`: Abstracts sentence-transformer/LLM embedding model. `get_embedding(text)` method.
         *   `IngestionService`: Coordinates getting data -> embedding -> optional knowledge extraction -> calling DAL methods (`upsert_vector`, `create_node`, `create_relationship`, `merge_extracted_knowledge`).
+        *   `DataSeederService`: Responsible for seeding the system with mock or custom data. Uses `IngestionService` to handle the actual data ingestion, maintaining a clean separation of concerns.
         *   `RetrievalService`: Coordinates getting context IDs -> building filters -> calling semantic search -> potentially enriching with data from Postgres DAL.
         *   `PreferenceService`: Logic for interpreting preferences from retrieved data.
         *   `KnowledgeExtractionService`: (Phase 9) Calls external LLM API to extract structured information (topics, preferences, etc.) from text. Parses the result.
@@ -230,6 +239,7 @@ twincore_backend/
 │   ├── __init__.py
 │   ├── embedding_service.py   # Handles text embedding
 │   ├── ingestion_service.py   # Orchestrates data ingestion
+│   ├── data_seeder_service.py # Coordinates seeding of initial and custom data
 │   ├── retrieval_service.py   # Orchestrates data retrieval
 │   ├── preference_service.py  # Orchestrates preference querying
 │   └── knowledge_extraction_service.py # (Phase 9) Extracts knowledge via LLM
