@@ -2,6 +2,47 @@
 
 REMEMBER TO PUT YOUR LATEST UPDATE AT TOP!
 
+## Fri May  2 23:22:03 PDT 2025 - Completed Task 3.5: Ingestion Service (Core Logic)
+
+## Changes since last update
+- Implemented the `IngestionService` in `twincore_backend/services/ingestion_service.py`:
+  - Created a service that coordinates between EmbeddingService, QdrantDAL, and Neo4jDAL
+  - Implemented the helper method `_prepare_qdrant_point` to generate embeddings and format metadata
+  - Implemented the helper method `_update_neo4j_graph` to create and link nodes in Neo4j
+  - Added a public `ingest_chunk` method as the main entry point for data ingestion
+  - Added extensive error handling and logging
+- Added comprehensive tests in `tests/services/test_ingestion_service.py`:
+  - Set up proper mocking for all dependencies
+  - Tested all helper methods and the main ingestion method
+  - Verified correct method calls with expected arguments
+  - Ensured proper error handling
+- Updated the services `__init__.py` to expose the new IngestionService and IngestionServiceError classes
+
+## Design decisions
+- Used dependency injection to pass EmbeddingService, QdrantDAL, and Neo4jDAL to the IngestionService
+- Implemented a layered design approach:
+  1. Top-level `ingest_chunk` method for client code to use
+  2. Helper methods to handle specific parts of the ingestion process
+  3. Clear error handling with custom exceptions
+- Ensured comprehensive metadata handling across both databases
+- Created a flexible Neo4j graph update process that handles different source types (messages, documents)
+- Implemented proper relationship creation based on the data schema
+- Added privacy and twin interaction flags handling across both databases
+
+## Learnings
+- Coordinating between multiple databases requires careful orchestration of operations
+- Proper error handling is essential when working with multiple external services
+- Mocking complex dependencies makes testing more manageable and reliable
+- The layered approach helps keep code organized and maintainable
+- Dependency injection pattern greatly simplifies testing and future extensibility
+
+## Next steps
+- Implement mock data module (Task 4.1)
+- Add seeding functionality to Ingestion Service (Task 4.2)
+- Create seeding API endpoint (Task 4.3)
+- Write E2E tests for seeding (Task 4.4)
+
+
 ## Fri May  2 23:14:46 PDT 2025 - Completed Task 3.4: Qdrant DAL Implementation
 
 ### Changes since last update

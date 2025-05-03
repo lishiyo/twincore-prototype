@@ -91,11 +91,11 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] Implement `delete_vectors`.
         - [x] [DAL Int] Write integration tests against test Qdrant: test delete, verification, cleanup.
 
-- [ ] **Task 3.5: Ingestion Service (Core Logic)** (D: 3.1, 3.3, 3.4)
-    - [ ] Steps:
-        - [ ] Create `services/ingestion_service.py`. Implement `IngestionService` taking DALs/EmbeddingService dependencies.
-        - [ ] Implement internal helpers (`_prepare_qdrant_point`, `_update_neo4j_graph`).
-        - [ ] [Service Int] Write integration tests mocking DAL/Embedding interfaces, verify correct DAL methods are called with expected args for given inputs.
+- [x] **Task 3.5: Ingestion Service (Core Logic)** (D: 3.1, 3.3, 3.4)
+    - [x] Steps:
+        - [x] Create `services/ingestion_service.py`. Implement `IngestionService` taking DALs/EmbeddingService dependencies.
+        - [x] Implement internal helpers (`_prepare_qdrant_point`, `_update_neo4j_graph`).
+        - [x] [Service Int] Write integration tests mocking DAL/Embedding interfaces, verify correct DAL methods are called with expected args for given inputs.
 
 ---
 
@@ -103,7 +103,7 @@ This document outlines the development tasks for building the TwinCore backend p
 
 - [ ] **Task 4.1: Mock Data Module**
     - [ ] Steps:
-        - [ ] Create `core/mock_data.py` based on PRD.
+        - [ ] Create `core/mock_data.py` based on [PRD](./projectbrief.md).
     - [ ] Dependencies: None
 
 - [ ] **Task 4.2: Seeding Logic in Ingestion Service** (D: 3.5, 4.1)
