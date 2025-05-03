@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     # Neo4j Test Settings
     neo4j_test_uri: str = Field(default="bolt://localhost:8687", description="Neo4j test connection URI")
     neo4j_test_user: str = Field(default="neo4j", description="Neo4j test username")
-    neo4j_test_password: str = Field(default="password", description="Neo4j test password")
+    neo4j_test_password: str = Field(default="twincore_test", description="Neo4j test password")
     neo4j_test_database: str = Field(default="neo4j", description="Neo4j test database name")
     
     # Embedding Model Settings

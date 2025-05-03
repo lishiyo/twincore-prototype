@@ -28,10 +28,10 @@ services:
       - NEO4J_apoc_import_file_enabled=true
       - NEO4J_apoc_import_file_use__neo4j__config=true
       - NEO4J_dbms_security_procedures_unrestricted=apoc.*,gds.*
-      # Use in-memory mode for tests
-      - NEO4J_dbms_memory_pagecache_size=100M
-      - NEO4J_dbms_memory_heap_initial_size=100M
-      - NEO4J_dbms_memory_heap_max_size=500M
+      # Use in-memory mode for tests - updated for Neo4j 5.x
+      - NEO4J_server_memory_pagecache_size=100M
+      - NEO4J_server_memory_heap_initial__size=100M
+      - NEO4J_server_memory_heap_max__size=500M
     tmpfs:
       - /data
       - /logs

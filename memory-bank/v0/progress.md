@@ -2,6 +2,33 @@
 
 REMEMBER TO PUT YOUR LATEST UPDATE AT TOP!
 
+## Fri May  2 19:39:49 PDT 2025
+
+### Changes
+- Completed Task 2.4: Neo4j Constraints Setup
+  - Created Neo4j constraint setup in `core/db_setup.py` to ensure all entities have unique identifiers
+  - Added constraints for all node types defined in the data schema: User, Session, Message, Document, Topic, Organization, Team, Project, Preference, Vote
+  - Modified `setup_neo4j_constraints` to accept optional driver parameter for better testability
+  - Added integration tests in `tests/core/test_db_setup.py` for Neo4j constraint setup
+  - Fixed test container configuration issues:
+    - Updated Neo4j memory settings in docker-compose.test.yml to use correct parameters for Neo4j 5.x
+    - Fixed Qdrant test setup to properly use the test port (7333)
+    - Ensured proper test database credentials are used
+
+### Commands
+- `docker-compose -f twincore_backend/docker-compose.test.yml up -d` - Start test database containers
+- `pytest tests/core/test_db_setup.py` - Run the database setup integration tests
+
+### Errors & Learnings
+- Neo4j 5.x uses different configuration parameter names than earlier versions
+  - Changed from `dbms.memory.*` to `server.memory.*`
+- For proper test isolation, use dedicated test drivers and explicitly pass them to functions
+- Enhanced README with specific instructions for running database setup tests
+
+### Next Steps
+- Move on to Phase 3: Embedding & Core Ingestion Logic
+- Implement Task 3.1: Embedding Service
+
 ## Fri May  2 18:54:23 PDT 2025
 
 ### Changes

@@ -1,4 +1,4 @@
-# TwinCore Active Context - Fri May  2 18:54:23 PDT 2025
+# TwinCore Active Context - Fri May  2 19:39:49 PDT 2025
 
 ## Current Work Focus
 - Implementing TwinCore backend prototype
@@ -8,7 +8,8 @@
 - Completed Task 2.1: Pydantic API Models
 - Completed Task 2.2: Database Client Initialization
 - Completed Task 2.3: Qdrant Collection Setup (fixed test issue)
-- Moving to Task 2.4: Neo4j Constraints Setup
+- Completed Task 2.4: Neo4j Constraints Setup
+- Moving to Task 3.1: Embedding Service
 
 ## Project State
 ### What's Working
@@ -21,11 +22,12 @@
 - Full testing setup including pytest, pytest-asyncio, httpx, pytest-mock, pytest-cov, schemathesis
 - Docker Compose files for both development and testing environments
 - Database client initialization for Qdrant and Neo4j with proper error handling
-- Qdrant collection setup utility (`core/db_setup.py`) and integration test (now with robust attribute checking)
+- Qdrant collection setup utility (`core/db_setup.py`) and integration test
+- Neo4j constraint setup utility with complete constraint set for all entity types
+- Testing environment with properly configured test databases
 
 ### What's Broken
 - Nothing currently broken
-- Neo4j constraints not yet set up (planned for next task)
 
 ## Active Decisions & Considerations
 - Following the layered architecture defined in systemPatterns.md
@@ -36,6 +38,8 @@
 - Using LRU cache for database clients to implement singleton pattern
 - Defined Qdrant collection `twin_memory` with vector size 384 and Cosine distance
 - Added flexible CollectionInfo attribute checking to handle potential Qdrant API changes
+- Implementing dependency injection pattern for better testability (e.g., optional driver parameter)
+- Using latest Neo4j 5.15.0 with proper configuration parameters
 
 ## Tech Stack
 - Backend: FastAPI (Python)
@@ -47,4 +51,5 @@
 - Configuration: pydantic-settings with environment variables
 
 ## Next Steps
-- Set up Neo4j constraints (Task 2.4)
+- Set up Embedding Service (Task 3.1)
+- Start implementing core ingestion logic

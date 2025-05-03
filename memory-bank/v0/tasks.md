@@ -56,10 +56,10 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] Implement utility in `core/db_setup.py` to create `twin_memory` collection via client.
         - [x] [DAL Int] Write integration test using test Qdrant instance to verify collection creation & cleanup.
 
-- [ ] **Task 2.4: Neo4j Constraints Setup** (D: 1.3, 2.2)
-    - [ ] Steps:
-        - [ ] Implement utility in `core/db_setup.py` to create uniqueness constraints via driver.
-        - [ ] [DAL Int] Write integration test using test Neo4j instance to verify constraint creation & cleanup.
+- [x] **Task 2.4: Neo4j Constraints Setup** (D: 1.3, 2.2)
+    - [x] Steps:
+        - [x] Implement utility in `core/db_setup.py` to create uniqueness constraints via driver.
+        - [x] [DAL Int] Write integration test using test Neo4j instance to verify constraint creation & cleanup.
 
 ---
 

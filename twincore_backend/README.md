@@ -101,9 +101,34 @@ The API will be available at http://localhost:8000. API documentation is availab
 
 ### Running Tests
 
+Run all tests:
 ```
 pytest
 ```
+
+Run specific test categories:
+```
+# Run unit tests only
+pytest tests/unit/
+
+# Run integration tests only
+pytest -m integration
+```
+
+Run database setup tests (requires test databases to be running):
+```
+# Run Qdrant collection setup tests
+pytest tests/core/test_db_setup.py::test_setup_qdrant_collection_creates_collection
+
+# Run Neo4j constraint setup tests
+pytest tests/core/test_db_setup.py::test_setup_neo4j_constraints_creates_constraints
+
+# Run idempotency tests
+pytest tests/core/test_db_setup.py::test_setup_qdrant_collection_is_idempotent
+pytest tests/core/test_db_setup.py::test_setup_neo4j_constraints_is_idempotent
+```
+
+**Note**: Database setup tests require that the test databases are running. Make sure to start them with `docker-compose -f docker-compose.test.yml up -d` before running these tests.
 
 ## Project Structure
 
