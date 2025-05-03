@@ -51,10 +51,10 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] Implement client initialization in `core/db_clients.py`, reading from config.
         - [x] [Unit] Write unit tests mocking config to verify client initialization.
 
-- [ ] **Task 2.3: Qdrant Collection Setup** (D: 1.3, 2.2)
-    - [ ] Steps:
-        - [ ] Implement utility in `core/db_setup.py` to create `twin_memory` collection via client.
-        - [ ] [DAL Int] Write integration test using test Qdrant instance to verify collection creation & cleanup.
+- [x] **Task 2.3: Qdrant Collection Setup** (D: 1.3, 2.2)
+    - [x] Steps:
+        - [x] Implement utility in `core/db_setup.py` to create `twin_memory` collection via client.
+        - [x] [DAL Int] Write integration test using test Qdrant instance to verify collection creation & cleanup.
 
 - [ ] **Task 2.4: Neo4j Constraints Setup** (D: 1.3, 2.2)
     - [ ] Steps:

@@ -2,6 +2,31 @@
 
 REMEMBER TO PUT YOUR LATEST UPDATE AT TOP!
 
+## Fri May  2 18:49:44 PDT 2025
+
+### Changes
+- Completed Task 2.3: Qdrant Collection Setup
+  - Created `core/db_setup.py` with `setup_qdrant_collection` function.
+    - Sets up `twin_memory` collection with size 384 and Cosine distance.
+    - Includes placeholder `setup_neo4j_constraints` and main `initialize_databases` function.
+  - Created `tests/integration/test_db_setup.py`.
+    - Added integration test `test_setup_qdrant_collection_creates_collection` using test Qdrant instance.
+    - Added idempotency test `test_setup_qdrant_collection_is_idempotent`.
+    - Implemented `test_qdrant_client` fixture with proper setup and cleanup (collection deletion).
+    - Ensured test client uses test database configuration.
+    - Added cache clearing calls to fixture and test setup to handle LRU cache interactions.
+
+### Commands
+- `python -m pytest tests/integration/test_db_setup.py -v -s` (or similar, to run integration tests)
+
+### Errors & Learnings
+- Ensured integration tests properly clean up created resources (Qdrant collection).
+- Handled potential exceptions during collection checking/creation in `core/db_setup.py`.
+- Used specific test database settings for the integration test client.
+
+### Next Steps
+- Move on to Task 2.4: Neo4j Constraints Setup.
+
 ## Fri May  2 18:41:51 PDT 2025
 
 ### Changes

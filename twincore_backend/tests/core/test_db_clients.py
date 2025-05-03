@@ -25,6 +25,9 @@ def mock_settings():
         # Configure mock settings with test values
         mock_settings.qdrant_host = "test-qdrant-host"
         mock_settings.qdrant_port = 9999
+        mock_settings.qdrant_api_key = None
+        mock_settings.qdrant_prefer_grpc = False
+        mock_settings.qdrant_grpc_port = 6334
         mock_settings.neo4j_uri = "bolt://test-neo4j-host:9999"
         mock_settings.neo4j_user = "test-user"
         mock_settings.neo4j_password = "test-password"
@@ -46,7 +49,11 @@ class TestQdrantClient:
         # Verify correct parameters were used
         mock_qdrant_client.assert_called_once_with(
             host=mock_settings.qdrant_host,
-            port=mock_settings.qdrant_port
+            port=mock_settings.qdrant_port,
+            api_key=mock_settings.qdrant_api_key,
+            prefer_grpc=mock_settings.qdrant_prefer_grpc,
+            grpc_port=mock_settings.qdrant_grpc_port,
+            https=False
         )
         
         # Verify health check was performed

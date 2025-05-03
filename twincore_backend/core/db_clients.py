@@ -10,7 +10,7 @@ import logging
 from typing import Optional
 
 from neo4j import GraphDatabase, Driver
-from qdrant_client import QdrantClient
+from qdrant_client import QdrantClient, AsyncQdrantClient
 from qdrant_client.http.exceptions import UnexpectedResponse
 
 from core.config import settings
@@ -32,6 +32,10 @@ def get_qdrant_client() -> QdrantClient:
         client = QdrantClient(
             host=settings.qdrant_host,
             port=settings.qdrant_port,
+            api_key=settings.qdrant_api_key,
+            prefer_grpc=settings.qdrant_prefer_grpc,
+            grpc_port=settings.qdrant_grpc_port,
+            https=False,  # Explicitly use HTTP instead of HTTPS for local development
         )
         # Simple health check
         client.get_collections()
@@ -42,6 +46,34 @@ def get_qdrant_client() -> QdrantClient:
         raise
     except Exception as e:
         logger.error(f"Unexpected error initializing Qdrant client: {e}")
+        raise
+
+
+@lru_cache
+def get_async_qdrant_client() -> AsyncQdrantClient:
+    """
+    Initialize and return an asynchronous Qdrant client.
+    Uses LRU cache to prevent multiple client instances.
+    
+    Returns:
+        AsyncQdrantClient: A configured async Qdrant client instance
+    """
+    try:
+        logger.info(f"Initializing async Qdrant client at {settings.qdrant_host}:{settings.qdrant_port}")
+        client = AsyncQdrantClient(
+            host=settings.qdrant_host,
+            port=settings.qdrant_port,
+            api_key=settings.qdrant_api_key,
+            prefer_grpc=settings.qdrant_prefer_grpc,
+            grpc_port=settings.qdrant_grpc_port,
+            https=False,  # Explicitly use HTTP instead of HTTPS for local development
+        )
+        # Note: We don't do a health check here since it would require an await
+        # Health check is performed at first use
+        logger.info("Async Qdrant client initialized")
+        return client
+    except Exception as e:
+        logger.error(f"Unexpected error initializing async Qdrant client: {e}")
         raise
 
 
@@ -79,4 +111,15 @@ def get_database_clients():
     Returns:
         tuple: (QdrantClient, Neo4j Driver)
     """
-    return get_qdrant_client(), get_neo4j_driver() 
+    return get_qdrant_client(), get_neo4j_driver()
+
+
+# Helper function to clear caches for testing
+def clear_all_client_caches():
+    """Clear all client LRU caches."""
+    get_qdrant_client.cache_clear()
+    get_async_qdrant_client.cache_clear()
+    get_neo4j_driver.cache_clear()
+    get_database_clients.cache_clear()
+
+# Helper functions for testing removed, as they are replaced by fixture in conftest.py 

@@ -1,12 +1,14 @@
-# TwinCore Active Context - Fri May  2 18:41:51 PDT 2025
+# TwinCore Active Context - Fri May  2 18:49:44 PDT 2025
 
 ## Current Work Focus
 - Implementing TwinCore backend prototype
 - Completed Task 1.1: Project Initialization
 - Completed Task 1.2: Testing Setup
 - Completed Task 1.3: Docker Setup for Databases
+- Completed Task 2.1: Pydantic API Models
 - Completed Task 2.2: Database Client Initialization
-- Moving to Task 2.3: Qdrant Collection Setup
+- Completed Task 2.3: Qdrant Collection Setup
+- Moving to Task 2.4: Neo4j Constraints Setup
 
 ## Project State
 ### What's Working
@@ -19,10 +21,11 @@
 - Full testing setup including pytest, pytest-asyncio, httpx, pytest-mock, pytest-cov, schemathesis
 - Docker Compose files for both development and testing environments
 - Database client initialization for Qdrant and Neo4j with proper error handling
+- Qdrant collection setup utility (`core/db_setup.py`) and integration test
 
 ### What's Broken
 - Nothing currently broken
-- Database collections and constraints not yet set up (planned for next tasks)
+- Neo4j constraints not yet set up (planned for next task)
 
 ## Active Decisions & Considerations
 - Following the layered architecture defined in systemPatterns.md
@@ -31,16 +34,16 @@
 - Using Docker Compose to containerize Qdrant and Neo4j databases
 - Separate development and testing database instances to ensure test isolation
 - Using LRU cache for database clients to implement singleton pattern
+- Defined Qdrant collection `twin_memory` with vector size 384 and Cosine distance.
 
 ## Tech Stack
 - Backend: FastAPI (Python)
 - Vector DB: Qdrant (configured via Docker)
 - Graph DB: Neo4j (configured via Docker)
-- Embedding: Sentence Transformers (not yet implemented)
+- Embedding: Sentence Transformers (not yet implemented - assumed size 384 for Qdrant)
 - Knowledge Extraction: Gemini (Phase 9)
 - Testing: pytest, httpx, pytest-asyncio, pytest-mock, pytest-cov, Schemathesis
 - Configuration: pydantic-settings with environment variables
 
 ## Next Steps
-- Set up Qdrant collection (Task 2.3)
 - Set up Neo4j constraints (Task 2.4)
