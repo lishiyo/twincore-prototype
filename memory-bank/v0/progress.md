@@ -1,5 +1,27 @@
 # TwinCore Backend Prototype - Progress Log
 
+## Fri May  2 18:28:34 PDT 2025
+
+### Changes
+- Completed Task 1.2: Testing Setup
+  - Added all testing dependencies to requirements.txt:
+    - pytest-asyncio, pytest-mock, pytest-cov, schemathesis
+  - Installed dependencies
+  - Verified that existing tests continue to pass
+
+### Commands
+- `cd twincore_backend && python -m pip install -r requirements.txt` - Install new testing dependencies
+- `cd twincore_backend && python -m pytest` - Run tests to verify setup
+
+### Errors & Learnings
+- Received a deprecation warning from pytest-asyncio about asyncio_default_fixture_loop_scope not being set
+- Received a deprecation warning from schemathesis about jsonschema.exceptions.RefResolutionError
+- Both warnings are non-blocking and can be addressed in future iterations if needed
+
+### Next Steps
+- Move on to Task 1.3: Docker Setup for Databases
+- Create docker-compose files for Qdrant and Neo4j
+
 ## Fri May  2 18:08:50 PDT 2025
 
 ### Changes

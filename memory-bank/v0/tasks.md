@@ -22,9 +22,9 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] [API/Contract] Write basic API test for `/` endpoint in `tests/test_main.py`. Implement endpoint to pass.
     - [x] Dependencies: None
 
-- [ ] **Task 1.2: Testing Setup** (D: 1.1)
-    - [ ] Steps:
-        - [ ] Add testing dependencies to `requirements.txt` (`pytest`, `pytest-asyncio`, `httpx`, `pytest-mock`, `pytest-cov`, `schemathesis`). Install.
+- [x] **Task 1.2: Testing Setup** (D: 1.1)
+    - [x] Steps:
+        - [x] Add testing dependencies to `requirements.txt` (`pytest`, `pytest-asyncio`, `httpx`, `pytest-mock`, `pytest-cov`, `schemathesis`). Install.
         - [x] Create `pytest.ini`.
         - [x] Create basic test fixtures (e.g., `httpx` client in `tests/conftest.py`).
         - [x] Ensure Task 1.1 test runs via `pytest`.
