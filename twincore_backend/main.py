@@ -8,6 +8,8 @@ from dal.neo4j_dal import Neo4jDAL
 from services.embedding_service import EmbeddingService
 from services.ingestion_service import IngestionService
 from ingestion.connectors.message_connector import MessageConnector
+from ingestion.connectors.document_connector import DocumentConnector
+from ingestion.processors.text_chunker import TextChunker
 from services.data_seeder_service import DataSeederService
 from services.data_management_service import DataManagementService
 from api.routers import admin_router, ingest_router
@@ -24,6 +26,8 @@ _qdrant_dal = None
 _neo4j_dal = None
 _ingestion_service = None
 _message_connector = None
+_text_chunker = None
+_document_connector = None
 _data_seeder_service = None
 _data_management_service = None
 
@@ -63,6 +67,14 @@ async def get_ingestion_service() -> IngestionService:
         )
     return _ingestion_service
 
+@lru_cache
+def get_text_chunker() -> TextChunker:
+    """Create and cache the TextChunker."""
+    global _text_chunker
+    if _text_chunker is None:
+        _text_chunker = TextChunker()
+    return _text_chunker
+
 async def get_message_connector() -> MessageConnector:
     """Create and cache the MessageConnector."""
     global _message_connector
@@ -71,6 +83,16 @@ async def get_message_connector() -> MessageConnector:
             ingestion_service=await get_ingestion_service()
         )
     return _message_connector
+
+async def get_document_connector() -> DocumentConnector:
+    """Create and cache the DocumentConnector."""
+    global _document_connector
+    if _document_connector is None:
+        _document_connector = DocumentConnector(
+            ingestion_service=await get_ingestion_service(),
+            text_chunker=get_text_chunker()
+        )
+    return _document_connector
 
 async def get_data_seeder_service() -> DataSeederService:
     """Create and cache the DataSeederService."""
@@ -99,6 +121,7 @@ app.include_router(ingest_router.router)
 app.dependency_overrides[admin_router.get_data_seeder_service] = get_data_seeder_service
 app.dependency_overrides[admin_router.get_data_management_service] = get_data_management_service
 app.dependency_overrides[ingest_router.get_message_connector] = get_message_connector
+app.dependency_overrides[ingest_router.get_document_connector] = get_document_connector
 
 @app.get("/")
 async def root():
