@@ -6,14 +6,13 @@ These tests mock the external dependencies to focus on testing the initializatio
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
 
-from core.db_clients import get_async_qdrant_client, get_neo4j_driver
+from core.db_clients import get_async_qdrant_client, get_neo4j_driver, clear_all_client_caches
 
 
 @pytest.fixture(autouse=True)
 def clear_lru_cache():
-    """Clear LRU cache before each test to ensure clean state."""
-    get_async_qdrant_client.cache_clear()
-    get_neo4j_driver.cache_clear()
+    """Clear client caches before each test to ensure clean state."""
+    clear_all_client_caches()
     yield
 
 

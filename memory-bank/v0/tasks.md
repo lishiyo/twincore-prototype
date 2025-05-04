@@ -130,7 +130,7 @@ This document outlines the development tasks for building the TwinCore backend p
 
 - [ ] **Task 5.1: Ingest Message Endpoint** (D: 2.1, 3.5, 4.4)
     - [ ] Steps:
-        - [ ] Add `ingest_message(data)` logic to `IngestionService`.
+        - [ ] Add MessageIngestionService using `IngestionService`, add `ingest_message(data)` logic.
         - [ ] Create `api/routers/ingest_router.py`. Define `POST /api/ingest/message`. Use Pydantic models. Inject service. Register router.
         - [ ] [TDD Steps]:
             - [ ] [Service Int] Test `ingest_message` logic.

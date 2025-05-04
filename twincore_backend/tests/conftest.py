@@ -4,6 +4,7 @@ import os
 import sys
 import pytest
 from fastapi.testclient import TestClient
+from httpx import AsyncClient
 from unittest.mock import AsyncMock, MagicMock
 
 # Add parent directory to path to allow imports
@@ -12,7 +13,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 # Import app after modifying path
 from main import app
 from api.routers import admin_router
-from core.db_clients import get_async_qdrant_client
+from core.db_clients import clear_all_client_caches
 
 
 # Create mock services
@@ -37,6 +38,13 @@ def client():
 
 
 @pytest.fixture
+async def async_client():
+    """Create an async test client for the FastAPI app."""
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        yield client
+
+
+@pytest.fixture
 def mock_seed_data():
     """Return the mock for seed_initial_data method."""
     # Reset any side effects before each test
@@ -53,8 +61,7 @@ def mock_clear_data():
 
 
 @pytest.fixture(autouse=True)
-def clear_lru_cache():
-    """Clear LRU cache before each test to ensure clean state."""
-    get_async_qdrant_client.cache_clear()
-    # No longer clearing Neo4j driver cache since it's async
+def clear_db_clients():
+    """Clear database client instances before each test to ensure clean state."""
+    clear_all_client_caches()
     yield 

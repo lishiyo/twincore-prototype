@@ -153,6 +153,7 @@ graph LR
 3.  **Data Access Layer (`dal/`)**
     *   **Technology:** Python modules using specific DB clients (`qdrant-client`, `neo4j`, `sqlalchemy` or `psycopg2` for Postgres).
     *   **Responsibility:** **Crucial Abstraction.** Hides the specifics of interacting with each database. Provides methods like `qdrant_dal.search(...)`, `neo4j_dal.get_session_participants(...)`, `postgres_dal.get_user_info(...)`. The business logic layer calls these high-level methods.
+    *   **Important**: QDrantDal MUST use real uuids for the ids.
     *   **Extensibility:**
         *   **Adding Real Postgres:** Implement `postgres_dal.py` using SQLAlchemy (recommended for ORM mapping to Dev A's models if possible) or `psycopg2`. Point it to the shared DB connection string. Call its methods from services where needed (e.g., `RetrievalService` getting user names).
         *   **Changing DB Schema:** Changes are contained within the specific DAL module. Business logic shouldn't break if the DAL method signature remains the same.

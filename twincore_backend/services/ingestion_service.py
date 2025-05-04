@@ -5,8 +5,9 @@ handling embedding generation and storage in both Qdrant and Neo4j.
 """
 
 import logging
+import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 from pydantic import ValidationError
@@ -62,7 +63,7 @@ class IngestionService:
     
     async def _prepare_qdrant_point(
         self,
-        chunk_id: str,
+        chunk_id: Union[int, str],
         text_content: str,
         source_type: str,
         user_id: Optional[str] = None,
@@ -78,7 +79,7 @@ class IngestionService:
         """Prepare a point for insertion into Qdrant by generating an embedding.
         
         Args:
-            chunk_id: Unique identifier for the text chunk
+            chunk_id: Unique identifier for the text chunk (integer or string)
             text_content: The text to embed and store
             source_type: Type of source (e.g., 'message', 'document')
             user_id: Optional ID of the user who created/owns the content
@@ -105,9 +106,12 @@ class IngestionService:
             if timestamp is None:
                 timestamp = datetime.utcnow().isoformat()
             
+            # Ensure chunk_id is a string
+            chunk_id_str = str(chunk_id)
+            
             # Combine metadata
             qdrant_metadata = {
-                "chunk_id": chunk_id,
+                "chunk_id": chunk_id_str,
                 "text_content": text_content,
                 "source_type": source_type,
                 "timestamp": timestamp,
@@ -132,7 +136,7 @@ class IngestionService:
                 qdrant_metadata.update(metadata)
             
             return {
-                "chunk_id": chunk_id,
+                "chunk_id": chunk_id_str,
                 "vector": vector,
                 "metadata": qdrant_metadata
             }
@@ -142,7 +146,7 @@ class IngestionService:
     async def _update_neo4j_graph(
         self,
         source_type: str,
-        chunk_id: str,
+        chunk_id: Union[int, str],
         user_id: Optional[str] = None,
         project_id: Optional[str] = None,
         session_id: Optional[str] = None,
@@ -157,7 +161,7 @@ class IngestionService:
         
         Args:
             source_type: Type of source (e.g., 'message', 'document', 'document_chunk')
-            chunk_id: Unique identifier for the text chunk
+            chunk_id: Unique identifier for the text chunk (integer)
             user_id: Optional ID of the user who created/owns the content
             project_id: Optional project ID the content belongs to
             session_id: Optional session ID the content belongs to
@@ -180,13 +184,16 @@ class IngestionService:
                 timestamp = datetime.utcnow().isoformat()
             
             # Create Chunk node (always created)
+            # Convert chunk_id to string for Neo4j
+            chunk_id_str = str(chunk_id)
+            
             chunk_properties = {
-                "chunk_id": chunk_id,
+                "chunk_id": chunk_id_str,
                 "timestamp": timestamp,
                 "is_twin_interaction": is_twin_interaction,
                 "is_private": is_private
             }
-            await self._neo4j_dal.create_node_if_not_exists("Chunk", chunk_properties, {"chunk_id": chunk_id})
+            await self._neo4j_dal.create_node_if_not_exists("Chunk", chunk_properties, {"chunk_id": chunk_id_str})
             
             # Create and link nodes based on provided IDs
             created_nodes = []
@@ -202,7 +209,7 @@ class IngestionService:
                 # Connect User to Chunk
                 await self._neo4j_dal.create_relationship_if_not_exists(
                     "User", {"user_id": user_id},
-                    "Chunk", {"chunk_id": chunk_id},
+                    "Chunk", {"chunk_id": chunk_id_str},
                     "OWNS" if is_private else "CREATED",
                     {"timestamp": timestamp}
                 )
@@ -215,7 +222,7 @@ class IngestionService:
                 
                 # Connect Chunk to Project
                 await self._neo4j_dal.create_relationship_if_not_exists(
-                    "Chunk", {"chunk_id": chunk_id},
+                    "Chunk", {"chunk_id": chunk_id_str},
                     "Project", {"project_id": project_id},
                     "PART_OF",
                     {"timestamp": timestamp}
@@ -232,7 +239,7 @@ class IngestionService:
                 
                 # Connect Chunk to Session
                 await self._neo4j_dal.create_relationship_if_not_exists(
-                    "Chunk", {"chunk_id": chunk_id},
+                    "Chunk", {"chunk_id": chunk_id_str},
                     "Session", {"session_id": session_id},
                     "PART_OF",
                     {"timestamp": timestamp}
@@ -272,7 +279,7 @@ class IngestionService:
                     
                     # Connect Chunk to Document
                     await self._neo4j_dal.create_relationship_if_not_exists(
-                        "Chunk", {"chunk_id": chunk_id},
+                        "Chunk", {"chunk_id": chunk_id_str},
                         "Document", {"document_id": doc_id},
                         "PART_OF",
                         {"timestamp": timestamp}
@@ -319,7 +326,7 @@ class IngestionService:
                     
                     # Connect Chunk to Message
                     await self._neo4j_dal.create_relationship_if_not_exists(
-                        "Chunk", {"chunk_id": chunk_id},
+                        "Chunk", {"chunk_id": chunk_id_str},
                         "Message", {"message_id": message_id},
                         "PART_OF",
                         {"timestamp": timestamp}
@@ -349,7 +356,7 @@ class IngestionService:
     
     async def ingest_chunk(
         self,
-        chunk_id: str,
+        chunk_id: Union[int, str],
         text_content: str,
         source_type: str,
         user_id: Optional[str] = None,
@@ -368,7 +375,7 @@ class IngestionService:
         This is the main entry point for ingesting data into the system.
         
         Args:
-            chunk_id: Unique identifier for the text chunk
+            chunk_id: Unique identifier for the text chunk (integer or string convertible to int)
             text_content: The text to ingest
             source_type: Type of source (e.g., 'message', 'document', 'document_chunk')
             user_id: Optional ID of the user who created/owns the content
@@ -387,8 +394,18 @@ class IngestionService:
             
         Raises:
             IngestionServiceError: If ingestion fails
+            ValueError: If chunk_id is not a valid integer or integer string
         """
         try:
+            # Validate and convert chunk_id to an integer
+            if isinstance(chunk_id, str):
+                try:
+                    chunk_id = int(chunk_id)
+                except ValueError:
+                    raise ValueError(f"chunk_id must be an integer or convertible to integer, got: {chunk_id}")
+            elif not isinstance(chunk_id, int):
+                raise ValueError(f"chunk_id must be an integer, got: {type(chunk_id)}")
+                
             logger.info(f"Ingesting chunk {chunk_id} of source type {source_type}")
             
             # Prepare Qdrant point (get embedding and format metadata)
@@ -442,6 +459,9 @@ class IngestionService:
             logger.info(f"Successfully ingested chunk {chunk_id}")
             return True
             
+        except ValueError as e:
+            logger.error(f"Invalid parameter: {str(e)}")
+            raise
         except Exception as e:
             logger.error(f"Failed to ingest chunk {chunk_id}: {str(e)}")
             raise IngestionServiceError(f"Failed to ingest chunk: {str(e)}") 

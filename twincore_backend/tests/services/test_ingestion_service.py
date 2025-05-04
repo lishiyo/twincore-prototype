@@ -226,7 +226,7 @@ class TestIngestionService:
         """Test the main ingest_chunk method."""
         
         # Arrange
-        chunk_id = str(uuid.uuid4())
+        chunk_id = 12345  # Use an integer instead of UUID
         text_content = "Test chunk content"
         source_type = "message"
         user_id = str(uuid.uuid4())
@@ -270,14 +270,14 @@ class TestIngestionService:
         # Check that Chunk node was created
         chunk_call = [call for call in mock_neo4j_dal.create_node_if_not_exists.call_args_list 
                      if call[0][0] == "Chunk"][0]
-        assert chunk_call[0][1]["chunk_id"] == chunk_id
+        assert chunk_call[0][1]["chunk_id"] == str(chunk_id)
 
     @pytest.mark.asyncio
     async def test_ingestion_error_handling(self, ingestion_service, mock_embedding_service):
         """Test error handling in ingest_chunk method."""
         
         # Arrange
-        chunk_id = str(uuid.uuid4())
+        chunk_id = 67890  # Use an integer instead of UUID
         text_content = "Test chunk content"
         source_type = "message"
         

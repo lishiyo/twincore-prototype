@@ -7,7 +7,7 @@ handling vector operations with the Qdrant vector database using the asynchronou
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 from qdrant_client import AsyncQdrantClient, models
@@ -96,7 +96,7 @@ class QdrantDAL(IQdrantDAL):
 
     async def upsert_vector(
         self,
-        chunk_id: str,
+        chunk_id: Union[int, str],
         vector: np.ndarray,
         text_content: str,
         source_type: str,
@@ -115,6 +115,9 @@ class QdrantDAL(IQdrantDAL):
             # Generate UUID if not provided
             if not chunk_id:
                 chunk_id = str(uuid.uuid4())
+            
+            # Convert chunk_id to string if it's not already
+            chunk_id_str = str(chunk_id)
             
             # Create payload with required fields
             payload = {
@@ -169,7 +172,7 @@ class QdrantDAL(IQdrantDAL):
 
             # Revert to using models.Batch
             points_batch = models.Batch(
-                 ids=[chunk_id],
+                 ids=[chunk_id_str],  # Use the string version
                  vectors=[vector_data],
                  payloads=[payload] # Payload dict is inside a list
             )
