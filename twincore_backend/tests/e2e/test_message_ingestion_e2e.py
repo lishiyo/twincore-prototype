@@ -8,6 +8,7 @@ from httpx import AsyncClient
 from core.db_clients import get_async_qdrant_client, get_neo4j_driver
 from main import app, get_message_ingestion_service
 from api.routers import ingest_router
+from qdrant_client import models
 
 
 @pytest.mark.e2e
@@ -57,20 +58,27 @@ class TestMessageIngestionE2E:
         
         # 2. Verify the data was stored in Qdrant
         qdrant_client = get_async_qdrant_client()
-        search_result = await qdrant_client.search(
+        scroll_result = await qdrant_client.scroll(
             collection_name="twin_memory",
-            query_filter={
-                "must": [
-                    {"key": "user_id", "match": {"value": user_id}},
-                    {"key": "message_id", "match": {"value": message_id}}
+            scroll_filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="user_id", 
+                        match=models.MatchValue(value=user_id)
+                    ),
+                    models.FieldCondition(
+                        key="message_id", 
+                        match=models.MatchValue(value=message_id)
+                    )
                 ]
-            },
+            ),
             limit=1
         )
         
         # Verify Qdrant contains our message
-        assert len(search_result) > 0, "Message not found in Qdrant"
-        qdrant_record = search_result[0].payload
+        points = scroll_result[0]  # The first element contains the points
+        assert len(points) > 0, "Message not found in Qdrant"
+        qdrant_record = points[0].payload
         assert qdrant_record["text_content"] == message_text
         assert qdrant_record["source_type"] == "message"
         assert qdrant_record["user_id"] == user_id
@@ -79,7 +87,7 @@ class TestMessageIngestionE2E:
         assert qdrant_record["session_id"] == session_id
         
         # Verify the point ID - could be string or int now that we accept both
-        point_id = search_result[0].id
+        point_id = points[0].id
         assert point_id is not None
         
         # 3. Verify the graph was updated in Neo4j
