@@ -952,4 +952,185 @@ async def close(self):
             await self._driver.close()
             logger.info("Neo4j driver closed successfully")
         except Exception as e:
-            logger.error(f"Error closing Neo4j driver: {e}") 
+            logger.error(f"Error closing Neo4j driver: {e}")
+
+# --- Tests for update_document_metadata --- 
+
+@pytest.mark.asyncio
+async def test_update_document_metadata_updates_source_uri(
+    test_neo4j_dal: Neo4jDAL, clean_test_database
+):
+    """Test updating only the source_uri of an existing Document."""
+    # Arrange: Create an initial document
+    doc_id = str(uuid.uuid4())
+    initial_props = {
+        "document_id": doc_id,
+        "name": "Original Doc Name",
+        "source_type": "transcript",
+        "source_uri": None # Initially no URI
+    }
+    # Provide explicit constraints to avoid MERGE error on null source_uri
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Document", 
+        initial_props, 
+        constraints={"document_id": doc_id}
+    )
+    
+    new_uri = "s3://my-bucket/transcript_final.txt"
+    
+    # Act: Update the source_uri
+    update_successful = await test_neo4j_dal.update_document_metadata(
+        doc_id=doc_id,
+        source_uri=new_uri
+    )
+    
+    # Assert: Update reported success
+    assert update_successful is True
+    
+    # Assert: Verify the update in the database
+    driver = test_neo4j_dal.driver
+    async with driver.session() as session:
+        result = await session.run(
+            "MATCH (d:Document {document_id: $doc_id}) RETURN d.source_uri as uri, d.name as name",
+            {"doc_id": doc_id}
+        )
+        record = await result.single()
+        assert record is not None
+        assert record["uri"] == new_uri
+        assert record["name"] == "Original Doc Name" # Ensure other props weren't changed
+
+@pytest.mark.asyncio
+async def test_update_document_metadata_updates_other_metadata(
+    test_neo4j_dal: Neo4jDAL, clean_test_database
+):
+    """Test updating other metadata fields of an existing Document."""
+    # Arrange: Create an initial document
+    doc_id = str(uuid.uuid4())
+    initial_props = {
+        "document_id": doc_id,
+        "name": "Original Doc Name",
+        "source_type": "transcript",
+        "initial_prop": "value1",
+        "source_uri": None # Include potentially null field
+    }
+    # Provide explicit constraints
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Document", 
+        initial_props, 
+        constraints={"document_id": doc_id}
+    )
+    
+    new_metadata = {
+        "duration_seconds": 1850,
+        "final_participant_ids": ["uuid1", "uuid2"],
+        "initial_prop": "updated_value" # Overwrite existing metadata
+    }
+    
+    # Act: Update the metadata
+    update_successful = await test_neo4j_dal.update_document_metadata(
+        doc_id=doc_id,
+        metadata=new_metadata
+    )
+    
+    # Assert: Update reported success
+    assert update_successful is True
+    
+    # Assert: Verify the update in the database
+    driver = test_neo4j_dal.driver
+    async with driver.session() as session:
+        result = await session.run(
+            "MATCH (d:Document {document_id: $doc_id}) RETURN d",
+            {"doc_id": doc_id}
+        )
+        record = await result.single()
+        assert record is not None
+        node_props = dict(record["d"]) # Get all properties
+        assert node_props.get("source_uri") is None # Should not be set
+        assert node_props.get("name") == "Original Doc Name"
+        assert node_props.get("duration_seconds") == 1850
+        assert node_props.get("final_participant_ids") == ["uuid1", "uuid2"]
+        assert node_props.get("initial_prop") == "updated_value"
+
+@pytest.mark.asyncio
+async def test_update_document_metadata_updates_uri_and_metadata(
+    test_neo4j_dal: Neo4jDAL, clean_test_database
+):
+    """Test updating both source_uri and other metadata fields."""
+    # Arrange: Create an initial document
+    doc_id = str(uuid.uuid4())
+    initial_props = {
+        "document_id": doc_id,
+        "name": "Doc To Update",
+        "source_type": "transcript",
+        "source_uri": None # Explicitly start with null
+    }
+    # Provide explicit constraints
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Document", 
+        initial_props,
+        constraints={"document_id": doc_id}
+    )
+    
+    new_uri = "file:///path/to/doc.txt"
+    new_metadata = {"status": "completed", "processed_at": "2024-01-01T10:00:00Z"}
+    
+    # Act: Update both
+    update_successful = await test_neo4j_dal.update_document_metadata(
+        doc_id=doc_id,
+        source_uri=new_uri,
+        metadata=new_metadata
+    )
+    
+    # Assert: Update reported success
+    assert update_successful is True
+    
+    # Assert: Verify the update in the database
+    driver = test_neo4j_dal.driver
+    async with driver.session() as session:
+        result = await session.run(
+            "MATCH (d:Document {document_id: $doc_id}) RETURN d",
+            {"doc_id": doc_id}
+        )
+        record = await result.single()
+        assert record is not None
+        node_props = dict(record["d"]) # Get all properties
+        assert node_props.get("source_uri") == new_uri
+        assert node_props.get("status") == "completed"
+        assert node_props.get("processed_at") == "2024-01-01T10:00:00Z"
+        assert node_props.get("name") == "Doc To Update"
+
+@pytest.mark.asyncio
+async def test_update_document_metadata_nonexistent_doc_returns_false(
+    test_neo4j_dal: Neo4jDAL, clean_test_database
+):
+    """Test that updating a non-existent document returns False."""
+    # Arrange
+    doc_id = str(uuid.uuid4())
+    new_uri = "file:///nonexistent.txt"
+    
+    # Act
+    update_successful = await test_neo4j_dal.update_document_metadata(
+        doc_id=doc_id,
+        source_uri=new_uri
+    )
+    
+    # Assert
+    assert update_successful is False
+
+@pytest.mark.asyncio
+async def test_update_document_metadata_no_updates_provided_raises_error(
+    test_neo4j_dal: Neo4jDAL, clean_test_database
+):
+    """Test that calling update without uri or metadata raises ValueError."""
+    # Arrange: Create a document first
+    doc_id = str(uuid.uuid4())
+    # Provide explicit constraints
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Document", 
+        {"document_id": doc_id, "name": "Test Doc"}, 
+        constraints={"document_id": doc_id}
+    )
+    
+    # Act & Assert
+    with pytest.raises(ValueError, match="Must provide source_uri or metadata"):
+        await test_neo4j_dal.update_document_metadata(doc_id=doc_id) 

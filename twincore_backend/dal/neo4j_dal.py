@@ -665,6 +665,78 @@ class Neo4jDAL(INeo4jDAL):
             logger.error(f"Unexpected error getting user preference statements: {str(e)}")
             raise
 
+    async def update_document_metadata(
+        self,
+        doc_id: str,
+        source_uri: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """Update metadata for an existing Document node (async).
+
+        Allows updating the source_uri and/or arbitrary key-value pairs
+        in the document's properties.
+
+        Args:
+            doc_id: The unique ID of the Document node to update.
+            source_uri: The optional URI string to set/update.
+            metadata: An optional dictionary of other metadata fields to set/update.
+                      Existing keys in the dictionary will be overwritten.
+
+        Returns:
+            True if the document was found and updated, False otherwise.
+
+        Raises:
+            ValueError: If neither source_uri nor metadata is provided.
+            ClientError, DatabaseError, ServiceUnavailable: If Neo4j errors occur
+            Exception: For any other unexpected errors
+        """
+        if source_uri is None and metadata is None:
+            raise ValueError("Must provide source_uri or metadata to update.")
+
+        try:
+            driver = self.driver
+            params = {"doc_id": doc_id}
+            set_clauses = []
+
+            if source_uri is not None:
+                set_clauses.append("d.source_uri = $source_uri")
+                params["source_uri"] = source_uri
+
+            if metadata:
+                for key, value in metadata.items():
+                    # Avoid overwriting the primary key or source_uri via metadata dict
+                    if key not in ["doc_id", "document_id", "source_uri"]:
+                        param_name = f"meta_{key}"
+                        set_clauses.append(f"d.{key} = ${param_name}")
+                        params[param_name] = value
+
+            if not set_clauses:
+                logger.warning(
+                    "No valid fields provided for metadata update."
+                )
+                return False # Nothing to update
+
+            query = f"""
+            MATCH (d:Document {{document_id: $doc_id}})
+            SET {', '.join(set_clauses)}
+            RETURN d
+            """
+
+            async with driver.session() as session:
+                result = await session.run(query, params)
+                record = await result.single()
+                # If a record is returned, the update was successful on an existing node
+                return record is not None
+
+        except (ServiceUnavailable, ClientError, DatabaseError) as e:
+            logger.error(f"Neo4j error updating document metadata: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(
+                f"Unexpected error updating document metadata: {str(e)}"
+            )
+            raise
+
     async def close(self):
         """Close the Neo4j driver and release resources."""
         if self._driver:

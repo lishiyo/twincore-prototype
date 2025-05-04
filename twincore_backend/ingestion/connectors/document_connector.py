@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from services.ingestion_service import IngestionService
 from ingestion.processors.text_chunker import TextChunker
+from dal.interfaces import INeo4jDAL # Import Neo4j DAL interface
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +28,15 @@ class DocumentConnector:
     def __init__(
         self,
         ingestion_service: IngestionService,
-        text_chunker: TextChunker
+        text_chunker: TextChunker,
+        neo4j_dal: INeo4jDAL # Add Neo4j DAL dependency
     ):
         """Initialize the document connector.
         
         Args:
             ingestion_service: Core service for handling data storage
             text_chunker: Processor for splitting text into chunks
+            neo4j_dal: Data access layer for Neo4j graph database
         
         Raises:
             ValueError: If any required dependency is None
@@ -42,9 +45,12 @@ class DocumentConnector:
             raise ValueError("IngestionService must be provided to DocumentConnector")
         if text_chunker is None:
             raise ValueError("TextChunker must be provided to DocumentConnector")
-        
+        if neo4j_dal is None: # Validate Neo4j DAL
+            raise ValueError("Neo4jDAL must be provided to DocumentConnector")
+            
         self._ingestion_service = ingestion_service
         self._text_chunker = text_chunker
+        self._neo4j_dal = neo4j_dal # Store Neo4j DAL instance
         logger.info("DocumentConnector initialized")
     
     async def ingest_document(
@@ -147,4 +153,101 @@ class DocumentConnector:
             
         except Exception as e:
             logger.error(f"Failed to ingest document: {str(e)}")
+            raise 
+
+    async def ingest_chunk(
+        self,
+        chunk_data: Dict[str, Any]
+    ) -> bool:
+        """Ingest a single chunk, typically a transcript snippet.
+
+        Ensures the parent document exists in Neo4j and then calls the
+        IngestionService to handle embedding and storage.
+
+        Args:
+            chunk_data: Dictionary containing chunk data with fields:
+                - user_id: ID of the speaker/author
+                - session_id: Session context ID
+                - doc_id: Consistent ID of the parent Document
+                - text: The utterance/chunk text content
+                - timestamp: Time the utterance occurred
+                - project_id: (Optional) Project context ID
+                - chunk_id: (Optional) Unique ID for this specific chunk from source
+
+        Returns:
+            bool: True if ingestion was successful.
+
+        Raises:
+            ValueError: If required fields are missing.
+            IngestionServiceError: If the underlying ingestion fails.
+        """
+        # Validate required fields
+        required_fields = ["user_id", "session_id", "doc_id", "text", "timestamp"]
+        for field in required_fields:
+            if field not in chunk_data or chunk_data[field] is None:
+                raise ValueError(f"Missing required field in chunk_data: {field}")
+
+        doc_id = chunk_data["doc_id"]
+        session_id = chunk_data["session_id"]
+        project_id = chunk_data.get("project_id")
+        timestamp = chunk_data["timestamp"]
+        user_id = chunk_data["user_id"] # Needed for parent doc creation context
+        
+        # Use provided chunk_id or generate a new one
+        chunk_id_to_use = chunk_data.get("chunk_id") or str(uuid.uuid4())
+
+        logger.info(f"Ingesting chunk {chunk_id_to_use} for document {doc_id}")
+
+        try:
+            # 1. Ensure parent Document node exists in Neo4j
+            # We need a name for the document node if created here.
+            # Using a generic name based on doc_id if not otherwise known.
+            # In a real scenario, the first chunk might carry the intended doc name.
+            doc_name = f"Transcript Document {doc_id}" 
+            doc_props = {
+                "document_id": doc_id,
+                "name": doc_name,
+                "source_type": "transcript", # Parent doc is a transcript
+                "timestamp": timestamp, # Use chunk timestamp as rough creation time
+                "uploader_id": user_id, # Associate with the user of the first chunk?
+            }
+            await self._neo4j_dal.create_node_if_not_exists(
+                label="Document",
+                properties=doc_props,
+                constraints={"document_id": doc_id}
+            )
+            
+            # Ensure relationship between Document and Session exists
+            if session_id:
+                 await self._neo4j_dal.create_relationship_if_not_exists(
+                     start_label="Document", start_constraints={"document_id": doc_id},
+                     end_label="Session", end_constraints={"session_id": session_id},
+                     relationship_type="ATTACHED_TO"
+                 )
+
+            # 2. Call IngestionService to handle embedding and storage
+            # Pass all relevant fields from chunk_data
+            await self._ingestion_service.ingest_chunk(
+                chunk_id=chunk_id_to_use,
+                text_content=chunk_data["text"],
+                source_type="transcript_snippet", # Specific type for the chunk
+                user_id=user_id,
+                project_id=project_id,
+                session_id=session_id,
+                doc_id=doc_id,
+                # message_id=None, # Not applicable here usually
+                doc_name=doc_name, # Pass the potentially generated name
+                timestamp=timestamp,
+                is_twin_interaction=False,
+                is_private=False, # Transcripts usually not private by default
+                metadata=chunk_data.get("metadata") # Pass optional metadata
+            )
+
+            logger.info(f"Successfully ingested chunk {chunk_id_to_use}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to ingest chunk {chunk_id_to_use}: {str(e)}")
+            # Re-raise as IngestionServiceError or a connector-specific error?
+            # For now, re-raising the original exception might be okay.
             raise 
