@@ -542,20 +542,32 @@ async def test_search_vectors_with_multiple_filters(
             is_twin_interaction=data["is_twin"]
         )
     
-    # Act - Search with multiple filters
-    results = await test_qdrant_dal.search_vectors(
+    # Act - Search excluding twin interactions (default)
+    results_exclude = await test_qdrant_dal.search_vectors(
         query_vector=create_test_vector(),
         user_id=user1_id,
         project_id=project1_id,
-        exclude_twin_interactions=True
+        # include_twin_interactions defaults to False
+    )
+    
+    # Act - Search including twin interactions
+    results_include = await test_qdrant_dal.search_vectors(
+        query_vector=create_test_vector(),
+        user_id=user1_id,
+        project_id=project1_id,
+        include_twin_interactions=True
     )
     
     # Assert
-    assert len(results) > 0
-    for result in results:
+    assert len(results_exclude) > 0
+    for result in results_exclude:
         assert result["user_id"] == user1_id
         assert result["project_id"] == project1_id
         assert result["is_twin_interaction"] is False
+        
+    assert len(results_include) > len(results_exclude)
+    found_twin_interaction = any(r["is_twin_interaction"] for r in results_include if r["user_id"] == user1_id and r["project_id"] == project1_id)
+    assert found_twin_interaction, "Expected to find twin interaction when include_twin_interactions=True"
 
 
 @pytest.mark.asyncio
@@ -775,6 +787,18 @@ async def test_search_user_preferences(
         is_twin_interaction=False
     )
     
+    # Insert a twin interaction for the same user/topic
+    twin_chunk_id = str(uuid.uuid4())
+    await test_qdrant_dal.upsert_vector(
+        chunk_id=twin_chunk_id,
+        vector=test_vector * 0.9, # Slightly different vector
+        text_content="User asked twin: What are my preferences for dark mode?",
+        source_type="query",
+        user_id=test_user_id,
+        project_id=test_project_id,
+        is_twin_interaction=True
+    )
+    
     # Generate a similar query vector (slightly perturbed version of test_vector)
     query_vector = test_vector.copy()
     # Add small random noise while keeping vector normalized
@@ -783,20 +807,19 @@ async def test_search_user_preferences(
     # Renormalize
     query_vector = query_vector / np.linalg.norm(query_vector)
     
-    # Execute: Search for preferences related to "dark mode"
-    results = await test_qdrant_dal.search_user_preferences(
+    # Execute: Search excluding twin interactions
+    results_exclude_twin = await test_qdrant_dal.search_user_preferences(
         query_vector=query_vector,
         user_id=test_user_id,
         decision_topic="dark mode",
-        project_id=test_project_id
+        project_id=test_project_id,
+        include_twin_interactions=False
     )
     
     # Verify: Results should include our test data
-    assert results, "No results found"
-    assert len(results) > 0, "Empty results list"
-    assert results[0]["chunk_id"] == test_chunk_id, "Wrong chunk ID returned"
-    assert results[0]["text_content"] == test_content, "Wrong text content returned"
-    assert results[0]["user_id"] == test_user_id, "Wrong user ID returned"
-    assert results[0]["project_id"] == test_project_id, "Wrong project ID returned"
-    assert results[0]["query_topic"] == "dark mode", "Query topic not included in results"
-    assert not results[0]["is_twin_interaction"], "Twin interaction flag should be False" 
+    assert results_exclude_twin, "No results found when excluding twin interactions"
+    assert len(results_exclude_twin) > 0, "Empty results list when excluding twin interactions"
+    found_original_exclude = any(r["chunk_id"] == test_chunk_id for r in results_exclude_twin)
+    found_twin_exclude = any(r["chunk_id"] == twin_chunk_id for r in results_exclude_twin)
+    assert found_original_exclude, "Original message chunk not found when excluding twin interactions"
+    assert not found_twin_exclude, "Twin interaction chunk SHOULD NOT be found when excluding twin interactions" 

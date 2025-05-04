@@ -47,6 +47,7 @@ class PreferenceService:
         session_id: Optional[str] = None,
         limit: int = 5,
         score_threshold: Optional[float] = 0.6,
+        include_messages_to_twin: bool = True
     ) -> Dict[str, Any]:
         """Query user preferences on a specific topic.
         
@@ -61,6 +62,7 @@ class PreferenceService:
             session_id: Optional filter by session ID
             limit: Maximum number of results to return per source
             score_threshold: Optional score threshold for vector search
+            include_messages_to_twin: Flag to include messages to twin
             
         Returns:
             Dictionary containing relevant preference statements and metadata
@@ -96,7 +98,8 @@ class PreferenceService:
                 limit=limit,
                 project_id=project_id,
                 session_id=session_id,
-                score_threshold=score_threshold
+                score_threshold=score_threshold,
+                include_twin_interactions=include_messages_to_twin
             )
             logger.info(f"Found {len(vector_results)} preference statements via vector search for user {user_id}")
         except Exception as e:

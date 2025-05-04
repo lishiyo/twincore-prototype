@@ -107,6 +107,21 @@ class TestPreferenceEndpoint:
         )
         assert doc_response.status_code == 202  # API returns 202 Accepted for async operations
         
+        # 3. Ingest a twin interaction message (marked with is_twin_chat=True)
+        twin_message_data = {
+            "text": f"I want all my applications to use {test_topic} as the default theme.",
+            "user_id": test_user_id,
+            "source_type": "message",
+            "is_twin_chat": True,  # This marks it as a twin interaction
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        twin_msg_response = await async_client.post(
+            "/v1/ingest/message",
+            json=twin_message_data
+        )
+        assert twin_msg_response.status_code == 202
+        
         # Add a small delay to allow async ingestion to complete
         await asyncio.sleep(2) 
         
@@ -178,4 +193,122 @@ class TestPreferenceEndpoint:
         assert data["user_id"] == test_data["user_id"]
         assert data["decision_topic"] == "non_existent_topic_12345"
         assert data["has_preferences"] is False
-        assert len(data["preference_statements"]) == 0 
+        assert len(data["preference_statements"]) == 0
+        
+    @pytest.mark.asyncio
+    async def test_retrieve_preferences_with_include_messages_to_twin(self, async_client, test_data):
+        """Test the preference endpoint with include_messages_to_twin parameter set to true."""
+        # Query with include_messages_to_twin=true (explicitly)
+        response_with_twin = await async_client.get(
+            "/v1/retrieve/preferences",
+            params={
+                "user_id": test_data["user_id"],
+                "decision_topic": test_data["topic"],
+                "limit": 5,
+                "include_messages_to_twin": "true",  # Explicitly include twin interactions
+                "score_threshold": 0.6
+            }
+        )
+        
+        # Verify response
+        assert response_with_twin.status_code == 200
+        data_with_twin = response_with_twin.json()
+        
+        # Basic validation
+        assert data_with_twin["user_id"] == test_data["user_id"]
+        assert data_with_twin["decision_topic"] == test_data["topic"]
+        assert data_with_twin["has_preferences"] is True
+        
+        # Should include the twin interaction message
+        twin_interaction_found = False
+        for stmt in data_with_twin["preference_statements"]:
+            # Check if we can find our twin interaction message
+            if "want all my applications to use" in stmt.get("text_content", "").lower():
+                twin_interaction_found = True
+                break
+                
+        assert twin_interaction_found, "Twin interaction message not found when include_messages_to_twin=true"
+        
+    @pytest.mark.asyncio
+    async def test_retrieve_preferences_without_include_messages_to_twin(self, async_client, test_data):
+        """Test the preference endpoint with include_messages_to_twin parameter set to false."""
+        # Query with include_messages_to_twin=false (explicitly)
+        response_without_twin = await async_client.get(
+            "/v1/retrieve/preferences",
+            params={
+                "user_id": test_data["user_id"],
+                "decision_topic": test_data["topic"],
+                "limit": 5,
+                "include_messages_to_twin": "false",  # Explicitly exclude twin interactions
+                "score_threshold": 0.6
+            }
+        )
+        
+        # Verify response
+        assert response_without_twin.status_code == 200
+        data_without_twin = response_without_twin.json()
+        
+        # Basic validation
+        assert data_without_twin["user_id"] == test_data["user_id"]
+        assert data_without_twin["decision_topic"] == test_data["topic"]
+        
+        # Should not include the twin interaction message
+        for stmt in data_without_twin["preference_statements"]:
+            # Verify no statement contains our twin interaction text
+            assert "want all my applications to use" not in stmt.get("text_content", "").lower(), \
+                "Twin interaction message found when include_messages_to_twin=false"
+    
+    @pytest.mark.asyncio
+    async def test_retrieve_preferences_default_include_messages_to_twin(self, async_client, test_data):
+        """Test the preference endpoint with default include_messages_to_twin parameter (should be true)."""
+        # Query without specifying include_messages_to_twin
+        default_response = await async_client.get(
+            "/v1/retrieve/preferences",
+            params={
+                "user_id": test_data["user_id"],
+                "decision_topic": test_data["topic"],
+                "limit": 5,
+                "score_threshold": 0.6
+                # No include_messages_to_twin parameter - should use default (true)
+            }
+        )
+        
+        # Query with include_messages_to_twin=true for comparison
+        explicit_response = await async_client.get(
+            "/v1/retrieve/preferences",
+            params={
+                "user_id": test_data["user_id"],
+                "decision_topic": test_data["topic"],
+                "limit": 5,
+                "score_threshold": 0.6,
+                "include_messages_to_twin": "true"
+            }
+        )
+        
+        # Verify responses
+        assert default_response.status_code == 200
+        assert explicit_response.status_code == 200
+        
+        default_data = default_response.json()
+        explicit_data = explicit_response.json()
+        
+        # The default behavior should match the explicit include_messages_to_twin=true behavior
+        # We check the statement count is the same (not exact content equality because timestamps might differ)
+        assert len(default_data["preference_statements"]) == len(explicit_data["preference_statements"])
+        
+        # Check if twin interaction appears in both results
+        default_has_twin = False
+        explicit_has_twin = False
+        
+        for stmt in default_data["preference_statements"]:
+            if "want all my applications to use" in stmt.get("text_content", "").lower():
+                default_has_twin = True
+                break
+                
+        for stmt in explicit_data["preference_statements"]:
+            if "want all my applications to use" in stmt.get("text_content", "").lower():
+                explicit_has_twin = True
+                break
+        
+        assert default_has_twin == explicit_has_twin, \
+            "Default behavior does not match explicit include_messages_to_twin=true" 

@@ -94,7 +94,8 @@ def test_retrieve_context_endpoint(test_client, mock_retrieval_service):
         "query_text": "test query",
         "project_id": test_project_id,
         "session_id": test_session_id,
-        "limit": 10
+        "limit": 10,
+        "include_messages_to_twin": True
     }
     
     # Act - Use query parameters directly
@@ -115,6 +116,7 @@ def test_retrieve_context_endpoint(test_client, mock_retrieval_service):
     assert call_args["project_id"] == query_params["project_id"]
     assert call_args["session_id"] == query_params["session_id"]
     assert call_args["limit"] == query_params["limit"]
+    assert call_args["include_messages_to_twin"] == query_params["include_messages_to_twin"]
     
     # Verify response structure
     assert "chunks" in response_data
@@ -130,6 +132,48 @@ def test_retrieve_context_endpoint(test_client, mock_retrieval_service):
     assert chunk["project_id"] == test_project_id
     assert chunk["session_id"] == test_session_id
     assert chunk["score"] == 0.95
+
+
+def test_retrieve_context_default_include_messages_to_twin(test_client, mock_retrieval_service):
+    """Test the /retrieve/context endpoint with default include_messages_to_twin parameter."""
+    # Arrange
+    test_project_id = str(uuid.uuid4())
+    test_session_id = str(uuid.uuid4())
+    test_results = [
+        {
+            "chunk_id": "test-id-1",
+            "text_content": "This is test content 1",
+            "source_type": "message",
+            "user_id": "user-1",
+            "project_id": test_project_id,
+            "session_id": test_session_id,
+            "timestamp": datetime.now().timestamp(),
+            "score": 0.95,
+        }
+    ]
+    
+    # Configure the mock to return test results
+    mock_retrieval_service.retrieve_context.return_value = test_results
+    
+    # Prepare query parameters without include_messages_to_twin
+    query_params = {
+        "query_text": "test query",
+        "project_id": test_project_id,
+        "session_id": test_session_id,
+    }
+    
+    # Act
+    response = test_client.get("/v1/retrieve/context", params=query_params)
+    
+    # Assert
+    assert response.status_code == 200
+    
+    # Verify the service was called with the correct default parameter
+    mock_retrieval_service.retrieve_context.assert_called_once()
+    call_args = mock_retrieval_service.retrieve_context.call_args[1]
+    
+    # Default for context endpoint should be False
+    assert call_args["include_messages_to_twin"] is False
 
 
 def test_retrieve_private_memory_endpoint(test_client, mock_retrieval_service_with_message_connector):
@@ -159,7 +203,8 @@ def test_retrieve_private_memory_endpoint(test_client, mock_retrieval_service_wi
         "user_id": user_id,
         "query_text": "find my private notes",
         "project_id": project_id,
-        "limit": 5
+        "limit": 5,
+        "include_messages_to_twin": False
     }
     
     # Act
@@ -176,6 +221,7 @@ def test_retrieve_private_memory_endpoint(test_client, mock_retrieval_service_wi
     assert call_args["user_id"] == payload["user_id"]
     assert call_args["project_id"] == payload["project_id"]
     assert call_args["limit"] == payload["limit"]
+    assert call_args["include_messages_to_twin"] == payload["include_messages_to_twin"]
     
     # Verify response structure
     assert "chunks" in response_data
@@ -190,6 +236,49 @@ def test_retrieve_private_memory_endpoint(test_client, mock_retrieval_service_wi
     assert chunk["user_id"] == user_id
     assert chunk["project_id"] == project_id
     assert chunk["score"] == 0.88
+
+
+def test_retrieve_private_memory_default_include_messages_to_twin(test_client, mock_retrieval_service_with_message_connector):
+    """Test the /v1/retrieve/private_memory endpoint with default include_messages_to_twin parameter."""
+    # Arrange
+    user_id = str(uuid.uuid4())
+    project_id = str(uuid.uuid4())
+    test_results = [
+        {
+            "chunk_id": "private-chunk-1",
+            "text_content": "This is private content",
+            "source_type": "document",
+            "user_id": user_id,
+            "project_id": project_id,
+            "timestamp": datetime.now().timestamp(),
+            "is_private": True,
+            "score": 0.88,
+        }
+    ]
+    
+    # Configure the mock to return test results
+    mock_retrieval_service_with_message_connector.retrieve_private_memory.return_value = test_results
+    
+    # Prepare the request payload without include_messages_to_twin
+    payload = {
+        "user_id": user_id,
+        "query_text": "find my private notes",
+        "project_id": project_id,
+        "limit": 5
+    }
+    
+    # Act
+    response = test_client.post("/v1/retrieve/private_memory", json=payload)
+    
+    # Assert
+    assert response.status_code == 200
+    
+    # Verify the service was called with the correct default parameter
+    mock_retrieval_service_with_message_connector.retrieve_private_memory.assert_called_once()
+    call_args = mock_retrieval_service_with_message_connector.retrieve_private_memory.call_args[1]
+    
+    # Default for private_memory endpoint should be True
+    assert call_args["include_messages_to_twin"] is True
 
 
 def test_retrieve_context_validation_error(test_client):
@@ -492,3 +581,98 @@ def test_retrieve_preferences_endpoint(test_client, mock_preference_service):
     assert len(data["preference_statements"]) == 2
     assert data["graph_results_count"] == 1
     assert data["vector_results_count"] == 1 
+
+
+def test_retrieve_preferences_with_include_messages_to_twin_param(test_client, mock_preference_service):
+    """Test the preferences retrieval endpoint with include_messages_to_twin parameter."""
+    # Create mock preference data with valid UUIDs
+    test_user_id = str(uuid.uuid4())
+    test_chunk_1 = str(uuid.uuid4())
+    test_chunk_2 = str(uuid.uuid4())
+    decision_topic = "dark mode"
+    
+    mock_preferences = {
+        "user_id": test_user_id,
+        "decision_topic": decision_topic,
+        "has_preferences": True,
+        "preference_statements": [
+            {
+                "chunk_id": test_chunk_1,
+                "text_content": "I prefer dark mode for all my apps.",
+                "source_type": "message",
+                "user_id": test_user_id,
+                "score": 0.95,
+                "source": "vector"
+            },
+            {
+                "chunk_id": test_chunk_2,
+                "text_content": "Dark mode is easier on my eyes at night.",
+                "source_type": "message",
+                "user_id": test_user_id,
+                "source": "graph"
+            }
+        ],
+        "graph_results_count": 1,
+        "vector_results_count": 1
+    }
+    
+    # Configure the mock to return test results
+    mock_preference_service.query_user_preference.return_value = mock_preferences
+    
+    # Call the endpoint with include_messages_to_twin = False (override default)
+    response = test_client.get(
+        "/v1/retrieve/preferences",
+        params={
+            "user_id": test_user_id,
+            "decision_topic": decision_topic,
+            "limit": 5,
+            "include_messages_to_twin": "false"  # String param from URL
+        }
+    )
+    
+    # Verify response
+    assert response.status_code == 200
+    
+    # Verify service was called with correct parameter
+    mock_preference_service.query_user_preference.assert_called_once()
+    call_args = mock_preference_service.query_user_preference.call_args[1]
+    assert call_args["include_messages_to_twin"] is False
+
+
+def test_retrieve_preferences_default_include_messages_to_twin(test_client, mock_preference_service):
+    """Test the preferences retrieval endpoint with default include_messages_to_twin parameter."""
+    # Create mock preference data with valid UUIDs
+    test_user_id = str(uuid.uuid4())
+    decision_topic = "dark mode"
+    
+    mock_preferences = {
+        "user_id": test_user_id,
+        "decision_topic": decision_topic,
+        "has_preferences": True,
+        "preference_statements": [],
+        "graph_results_count": 0,
+        "vector_results_count": 0
+    }
+    
+    # Configure the mock to return test results
+    mock_preference_service.query_user_preference.return_value = mock_preferences
+    
+    # Call the endpoint without specifying include_messages_to_twin
+    response = test_client.get(
+        "/v1/retrieve/preferences",
+        params={
+            "user_id": test_user_id,
+            "decision_topic": decision_topic,
+            "limit": 5
+        }
+    )
+    
+    # Verify response
+    assert response.status_code == 200
+    
+    # Verify service was called with correct default parameter
+    mock_preference_service.query_user_preference.assert_called_once()
+    call_args = mock_preference_service.query_user_preference.call_args[1]
+    
+    # Default for preferences endpoint should be True
+    assert call_args["include_messages_to_twin"] is True 

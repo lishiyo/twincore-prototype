@@ -99,7 +99,7 @@ async def test_retrieve_context(retrieval_service, mock_qdrant_dal, mock_embeddi
     assert call_args["limit"] == 10
     assert call_args["project_id"] == "project-1"
     assert call_args["session_id"] == "session-1"
-    assert call_args["exclude_twin_interactions"] is True
+    assert call_args["include_twin_interactions"] is False
     
     # Verify results are returned correctly
     assert results == test_results
@@ -155,7 +155,7 @@ async def test_retrieve_private_memory(
     assert search_args["user_id"] == user_id
     assert search_args["limit"] == 5
     assert search_args["include_private"] is True
-    assert search_args["exclude_twin_interactions"] is False
+    assert search_args["include_twin_interactions"] is True
     
     # Verify results are returned correctly
     assert results == test_results
@@ -468,6 +468,8 @@ async def test_retrieve_by_topic_falling_back_to_vector_search(
     # Since graph returned no results, embedding and vector search should be called
     mock_embedding_service.get_embedding.assert_called_once_with(topic_name)
     mock_qdrant_dal.search_vectors.assert_called_once()
+    # Verify the flag is passed (False by default for topic search)
+    assert mock_qdrant_dal.search_vectors.call_args[1]["include_twin_interactions"] is False
     
     assert results == vector_results
 
@@ -507,6 +509,8 @@ async def test_retrieve_by_topic_falling_back_to_vector_search_on_error(
     # Since graph search failed, embedding and vector search should be called
     mock_embedding_service.get_embedding.assert_called_once_with(topic_name)
     mock_qdrant_dal.search_vectors.assert_called_once()
+    # Verify the flag is passed (False by default for topic search)
+    assert mock_qdrant_dal.search_vectors.call_args[1]["include_twin_interactions"] is False
     
     assert results == vector_results
 

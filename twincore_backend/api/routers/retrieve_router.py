@@ -151,6 +151,7 @@ async def retrieve_context(
     project_id: Optional[str] = None,
     session_id: Optional[str] = None,
     include_graph: bool = Query(False, description="Whether to include graph relationships"),
+    include_messages_to_twin: bool = Query(False, description="Whether to include messages to the twin"),
     retrieval_service: RetrievalService = Depends(get_retrieval_service),
 ):
     """Retrieve context-relevant information based on semantic search.
@@ -165,6 +166,7 @@ async def retrieve_context(
         project_id: Optional filter by project ID
         session_id: Optional filter by session ID
         include_graph: Whether to include graph-based enrichments
+        include_messages_to_twin: Whether to include messages to the twin
         retrieval_service: The retrieval service dependency
     """
     try:
@@ -173,14 +175,16 @@ async def retrieve_context(
                 query_text=query_text,
                 limit=limit,
                 project_id=project_id,
-                session_id=session_id
+                session_id=session_id,
+                include_messages_to_twin=include_messages_to_twin
             )
         else:
             results = await retrieval_service.retrieve_context(
                 query_text=query_text,
                 limit=limit,
                 project_id=project_id,
-                session_id=session_id
+                session_id=session_id,
+                include_messages_to_twin=include_messages_to_twin
             )
         
         # Convert to response model
@@ -265,6 +269,7 @@ async def retrieve_private_memory(
             limit=query.limit,
             project_id=query.project_id,
             session_id=query.session_id,
+            include_messages_to_twin=query.include_messages_to_twin
         )
         
         # If include_graph is True, enhance with graph data
@@ -437,6 +442,7 @@ async def retrieve_by_topic(
     project_id: Optional[str] = None,
     session_id: Optional[str] = None,
     include_private: bool = False,
+    include_messages_to_twin: bool = Query(False, description="Whether to include messages to the twin"),
     retrieval_service: RetrievalService = Depends(get_retrieval_service),
 ):
     """Retrieve content related to a specific topic.
@@ -451,6 +457,7 @@ async def retrieve_by_topic(
         project_id: Optional filter by project ID
         session_id: Optional filter by session ID
         include_private: Whether to include private content
+        include_messages_to_twin: Whether to include messages to the twin
         retrieval_service: The retrieval service dependency
     """
     try:
@@ -461,6 +468,7 @@ async def retrieve_by_topic(
             project_id=project_id,
             session_id=session_id,
             include_private=include_private,
+            include_messages_to_twin=include_messages_to_twin
         )
         
         # Convert to ContentChunk model objects
@@ -517,6 +525,7 @@ async def retrieve_preferences(
     session_id: Optional[str] = None,
     limit: int = 5,
     score_threshold: Optional[float] = 0.6,
+    include_messages_to_twin: bool = Query(True, description="Whether to include messages to the twin"),
     preference_service: PreferenceService = Depends(get_preference_service)
 ):
     """Retrieve the user's preference statements related to a specific decision topic.
@@ -531,6 +540,7 @@ async def retrieve_preferences(
         session_id: Optional session ID for context
         limit: Maximum number of preference statements to return
         score_threshold: Optional score threshold for vector search
+        include_messages_to_twin: Whether to include messages to the twin
         preference_service: The preference service dependency
     
     Returns:
@@ -543,7 +553,8 @@ async def retrieve_preferences(
             project_id=project_id,
             session_id=session_id,
             limit=limit,
-            score_threshold=score_threshold
+            score_threshold=score_threshold,
+            include_messages_to_twin=include_messages_to_twin
         )
         
         return preference_data

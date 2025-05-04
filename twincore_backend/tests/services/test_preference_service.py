@@ -74,7 +74,8 @@ async def test_query_user_preference_success(preference_service, mock_qdrant_dal
         user_id=user_id,
         decision_topic=decision_topic,
         project_id=project_id,
-        limit=5
+        limit=5,
+        include_messages_to_twin=True
     )
     
     # Verify
@@ -88,6 +89,7 @@ async def test_query_user_preference_success(preference_service, mock_qdrant_dal
     assert mock_qdrant_dal.search_user_preferences.called
     assert mock_qdrant_dal.search_user_preferences.call_args[1]["user_id"] == user_id
     assert mock_qdrant_dal.search_user_preferences.call_args[1]["decision_topic"] == decision_topic
+    assert mock_qdrant_dal.search_user_preferences.call_args[1]["include_twin_interactions"] is True
     
     assert result["user_id"] == user_id
     assert result["decision_topic"] == decision_topic
@@ -160,4 +162,26 @@ async def test_query_user_preference_vector_error(preference_service, mock_qdran
     assert result["has_preferences"]  # We still get results from Neo4j
     assert len(result["preference_statements"]) == 1
     assert result["graph_results_count"] == 1
-    assert result["vector_results_count"] == 0 
+    assert result["vector_results_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_query_user_preference_exclude_twin_interactions(preference_service, mock_qdrant_dal):
+    """Test that the include_messages_to_twin flag is passed correctly when False."""
+    # Setup
+    user_id = "test_user_123"
+    decision_topic = "dark mode"
+    project_id = "test_project_456"
+    
+    # Execute
+    await preference_service.query_user_preference(
+        user_id=user_id,
+        decision_topic=decision_topic,
+        project_id=project_id,
+        limit=5,
+        include_messages_to_twin=False
+    )
+    
+    # Verify
+    assert mock_qdrant_dal.search_user_preferences.called
+    assert mock_qdrant_dal.search_user_preferences.call_args[1]["include_twin_interactions"] is False 

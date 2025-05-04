@@ -192,7 +192,7 @@ class QdrantDAL(IQdrantDAL):
         session_id: Optional[str] = None,
         source_type: Optional[str] = None,
         include_private: bool = False,
-        exclude_twin_interactions: bool = False,
+        include_twin_interactions: bool = False,
         timestamp_start: Optional[str] = None,
         timestamp_end: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
@@ -205,7 +205,8 @@ class QdrantDAL(IQdrantDAL):
             if session_id: filter_conditions.append(models.FieldCondition(key="session_id", match=models.MatchValue(value=session_id)))                
             if source_type: filter_conditions.append(models.FieldCondition(key="source_type", match=models.MatchValue(value=source_type)))
             if not include_private: filter_conditions.append(models.FieldCondition(key="is_private", match=models.MatchValue(value=False)))
-            if exclude_twin_interactions: filter_conditions.append(models.FieldCondition(key="is_twin_interaction", match=models.MatchValue(value=False)))
+            if not include_twin_interactions: 
+                filter_conditions.append(models.FieldCondition(key="is_twin_interaction", match=models.MatchValue(value=False)))
   
             # Build range conditions separately, converting ISO strings to Unix timestamps
             range_conditions = {}
@@ -361,7 +362,8 @@ class QdrantDAL(IQdrantDAL):
         limit: int = 5,
         project_id: Optional[str] = None,
         session_id: Optional[str] = None,
-        score_threshold: Optional[float] = 0.6
+        score_threshold: Optional[float] = 0.6,
+        include_twin_interactions: bool = True
     ) -> List[Dict[str, Any]]:
         """Search for vectors related to user preferences on a specific topic.
         
@@ -376,7 +378,8 @@ class QdrantDAL(IQdrantDAL):
             limit: Maximum number of results to return
             project_id: Optional filter by project ID
             session_id: Optional filter by session ID
-            
+            score_threshold: Minimum score threshold for results
+            include_twin_interactions: Whether to include twin interactions
         Returns:
             List of vectors containing user preferences related to the topic
         """
@@ -386,11 +389,11 @@ class QdrantDAL(IQdrantDAL):
                 models.FieldCondition(key="user_id", match=models.MatchValue(value=user_id))
             ]
             
-            # Include messages and potentially documents, but exclude twin interactions
-            # This ensures we're looking at the user's statements, not queries to the twin
-            filter_conditions.append(
-                models.FieldCondition(key="is_twin_interaction", match=models.MatchValue(value=False))
-            )
+            # Updated filter logic: only add the filter if we explicitly want to exclude twin interactions
+            if not include_twin_interactions:
+                filter_conditions.append(
+                    models.FieldCondition(key="is_twin_interaction", match=models.MatchValue(value=False))
+                )
             
             # Add optional project and session filters
             if project_id:

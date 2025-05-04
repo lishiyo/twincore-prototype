@@ -53,7 +53,7 @@ class RetrievalService:
         session_id: Optional[str] = None,
         source_type: Optional[str] = None,
         include_private: bool = False,
-        exclude_twin_interactions: bool = True,
+        include_messages_to_twin: bool = False,
     ) -> List[Dict[str, Any]]:
         """Retrieve context-relevant information based on semantic search.
         
@@ -65,7 +65,7 @@ class RetrievalService:
             session_id: Optional filter by session ID
             source_type: Optional filter by source type
             include_private: Whether to include private content
-            exclude_twin_interactions: Whether to exclude twin interactions (default: True)
+            include_messages_to_twin: Whether to include messages to twin interactions
         
         Returns:
             List of content chunks with relevance scores and metadata
@@ -91,7 +91,7 @@ class RetrievalService:
             session_id=session_id,
             source_type=source_type,
             include_private=include_private,
-            exclude_twin_interactions=exclude_twin_interactions,
+            include_twin_interactions=include_messages_to_twin,
         )
         
         logger.info(f"Retrieved {len(search_results)} context chunks for query: {query_text}")
@@ -104,6 +104,7 @@ class RetrievalService:
         limit: int = 10,
         project_id: Optional[str] = None,
         session_id: Optional[str] = None,
+        include_messages_to_twin: bool = True,
     ) -> List[Dict[str, Any]]:
         """Retrieve user's private memory based on semantic search.
         
@@ -115,6 +116,7 @@ class RetrievalService:
             limit: Maximum number of results to return
             project_id: Optional filter by project ID
             session_id: Optional filter by session ID
+            include_messages_to_twin: Whether to include messages to twin interactions
         
         Returns:
             List of content chunks with relevance scores and metadata
@@ -147,7 +149,7 @@ class RetrievalService:
             project_id=project_id,
             session_id=session_id,
             include_private=True,  # Include both private and non-private content
-            exclude_twin_interactions=False,
+            include_twin_interactions=include_messages_to_twin,
         )
         
         logger.info(f"Retrieved {len(search_results)} private memory chunks for user {user_id}")
@@ -162,7 +164,7 @@ class RetrievalService:
         session_id: Optional[str] = None,
         source_type: Optional[str] = None,
         include_private: bool = False,
-        exclude_twin_interactions: bool = True,
+        include_messages_to_twin: bool = False,
     ) -> List[Dict[str, Any]]:
         """Retrieve context with graph enrichment from Neo4j.
         
@@ -177,7 +179,7 @@ class RetrievalService:
             session_id: Optional filter by session ID
             source_type: Optional filter by source type
             include_private: Whether to include private content
-            exclude_twin_interactions: Whether to exclude twin interactions
+            include_messages_to_twin: Whether to include messages to twin interactions
         
         Returns:
             List of content chunks with relevance scores, metadata, and graph relationship enrichments
@@ -191,7 +193,7 @@ class RetrievalService:
             session_id=session_id,
             source_type=source_type,
             include_private=include_private,
-            exclude_twin_interactions=exclude_twin_interactions,
+            include_messages_to_twin=include_messages_to_twin,
         )
         
         if not search_results:
@@ -281,6 +283,7 @@ class RetrievalService:
         project_id: Optional[str] = None,
         session_id: Optional[str] = None,
         include_private: bool = False,
+        include_messages_to_twin: bool = False,
     ) -> List[Dict[str, Any]]:
         """Retrieve content related to a specific topic using graph relationships.
         
@@ -294,6 +297,7 @@ class RetrievalService:
             project_id: Optional filter by project ID
             session_id: Optional filter by session ID
             include_private: Whether to include private content
+            include_messages_to_twin: Whether to include messages to twin interactions
         
         Returns:
             List of content related to the specified topic
@@ -308,7 +312,8 @@ class RetrievalService:
                 user_id=user_id,
                 project_id=project_id,
                 session_id=session_id,
-                include_private=include_private
+                include_private=include_private,
+                include_twin_interactions=include_messages_to_twin,
             )
             
             # If we found results through graph relationships, return them
@@ -327,6 +332,7 @@ class RetrievalService:
                 project_id=project_id,
                 session_id=session_id,
                 include_private=include_private,
+                include_twin_interactions=include_messages_to_twin,
             )
             
             logger.info(f"Retrieved {len(search_results)} content chunks for topic: {topic_name} (via vector search)")
@@ -347,6 +353,7 @@ class RetrievalService:
                     project_id=project_id,
                     session_id=session_id,
                     include_private=include_private,
+                    include_twin_interactions=include_messages_to_twin,
                 )
                 
                 logger.info(f"Retrieved {len(search_results)} content chunks for topic: {topic_name} (via vector search)")

@@ -49,7 +49,7 @@ class ContextQuery(BaseModel):
     limit: int = Field(10, ge=1, le=100, description="Maximum number of results to return")
     project_id: Optional[str] = Field(None, description="Optional project ID filter")
     session_id: Optional[str] = Field(None, description="Optional session ID filter")
-
+    include_twin_interactions: bool = Field(False, description="Whether to include twin interactions")
 
 class PrivateMemoryQuery(BaseModel):
     """Query parameters for retrieving private memory."""
@@ -59,6 +59,7 @@ class PrivateMemoryQuery(BaseModel):
     limit: int = Field(10, ge=1, le=100, description="Maximum number of results to return")
     project_id: Optional[str] = Field(None, description="Optional project ID filter")
     session_id: Optional[str] = Field(None, description="Optional session ID filter")
+    include_messages_to_twin: bool = Field(True, description="Whether to include user messages to the twin in results")
 
 
 class RelatedContentQuery(BaseModel):
@@ -69,7 +70,7 @@ class RelatedContentQuery(BaseModel):
     limit: int = Field(10, ge=1, le=100, description="Maximum number of results to return")
     include_private: bool = Field(False, description="Whether to include private content")
     max_depth: int = Field(2, ge=1, le=5, description="Maximum relationship traversal depth")
-
+    include_twin_interactions: bool = Field(False, description="Whether to include twin interactions")
 
 class TopicQuery(BaseModel):
     """Query parameters for retrieving content related to a specific topic."""
@@ -80,7 +81,7 @@ class TopicQuery(BaseModel):
     project_id: Optional[str] = Field(None, description="Optional project ID filter")
     session_id: Optional[str] = Field(None, description="Optional session ID filter")
     include_private: bool = Field(False, description="Whether to include private content")
-    
+    include_twin_interactions: bool = Field(False, description="Whether to include twin interactions")
 
 class PreferenceQuery(BaseModel):
     """Model for querying user preferences."""
@@ -89,6 +90,8 @@ class PreferenceQuery(BaseModel):
     project_id: Optional[str] = Field(None, description="Optional project ID for context")
     session_id: Optional[str] = Field(None, description="Optional session ID for context")
     limit: int = Field(5, description="Maximum number of results to return")
+    include_twin_interactions: bool = Field(True, description="Whether to include twin interactions")
+    score_threshold: Optional[float] = Field(0.6, description="Minimum score threshold for results")
 
 
 # Response Models
