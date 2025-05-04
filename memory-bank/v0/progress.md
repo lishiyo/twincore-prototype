@@ -2,6 +2,26 @@
 
 **IMPORTANT**: Put your changes at the top!
 
+## Sun May  4 15:43:37 PDT 2025 - Fixed Interface Definitions and E2E Test Logic
+
+### Changes since last update
+- Fixed test failure in `test_preference_service.py`:
+  - Corrected assertion in `test_query_user_preference_include_twin_interactions_false` to check for `search_user_preferences` method call instead of `search_vectors`.
+  - Updated `IQdrantDAL` interface in `dal/interfaces.py` to include `include_twin_interactions` and `score_threshold` parameters in the `search_user_preferences` signature, matching the implementation.
+- Fixed E2E test assertion logic in `test_private_memory_include_messages_to_twin` (`test_retrieval_e2e.py`):
+  - Changed the assertion for the default behavior to verify that twin interactions are included, rather than relying on an exact count match which was unstable due to query ingestion during the test.
+- Completed the DAL and Service layers updates for Task 7.4 (Refine Twin Interaction Filtering).
+
+### Errors & Learnings
+- Test assertions must accurately reflect the code being tested, including correct method names.
+- Interfaces (ABCs/Protocols) must be kept in sync with their concrete implementations.
+- E2E tests involving data ingestion within the test itself require careful assertion logic that accounts for cumulative data changes.
+
+### Next Steps
+- Complete remaining sub-tasks for Task 7.4 (API endpoint and Pydantic model updates).
+- Move to Phase 8: Twin Interaction Endpoints.
+- Continue investigating the document ingestion E2E test failure (`test_document_ingestion_end_to_end`).
+
 ## Sun May  4 14:05:24 PDT 2025 - Fixed E2E Tests for Preference Endpoint
 
 ### Changes since last update

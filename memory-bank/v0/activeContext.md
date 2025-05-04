@@ -1,8 +1,9 @@
-# TwinCore Active Context - Sun May  4 14:05:24 PDT 2025
+# TwinCore Active Context - Sun May  4 15:43:37 PDT 2025
 
 ## Current Work Focus
 - **Completed Phase 7: Preference Endpoint** (including debugging and fixing E2E tests)
-- Moving to Phase 8: Twin Interaction Endpoints
+- **Refined Twin Interaction Filtering (Task 7.4)**: DAL and Service layers updated and tested.
+- Moving to Phase 8: Twin Interaction Endpoints OR completing API layer for Task 7.4.
 - Still need to investigate the E2E test failure for document ingestion (`test_document_ingestion_end_to_end`)
 
 ## Project State
@@ -55,6 +56,7 @@
     - Added `/v1/retrieve/preferences` endpoint with proper request/response models and `score_threshold` parameter
     - Comprehensive unit, integration, and E2E tests for all preference components, now passing after debugging
     - Successfully implemented fallback strategies for preference retrieval (explicit preferences, topic-based, vector similarity with thresholding)
+- **Twin Interaction Filtering (Task 7.4)**: Updated DAL and Service layers to correctly handle `include_twin_interactions` parameter, including fixing related tests.
 
 ### What's Broken
 - **`test_document_ingestion_end_to_end`:** Still failing with `AssertionError: No document chunks found in Qdrant`. Investigation ongoing.
@@ -79,6 +81,7 @@
 - Created new design for advanced retrieval strategies combining Qdrant and Neo4j for better results
 - Defined future expansions for retrieval endpoints to be implemented in Phase 11
 - Implemented preference retrieval with multiple fallback strategies and score thresholding to ensure useful and relevant results even with sparse knowledge graphs.
+- Refining twin interaction filtering logic (`include_twin_interactions`) across DAL, Services, and eventually APIs.
 
 ## Tech Stack
 - Backend: FastAPI (Python)
@@ -118,10 +121,13 @@
 - Debugging E2E tests often requires examining logs across multiple layers (test fixtures, API routers, services, DALs).
 - Verifying API contracts (status codes, request models) against implementation is crucial during testing.
 - Asynchronous operations can introduce timing issues in tests, requiring delays or better synchronization.
+- Keeping interfaces and implementations synchronized is crucial and requires diligent testing.
+- E2E tests with state changes (like query ingestion) need assertions that verify behavior rather than exact state counts.
 
 ## Next Steps
-- Investigate and fix the `AssertionError` in `test_document_ingestion_end_to_end`
+- Complete remaining sub-tasks for Task 7.4 (API endpoint and Pydantic model updates).
 - Move to Phase 8: Twin Interaction Endpoints
   - Implement Task 8.1: Twin Detection Service 
   - Implement Task 8.2: Twin Response API Endpoint
   - Implement Task 8.3: End-to-End Test for Twin Interactions
+- Investigate and fix the `AssertionError` in `test_document_ingestion_end_to_end`
