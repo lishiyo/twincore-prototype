@@ -256,9 +256,9 @@ class Neo4jDAL(INeo4jDAL):
         """Get the participants of a session (async)."""
         try:
             driver = self.driver # Use the property to get the driver
-            # Use sessionId as per dataSchema.md
+            # Use session_id as per our schema
             query = """
-            MATCH (u:User)-[:PARTICIPATED_IN]->(s:Session {sessionId: $session_id})
+            MATCH (u:User)-[:PARTICIPATED_IN]->(s:Session {session_id: $session_id})
             RETURN u
             """
             
@@ -286,21 +286,21 @@ class Neo4jDAL(INeo4jDAL):
         try:
             driver = self.driver # Use the property to get the driver
             
-            # Use projectId as per dataSchema.md
+            # Use project_id as per our schema
             sessions_query = """
-            MATCH (s:Session)-[:PART_OF]->(p:Project {projectId: $project_id})
+            MATCH (s:Session)-[:PART_OF]->(p:Project {project_id: $project_id})
             RETURN s
             """
             
-            # Use projectId as per dataSchema.md
+            # Use project_id as per our schema
             documents_query = """
-            MATCH (d:Document)-[:PART_OF]->(p:Project {projectId: $project_id})
+            MATCH (d:Document)-[:PART_OF]->(p:Project {project_id: $project_id})
             RETURN d
             """
             
-            # Use projectId as per dataSchema.md
+            # Use project_id as per our schema
             users_query = """
-            MATCH (u:User)-[:PARTICIPATED_IN]->(s:Session)-[:PART_OF]->(p:Project {projectId: $project_id})
+            MATCH (u:User)-[:PARTICIPATED_IN]->(s:Session)-[:PART_OF]->(p:Project {project_id: $project_id})
             RETURN DISTINCT u
             """
             

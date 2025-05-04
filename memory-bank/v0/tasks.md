@@ -150,7 +150,7 @@ This document outlines the development tasks for building the TwinCore backend p
 
 ---
 
-## Phase 6: Retrieval Endpoints (`/api/retrieve/*`)
+## Phase 6: Retrieval Endpoints (`/v1/retrieve/*`)
 
 - [ ] **Task 6.1: Retrieval Service & DAL Methods** (D: 3.3, 3.4, Phase 4)
     - [ ] Steps:
@@ -158,23 +158,23 @@ This document outlines the development tasks for building the TwinCore backend p
         - [ ] [TDD Steps]:
             - [ ] [DAL Int] Test retrieval methods against test DBs (filtering, scoring, limits).
             - [ ] [Service Int] Implement `RetrievalService`, mock DALs, test logic combining search results.
-            - [ ] [API/Contract] Test endpoint schema/status for `/retrieve/*` endpoints.
+            - [ ] [API/Contract] Test endpoint schema/status for `/v1/retrieve/*` endpoints.
             - [ ] [E2E] Call endpoints, verify correct filtered data is retrieved from Qdrant/Neo4j.
 
-- [ ] **Task 6.2: Context Retrieval Endpoint (`/api/retrieve/context`)** (D: 2.1, 6.1)
+- [ ] **Task 6.2: Context Retrieval Endpoint (`/v1/retrieve/context`)** (D: 2.1, 6.1)
     - [ ] Steps:
         - [ ] Implement `retrieve_context(data)` logic in `RetrievalService`.
-        - [ ] Define `POST /api/retrieve/context` endpoint in `retrieve_router.py`. Use Pydantic models. Inject RetrievalService. Register router.
+        - [ ] Define `POST /v1/retrieve/context` endpoint in `retrieve_router.py`. Use Pydantic models. Inject RetrievalService. Register router.
         - [ ] [TDD Steps]:
             - [ ] [API/Contract] Verify specific request/response for this endpoint.
             - [ ] [E2E] Test scenario simulating Canvas Agent call, verify group context retrieval.
 
-- [ ] **Task 6.3: Private Memory Retrieval Endpoint (`/api/retrieve/private_memory`)** (D: 2.1, 6.1)
+- [ ] **Task 6.3: Private Memory Retrieval Endpoint (`/v1/retrieve/private_memory`)** (D: 2.1, 6.1)
     - [ ] Steps:
         - [ ] Implement dual logic in the endpoint: ingest query via IngestionService, then retrieve via RetrievalService with strict user/privacy filtering.
             - [ ] Implement `retrieve_private_memory(data)` logic in `RetrievalService`.
-            - [ ] **Important:** Ensure this service method *also* calls `IngestionService.ingest_message` to store the user's query as a twin interaction (as per `projectbrief.md`).
-        - [ ] Define `POST /api/retrieve/private_memory` endpoint in `retrieve_router.py`.
+            - [ ] **Important:** Ensure this service method *also* calls `MessageConnector.ingest_message` to store the user's query as a twin interaction (as per `projectbrief.md`).
+        - [ ] Define `POST /v1/retrieve/private_memory` endpoint in `retrieve_router.py`.
         - [ ] [TDD Steps]:
             - [ ] [Service Int] Test combined retrieval + ingestion logic for private memory.
             - [ ] [API/Contract] Verify specific request/response for this endpoint.
@@ -183,7 +183,7 @@ This document outlines the development tasks for building the TwinCore backend p
 
 ---
 
-## Phase 7: Preference Endpoint (`/api/query/user_preference`)
+## Phase 7: Preference Endpoint (`/v1/retrieve/user_preference`)
 
 - [ ] **Task 7.1: Preference Service & DAL Methods** (D: 3.3, 3.4, Phase 4)
     - [ ] Steps:

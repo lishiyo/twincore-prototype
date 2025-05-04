@@ -7,12 +7,13 @@ from dal.qdrant_dal import QdrantDAL
 from dal.neo4j_dal import Neo4jDAL
 from services.embedding_service import EmbeddingService
 from services.ingestion_service import IngestionService
+from services.retrieval_service import RetrievalService
 from ingestion.connectors.message_connector import MessageConnector
 from ingestion.connectors.document_connector import DocumentConnector
 from ingestion.processors.text_chunker import TextChunker
 from services.data_seeder_service import DataSeederService
 from services.data_management_service import DataManagementService
-from api.routers import admin_router, ingest_router
+from api.routers import admin_router, ingest_router, retrieve_router
 
 app = FastAPI(
     title="TwinCore API",
@@ -132,15 +133,63 @@ async def get_data_management_service() -> DataManagementService:
         neo4j_dal=neo4j_dal
     )
 
+async def get_retrieval_service() -> RetrievalService:
+    """
+    Create a fresh RetrievalService instance for each request.
+    This ensures no event loop issues between test runs.
+    """
+    # Create a fresh DALs for this request
+    qdrant_dal = get_qdrant_dal()
+    neo4j_dal = await get_neo4j_dal()
+    embedding_service = get_embedding_service()
+    
+    # Create a fresh retrieval service
+    return RetrievalService(
+        qdrant_dal=qdrant_dal,
+        neo4j_dal=neo4j_dal,
+        embedding_service=embedding_service
+    )
+
+async def get_retrieval_service_with_message_connector() -> RetrievalService:
+    """
+    Create a fresh RetrievalService instance with MessageConnector for each request.
+    This ensures no event loop issues between test runs.
+    """
+    # Create fresh DALs for this request
+    qdrant_dal = get_qdrant_dal()
+    neo4j_dal = await get_neo4j_dal()
+    embedding_service = get_embedding_service()
+    
+    # Create a fresh ingestion service
+    ingestion_service = IngestionService(
+        embedding_service=embedding_service,
+        qdrant_dal=qdrant_dal,
+        neo4j_dal=neo4j_dal
+    )
+    
+    # Create a message connector
+    message_connector = MessageConnector(ingestion_service=ingestion_service)
+    
+    # Create a fresh retrieval service with message connector
+    return RetrievalService(
+        qdrant_dal=qdrant_dal,
+        neo4j_dal=neo4j_dal,
+        embedding_service=embedding_service,
+        message_connector=message_connector
+    )
+
 # Register routers
 app.include_router(admin_router.router)
 app.include_router(ingest_router.router)
+app.include_router(retrieve_router.router)
 
 # Set up application-level dependency overrides
 app.dependency_overrides[admin_router.get_data_seeder_service] = get_data_seeder_service
 app.dependency_overrides[admin_router.get_data_management_service] = get_data_management_service
 app.dependency_overrides[ingest_router.get_message_connector] = get_message_connector
 app.dependency_overrides[ingest_router.get_document_connector] = get_document_connector
+app.dependency_overrides[retrieve_router.get_retrieval_service] = get_retrieval_service
+app.dependency_overrides[retrieve_router.get_retrieval_service_with_message_connector] = get_retrieval_service_with_message_connector
 
 @app.get("/")
 async def root():

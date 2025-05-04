@@ -239,6 +239,8 @@ class QdrantDAL(IQdrantDAL):
                 with_vectors=False
             )
             
+            logger.error(f"Search results: {search_results}")
+            
             # Format results as list of dictionaries
             formatted_results = []
             for hit in search_results:
