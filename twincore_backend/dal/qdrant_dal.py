@@ -154,8 +154,8 @@ class QdrantDAL(IQdrantDAL):
                 raise ValueError(f"Vector for chunk_id={chunk_id} contains NaN or Inf values.")
             
             # debug vector length
-            logger.error(f"Vector length: {len(vector_data)}")
-            logger.error(f"Upserting vector with chunk_id={chunk_id_str} and payload={payload}")
+            logger.info(f"Vector length: {len(vector_data)}")
+            logger.info(f"Upserting vector with chunk_id={chunk_id_str} and payload={payload}")
             
             # Create a list of PointStruct objects for upsert
             points = [
@@ -240,7 +240,7 @@ class QdrantDAL(IQdrantDAL):
                 with_vectors=False
             )
             
-            logger.error(f"Search results: {search_results}")
+            logger.info(f"Search results: {search_results}")
             
             # Format results as list of dictionaries
             formatted_results = []

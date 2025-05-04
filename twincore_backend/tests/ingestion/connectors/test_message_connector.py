@@ -125,5 +125,5 @@ class TestMessageConnector:
         }
         
         # Act & Assert
-        with pytest.raises(ValueError, match="user_id"):
+        with pytest.raises(ValueError, match="Missing required fields"):
             await message_connector.ingest_message(message_data) 

@@ -36,36 +36,31 @@ logger = logging.getLogger(__name__)
 class TestRetrievalE2E:
     """End-to-end tests for retrieval functionality."""
 
-    @pytest.fixture(autouse=True)
+    @pytest_asyncio.fixture
     async def ensure_collection_exists(self):
         """
-        Fixture to ensure the Qdrant collection exists before EVERY test.
-        
-        This runs before each test method in the class due to autouse=True.
-        Some tests in the test suite delete the collection as part of their cleanup.
-        This fixture ensures the collection is recreated before our tests run.
+        Fixture to ensure the Qdrant collection exists before tests.
         """
-        logger.error("==== RETRIEVAL TEST: CREATING QDRANT COLLECTION BEFORE TEST ====")
+        from tests.e2e.test_utils import get_test_async_qdrant_client
+        
         print("==== RETRIEVAL TEST: CREATING QDRANT COLLECTION BEFORE TEST ====")
         
-        qdrant_client = get_async_qdrant_client()
-        
-        # Always attempt to delete the collection first to ensure a clean state
         try:
-            await qdrant_client.delete_collection(collection_name="twin_memory")
-            logger.error("Deleted existing twin_memory collection")
-            print("RETRIEVAL TEST: Deleted existing twin_memory collection")
-        except Exception as e:
-            # Collection might not exist, ignore the error
-            logger.error(f"Note: Couldn't delete collection (might not exist): {e}")
-            print(f"RETRIEVAL TEST: Couldn't delete collection: {e}")
-        
-        # Wait a moment after deletion
-        await asyncio.sleep(1)
-        
-        # Create the collection
-        try:
-            logger.error("Creating fresh twin_memory collection")
+            # Get a fresh Qdrant client
+            qdrant_client = await get_test_async_qdrant_client()
+            
+            # Always attempt to delete the collection first to ensure a clean state
+            try:
+                await qdrant_client.delete_collection(collection_name="twin_memory")
+                print("RETRIEVAL TEST: Deleted existing twin_memory collection")
+            except Exception as e:
+                # Collection might not exist, ignore the error
+                print(f"RETRIEVAL TEST: Couldn't delete collection: {e}")
+            
+            # Wait a moment after deletion
+            await asyncio.sleep(1)
+            
+            # Create the collection with explicit vector parameters
             print("RETRIEVAL TEST: Creating fresh twin_memory collection")
             await qdrant_client.create_collection(
                 collection_name="twin_memory",
@@ -78,26 +73,47 @@ class TestRetrievalE2E:
             # Verify the collection was created
             collections = await qdrant_client.get_collections()
             collection_names = [c.name for c in collections.collections]
-            logger.error(f"Collections after setup: {collection_names}")
             print(f"RETRIEVAL TEST: Collections after setup: {collection_names}")
-            assert "twin_memory" in collection_names, "Failed to create twin_memory collection"
+            
+            if "twin_memory" not in collection_names:
+                raise RuntimeError("Failed to create twin_memory collection")
+            
+            # Create explicit index for metadata filtering
+            await qdrant_client.create_payload_index(
+                collection_name="twin_memory",
+                field_name="is_twin_interaction",
+                field_schema=qdrant_models.PayloadSchemaType.BOOL
+            )
+            
+            await qdrant_client.create_payload_index(
+                collection_name="twin_memory",
+                field_name="is_private",
+                field_schema=qdrant_models.PayloadSchemaType.BOOL
+            )
+            
+            # Explicitly check if the collection exists again to be sure
+            try:
+                info = await qdrant_client.get_collection(collection_name="twin_memory")
+                print(f"RETRIEVAL TEST: Collection twin_memory confirmed exists with {info.vectors_count} vectors")
+            except Exception as e:
+                print(f"RETRIEVAL TEST: Error checking collection: {e}")
+                raise RuntimeError(f"Collection verification failed: {e}")
             
             # Wait to ensure collection is ready
             await asyncio.sleep(2)
-            logger.error("Collection twin_memory is ready for retrieval test")
             print("RETRIEVAL TEST: Collection twin_memory is ready for test")
+            
         except Exception as e:
-            logger.error(f"Error creating collection: {e}")
-            print(f"RETRIEVAL TEST: Error creating collection: {e}")
+            print(f"RETRIEVAL TEST: Critical error in collection setup: {e}")
             raise
         
         # Yield control back to the test
         yield
         
-        # No cleanup after - let the test complete normally
+        # No cleanup after - let the fixture system handle it
 
     @pytest_asyncio.fixture
-    async def seed_test_data(self):
+    async def seed_test_data(self, ensure_collection_exists):
         """Seed test data for retrieval tests into the test databases.
         
         Returns a dict with the key IDs (user_id, project_id, session_id) for the test data.
@@ -149,9 +165,8 @@ class TestRetrievalE2E:
             "session_id": session_id
         }
 
-
     @pytest_asyncio.fixture
-    async def seed_private_test_data(self):
+    async def seed_private_test_data(self, ensure_collection_exists):
         """Seed private test data for retrieval tests into the test databases.
         
         Returns a dict with the key IDs (user_id, project_id) for the test data.
@@ -284,7 +299,7 @@ class TestRetrievalE2E:
             del app.dependency_overrides[original_get_retrieval_service_with_connector]
 
     @pytest.mark.asyncio
-    async def test_context_retrieval_e2e(self, seed_test_data, async_client, use_test_databases):
+    async def test_context_retrieval_e2e(self, seed_test_data, async_client, use_test_databases, ensure_collection_exists):
         """Test the complete context retrieval flow using the actual API endpoint."""
         # Extract the test data - this is created by the seed_test_data fixture
         # The fixture result is already awaited when injected by pytest_asyncio
@@ -337,7 +352,7 @@ class TestRetrievalE2E:
         assert found_relevant, "No relevant chunks found in search results"
 
     @pytest.mark.asyncio
-    async def test_private_memory_retrieval_e2e(self, seed_private_test_data, async_client, use_test_databases):
+    async def test_private_memory_retrieval_e2e(self, seed_private_test_data, async_client, use_test_databases, ensure_collection_exists):
         """Test the complete private memory retrieval flow using the actual API endpoint."""
         # Extract the test data
         # The fixture result is already awaited when injected by pytest_asyncio
@@ -377,7 +392,7 @@ class TestRetrievalE2E:
             assert chunk["user_id"] == user_id
 
     @pytest.mark.asyncio
-    async def test_query_ingestion_in_private_memory_e2e(self, seed_private_test_data, async_client, use_test_databases):
+    async def test_query_ingestion_in_private_memory_e2e(self, seed_private_test_data, async_client, use_test_databases, ensure_collection_exists):
         """Test that queries to private memory are properly ingested as twin interactions."""
         # Extract the test data
         # The fixture result is already awaited when injected by pytest_asyncio
@@ -422,7 +437,7 @@ class TestRetrievalE2E:
             limit=100,
             user_id=user_id,
             include_private=True,
-            exclude_twin_interactions=False  # Include twin interactions to find our query
+            include_twin_interactions=True  # Include twin interactions to find our query
         )
         
         # Debug: Print search results to see what we actually got
@@ -459,7 +474,7 @@ class TestRetrievalE2E:
         assert found, f"The query text '{unique_query}' was not found in the database, suggesting it wasn't ingested"
 
     @pytest_asyncio.fixture
-    async def seed_related_content_data(self):
+    async def seed_related_content_data(self, ensure_collection_exists):
         """Seed test data with related content and relationships for testing related content retrieval.
         
         Returns key IDs for the test data.
@@ -680,7 +695,7 @@ class TestRetrievalE2E:
         }
 
     @pytest.mark.asyncio
-    async def test_related_content_retrieval_e2e(self, seed_related_content_data, async_client, use_test_databases):
+    async def test_related_content_retrieval_e2e(self, seed_related_content_data, async_client, use_test_databases, ensure_collection_exists):
         """Test the complete related content retrieval flow using graph traversal."""
         # Extract the test data
         source_chunk_id = seed_related_content_data["source_chunk_id"]
@@ -774,7 +789,7 @@ class TestRetrievalE2E:
                     assert any(rel["type"] == "RELATED_TO" for rel in relationships)
 
     @pytest_asyncio.fixture
-    async def seed_topic_data(self):
+    async def seed_topic_data(self, ensure_collection_exists):
         """Seed test data for topic retrieval tests.
         
         Creates content with topic relationships for testing the topic endpoint.
@@ -961,7 +976,7 @@ class TestRetrievalE2E:
         }
 
     @pytest_asyncio.fixture
-    async def seed_multi_user_private_data(self):
+    async def seed_multi_user_private_data(self, ensure_collection_exists):
         """Seed test data for multiple users with private and public content.
         
         Creates content for two users with mixed private/public permissions to test
@@ -1036,7 +1051,7 @@ class TestRetrievalE2E:
         }
 
     @pytest.mark.asyncio
-    async def test_topic_retrieval_e2e(self, seed_topic_data, async_client, use_test_databases):
+    async def test_topic_retrieval_e2e(self, seed_topic_data, async_client, use_test_databases, ensure_collection_exists):
         """Test the topic retrieval endpoint to find content related to a specific topic."""
         # Extract the test data
         user_id = seed_topic_data["user_id"]
@@ -1119,7 +1134,7 @@ class TestRetrievalE2E:
                 assert topic_data["name"] == topic_name
 
     @pytest.mark.asyncio
-    async def test_cross_user_privacy_filtering_e2e(self, seed_multi_user_private_data, async_client, use_test_databases):
+    async def test_cross_user_privacy_filtering_e2e(self, seed_multi_user_private_data, async_client, use_test_databases, ensure_collection_exists):
         """Test that privacy filtering correctly works across different users."""
         # Extract the test data
         user1_id = seed_multi_user_private_data["user1_id"]
@@ -1210,4 +1225,257 @@ class TestRetrievalE2E:
                 found_user2_public = True
         
         assert found_user1_public, "Public query should return User 1's public content"
-        assert found_user2_public, "Public query should return User 2's public content" 
+        assert found_user2_public, "Public query should return User 2's public content"
+
+    @pytest_asyncio.fixture
+    async def seed_twin_interaction_data(self, ensure_collection_exists):
+        """Seed test data with both regular messages and twin interactions for testing include_messages_to_twin parameter."""
+        # Generate unique IDs for our test data
+        user_id = str(uuid.uuid4())
+        project_id = str(uuid.uuid4())
+        session_id = str(uuid.uuid4())
+        
+        # Initialize services with TEST database connections
+        from tests.e2e.test_utils import get_test_async_qdrant_client, get_test_neo4j_driver
+        
+        qdrant_client = await get_test_async_qdrant_client()
+        neo4j_driver = await get_test_neo4j_driver()
+        qdrant_dal = QdrantDAL(client=qdrant_client)
+        neo4j_dal = Neo4jDAL(driver=neo4j_driver)
+        embedding_service = EmbeddingService()
+        
+        ingestion_service = IngestionService(
+            qdrant_dal=qdrant_dal,
+            neo4j_dal=neo4j_dal,
+            embedding_service=embedding_service
+        )
+        
+        # Create MessageConnector to handle message ingestion
+        message_connector = MessageConnector(ingestion_service=ingestion_service)
+        
+        # Create test data - Regular message (not twin interaction)
+        await message_connector.ingest_message({
+            "text": "Regular message: We need to discuss the project timeline tomorrow.",
+            "user_id": user_id,
+            "project_id": project_id,
+            "session_id": session_id,
+            "source_type": "message",
+            "is_twin_chat": False,  # Not a twin interaction
+            "is_private": False     # Explicitly not private
+        })
+        
+        # Create test data - Twin interaction message
+        await message_connector.ingest_message({
+            "text": "Twin interaction: Remind me about the project timeline discussion.",
+            "user_id": user_id,
+            "project_id": project_id,
+            "session_id": session_id,
+            "source_type": "message",
+            "is_twin_chat": True,   # Mark as a twin interaction
+            "is_private": False     # Explicitly not private, for testing purposes
+        })
+        
+        # Wait a moment for data to be indexed
+        await asyncio.sleep(2)
+        
+        # Return the key IDs for use in the tests
+        return {
+            "user_id": user_id,
+            "project_id": project_id,
+            "session_id": session_id
+        }
+
+    @pytest.mark.asyncio
+    async def test_context_retrieval_include_messages_to_twin(self, seed_twin_interaction_data, async_client, use_test_databases, ensure_collection_exists):
+        """Test context retrieval with the include_messages_to_twin parameter."""
+        # Extract the test data
+        user_id = seed_twin_interaction_data["user_id"]
+        project_id = seed_twin_interaction_data["project_id"]
+        session_id = seed_twin_interaction_data["session_id"]
+        
+        # 1. Test with include_messages_to_twin=true - should include twin interactions
+        with_twin_params = {
+            "query_text": "project timeline",  # Query relevant to our seeded test data
+            "project_id": project_id,
+            "session_id": session_id,
+            "limit": 10,
+            "include_messages_to_twin": "true",  # Explicitly include twin interactions
+            "include_private": "true"            # Explicitly include private content
+        }
+        
+        # Send API request
+        with_twin_response = await async_client.get(
+            "/v1/retrieve/context",
+            params=with_twin_params
+        )
+        
+        # Verify the response
+        assert with_twin_response.status_code == 200
+        with_twin_data = with_twin_response.json()
+        
+        # Check that we got results back
+        assert "chunks" in with_twin_data
+        assert with_twin_data["total"] > 0
+        
+        # Check if we found twin interaction message
+        twin_interaction_found = False
+        regular_message_found = False
+        
+        for chunk in with_twin_data["chunks"]:
+            if "Twin interaction:" in chunk["text"]:
+                twin_interaction_found = True
+            if "Regular message:" in chunk["text"]:
+                regular_message_found = True
+        
+        assert twin_interaction_found, "Twin interaction message not found when include_messages_to_twin=true"
+        assert regular_message_found, "Regular message not found when include_messages_to_twin=true"
+        
+        # 2. Test with include_messages_to_twin=false - should exclude twin interactions
+        without_twin_params = {
+            "query_text": "project timeline",
+            "project_id": project_id,
+            "session_id": session_id,
+            "limit": 10,
+            "include_messages_to_twin": "false",  # Explicitly exclude twin interactions
+            "include_private": "true"             # Explicitly include private content  
+        }
+        
+        # Send API request
+        without_twin_response = await async_client.get(
+            "/v1/retrieve/context",
+            params=without_twin_params
+        )
+        
+        # Verify the response
+        assert without_twin_response.status_code == 200
+        without_twin_data = without_twin_response.json()
+        
+        # Check that we got results back
+        assert "chunks" in without_twin_data
+        assert without_twin_data["total"] > 0
+        
+        # Should only find regular message, not twin interaction
+        for chunk in without_twin_data["chunks"]:
+            assert "Twin interaction:" not in chunk["text"], "Twin interaction found when include_messages_to_twin=false"
+            if "Regular message:" in chunk["text"]:
+                regular_message_found = True
+        
+        assert regular_message_found, "Regular message not found when include_messages_to_twin=false"
+        
+        # 3. Test default behavior (include_messages_to_twin should default to false for context endpoint)
+        default_params = {
+            "query_text": "project timeline",
+            "project_id": project_id,
+            "session_id": session_id,
+            "limit": 10,
+            "include_private": "true"              # Explicitly include private content
+            # No include_messages_to_twin parameter - should default to false
+        }
+        
+        # Send API request
+        default_response = await async_client.get(
+            "/v1/retrieve/context",
+            params=default_params
+        )
+        
+        # Verify the response
+        assert default_response.status_code == 200
+        default_data = default_response.json()
+        
+        # Default behavior should match include_messages_to_twin=false
+        assert default_data["total"] == without_twin_data["total"]
+        
+        # Should not find twin interaction
+        for chunk in default_data["chunks"]:
+            assert "Twin interaction:" not in chunk["text"], "Twin interaction found in default behavior"
+    
+    @pytest.mark.asyncio
+    async def test_private_memory_include_messages_to_twin(self, seed_twin_interaction_data, async_client, use_test_databases, ensure_collection_exists):
+        """Test private memory retrieval with the include_messages_to_twin parameter."""
+        # Extract the test data
+        user_id = seed_twin_interaction_data["user_id"]
+        project_id = seed_twin_interaction_data["project_id"]
+        
+        # 1. Test with include_messages_to_twin=true - should include twin interactions
+        with_twin_payload = {
+            "user_id": user_id,
+            "query_text": "project timeline",
+            "project_id": project_id,
+            "limit": 10,
+            "include_messages_to_twin": True,  # Explicitly include twin interactions
+            "include_private": True            # Explicitly include private content
+        }
+        
+        # Send API request
+        with_twin_response = await async_client.post(
+            "/v1/retrieve/private_memory",
+            json=with_twin_payload
+        )
+        
+        # Verify the response
+        assert with_twin_response.status_code == 200
+        with_twin_data = with_twin_response.json()
+        
+        # Check that we got results back
+        assert "chunks" in with_twin_data
+        assert with_twin_data["total"] > 0
+        
+        # Ingesting a query to private_memory endpoint also creates a twin interaction
+        # Wait for that to be processed
+        await asyncio.sleep(2)
+        
+        # 2. Test with include_messages_to_twin=false - should exclude twin interactions
+        without_twin_payload = {
+            "user_id": user_id,
+            "query_text": "project timeline",
+            "project_id": project_id,
+            "limit": 10,
+            "include_messages_to_twin": False,  # Explicitly exclude twin interactions
+            "include_private": True             # Explicitly include private content
+        }
+        
+        # Send API request
+        without_twin_response = await async_client.post(
+            "/v1/retrieve/private_memory",
+            json=without_twin_payload
+        )
+        
+        # Verify the response
+        assert without_twin_response.status_code == 200
+        without_twin_data = without_twin_response.json()
+        
+        # Check that we got results back - should have fewer results than with_twin
+        assert "chunks" in without_twin_data
+        assert without_twin_data["total"] < with_twin_data["total"], "Expected fewer results when excluding twin interactions"
+        
+        # 3. Test default behavior (include_messages_to_twin should default to true for private_memory endpoint)
+        default_payload = {
+            "user_id": user_id,
+            "query_text": "project timeline",
+            "project_id": project_id,
+            "limit": 10,
+            "include_private": True              # Explicitly include private content
+            # No include_messages_to_twin parameter - should default to true
+        }
+        
+        # Send API request
+        default_response = await async_client.post(
+            "/v1/retrieve/private_memory",
+            json=default_payload
+        )
+        
+        # Verify the response
+        assert default_response.status_code == 200
+        default_data = default_response.json()
+        
+        # For the default behavior test, verify twin interactions are included (not exact count)
+        assert default_data["total"] >= with_twin_data["total"], "Default behavior should include at least as many results as explicit include_messages_to_twin=true"
+        
+        # Verify the default behavior includes twin interactions by checking content
+        has_twin_interaction = False
+        for chunk in default_data["chunks"]:
+            if "Twin interaction" in chunk["text"] or chunk.get("is_twin_interaction") == True:
+                has_twin_interaction = True
+                break
+        
+        assert has_twin_interaction, "Default behavior should include twin interaction messages" 

@@ -49,7 +49,7 @@ class IQdrantDAL(ABC):
         session_id: Optional[str] = None,
         source_type: Optional[str] = None,
         include_private: bool = False,
-        exclude_twin_interactions: bool = False,
+        include_twin_interactions: bool = False,
         timestamp_start: Optional[str] = None,
         timestamp_end: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
@@ -78,6 +78,8 @@ class IQdrantDAL(ABC):
         limit: int = 5,
         project_id: Optional[str] = None,
         session_id: Optional[str] = None,
+        score_threshold: Optional[float] = None,
+        include_twin_interactions: bool = True,
     ) -> List[Dict[str, Any]]:
         """Search for vectors related to user preferences on a specific topic.
         
@@ -88,6 +90,8 @@ class IQdrantDAL(ABC):
             limit: Maximum number of results to return
             project_id: Optional filter by project ID
             session_id: Optional filter by session ID
+            score_threshold: Minimum score threshold for results
+            include_twin_interactions: Whether to include twin interactions
             
         Returns:
             List of vectors containing user preferences related to the topic

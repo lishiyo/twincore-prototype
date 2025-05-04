@@ -166,22 +166,24 @@ async def test_query_user_preference_vector_error(preference_service, mock_qdran
 
 
 @pytest.mark.asyncio
-async def test_query_user_preference_exclude_twin_interactions(preference_service, mock_qdrant_dal):
-    """Test that the include_messages_to_twin flag is passed correctly when False."""
-    # Setup
-    user_id = "test_user_123"
-    decision_topic = "dark mode"
-    project_id = "test_project_456"
+async def test_query_user_preference_include_twin_interactions_false(preference_service, mock_qdrant_dal):
+    """Test that preference queries correctly pass include_twin_interactions parameter."""
+    user_id = "test-user-1"
+    decision_topic = "test-topic"
     
-    # Execute
+    # Set up necessary mocks
+    mock_embedding = np.array([0.1, 0.2, 0.3])
+    preference_service._embedding_service.get_embedding.return_value = mock_embedding
+    
+    # Run the service method with include_twin_interactions=False
     await preference_service.query_user_preference(
         user_id=user_id,
         decision_topic=decision_topic,
-        project_id=project_id,
-        limit=5,
         include_messages_to_twin=False
     )
     
-    # Verify
-    assert mock_qdrant_dal.search_user_preferences.called
-    assert mock_qdrant_dal.search_user_preferences.call_args[1]["include_twin_interactions"] is False 
+    # Verify that vector search was called with include_twin_interactions=False
+    mock_qdrant_dal.search_user_preferences.assert_called_once()
+    call_args = mock_qdrant_dal.search_user_preferences.call_args[1]
+    assert "include_twin_interactions" in call_args
+    assert call_args["include_twin_interactions"] is False 

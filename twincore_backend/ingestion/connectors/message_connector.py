@@ -7,7 +7,7 @@ the core IngestionService for actual data storage operations.
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from services.ingestion_service import IngestionService
 
@@ -36,8 +36,8 @@ class MessageConnector:
         self._ingestion_service = ingestion_service
         logger.info("MessageConnector initialized")
     
-    async def ingest_message(self, message_data: Dict[str, Any]) -> bool:
-        """Ingest a message into the system.
+    async def ingest_message(self, message_data: Dict[str, Any]) -> Optional[str]:
+        """Ingest a message and return the generated chunk ID.
         
         Args:
             message_data: Dictionary containing message data with the following fields:
@@ -49,54 +49,67 @@ class MessageConnector:
                 - session_id: Optional session ID
                 - is_twin_chat: Whether this is a private twin interaction
                 - timestamp: Optional timestamp (will use current time if not provided)
+                - is_private: Whether the message is private
                 
         Returns:
-            bool: True if ingestion was successful
+            chunk_id: The ID of the chunk that was ingested
             
         Raises:
             ValueError: If required fields are missing
         """
-        # Validate required fields
-        if "text" not in message_data:
-            raise ValueError("Message text is required")
-        if "user_id" not in message_data:
-            raise ValueError("user_id is required for message ingestion")
-        
-        # Extract fields with defaults
-        text = message_data["text"]
-        source_type = message_data.get("source_type", "message")
-        user_id = message_data["user_id"]
-        message_id = message_data.get("message_id") or str(uuid.uuid4())
-        project_id = message_data.get("project_id")
-        session_id = message_data.get("session_id")
-        is_twin_chat = message_data.get("is_twin_chat", False)
-        timestamp = message_data.get("timestamp")
-        
-        if timestamp is not None and isinstance(timestamp, datetime):
-            timestamp = timestamp.isoformat()
-        
-        # Generate a UUID for the chunk
-        chunk_id = str(uuid.uuid4())
-        
-        logger.info(f"Ingesting message from user {user_id}, message_id: {message_id}")
-        
         try:
-            # Use the ingestion service to store the message
-            await self._ingestion_service.ingest_chunk(
+            # Try to extract required fields
+            text = message_data.get("text")
+            user_id = message_data.get("user_id")
+            if not text or not user_id:
+                logger.error(f"Missing required fields for message ingestion: {message_data}")
+                raise ValueError("Missing required fields for message ingestion")
+                
+            # Extract or generate optional fields
+            timestamp = message_data.get("timestamp", datetime.now().isoformat())
+            #  timestamp = message_data.get("timestamp")
+        
+            if timestamp is not None and isinstance(timestamp, datetime):
+                timestamp = timestamp.isoformat()
+            
+            # For testing, we might want to override message_id rather than generate
+            message_id = message_data.get("message_id", f"{uuid.uuid4()}")
+            source_type = message_data.get("source_type", "message")
+            
+            # Flag for twin interaction - when user is directly talking to their twin
+            is_twin_chat = message_data.get("is_twin_chat", False)
+            
+            # For privacy control - respect explicit is_private if provided, otherwise derive from is_twin_chat
+            is_private = message_data.get("is_private")
+            if is_private is None:
+                # Default behavior: twin chat messages are private by default
+                is_private = is_twin_chat
+            
+            # Context IDs (optional)
+            project_id = message_data.get("project_id")
+            session_id = message_data.get("session_id")
+            
+            # Generate a UUID for the chunk
+            chunk_id = str(uuid.uuid4())
+        
+            logger.info(f"Ingesting message from user {user_id}, message_id: {message_id}, chunk_id: {chunk_id}")
+        
+            # Use the service to ingest the actual chunk
+            chunk_id = await self._ingestion_service.ingest_chunk(
                 chunk_id=chunk_id,
                 text_content=text,
-                source_type=source_type,
                 user_id=user_id,
+                source_type=source_type,
+                is_twin_interaction=is_twin_chat,
+                is_private=is_private,
+                timestamp=timestamp,
                 project_id=project_id,
                 session_id=session_id,
-                message_id=message_id,
-                timestamp=timestamp,
-                is_twin_interaction=is_twin_chat,
-                is_private=is_twin_chat  # Private if it's a twin chat
+                message_id=message_id
             )
             
             logger.info(f"Successfully ingested message {message_id}")
-            return True
+            return chunk_id
             
         except Exception as e:
             logger.error(f"Failed to ingest message: {str(e)}")
