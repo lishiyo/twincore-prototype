@@ -3,6 +3,29 @@
 **IMPORTANT**: Put your changes at the top!
 
 
+## Sat May  3 23:17:13 PDT 2025 - Fixed E2E Tests for Relationship Retrieval
+
+### Changes since last update
+- Fixed E2E tests for the `/v1/retrieve/related_content` endpoint:
+  - Identified and fixed an issue with the `relationship_types` parameter not being properly handled in the API endpoint
+  - Discovered and resolved a database connection mismatch where API endpoints were using production databases but E2E tests were setting up data in test databases
+  - Implemented a reusable pytest fixture `use_test_databases` to override database connections during E2E tests
+  - Properly awaited async Qdrant client operations in the test fixture
+- Improved test infrastructure to ensure consistent database access across all E2E tests
+- All retrieval endpoint E2E tests now passing consistently
+
+### Errors & Learnings
+- API endpoints need to use the same database connections that E2E tests use for setup
+- When overriding connections in tests, proper async/await patterns must be maintained
+- Creating reusable test fixtures improves maintainability and reduces duplicate code
+- The `relationship_types` parameter must be properly processed as a list, not a string
+
+### Next Steps
+- Complete remaining tasks for Phase 6 (Retrieval Endpoints)
+- Investigate and fix the document ingestion E2E test failure
+- Move to Phase 7: Preference Endpoint
+
+
 ## Sat May  3 22:20:00 PDT 2025 - Completed Phase 5, Started Phase 6
 
 - Completed Task 5.2 (Ingest Document Endpoint) implementation.

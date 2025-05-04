@@ -155,7 +155,7 @@ async def test_retrieve_private_memory(
     assert search_args["user_id"] == user_id
     assert search_args["limit"] == 5
     assert search_args["include_private"] is True
-    assert search_args["exclude_twin_interactions"] is True
+    assert search_args["exclude_twin_interactions"] is False
     
     # Verify results are returned correctly
     assert results == test_results

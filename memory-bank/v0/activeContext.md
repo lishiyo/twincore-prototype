@@ -1,9 +1,9 @@
-# TwinCore Active Context - Sat May  3 22:14:40 PDT 2025
+# TwinCore Active Context - Sat May  3 23:17:13 PDT 2025
 
 ## Current Work Focus
 - Phase 6: Retrieval Endpoints
-- Completing remaining E2E tests for retrieval endpoints.
-- Investigating and fixing the E2E test failure for document ingestion (`test_document_ingestion_end_to_end`).
+- Fixed E2E tests for the `/v1/retrieve/related_content` endpoint
+- Still investigating the E2E test failure for document ingestion (`test_document_ingestion_end_to_end`)
 
 ## Project State
 ### What's Working
@@ -37,19 +37,21 @@
 - MessageConnector in the ingestion/connectors directory
 - Full test coverage for the message ingestion flow
 - **Task 5.2 Complete:** Document Ingestion Endpoint implementation (connector, service logic, API endpoint) is done.
-- **Phase 6 In Progress:**
+- **Phase 6 Progress:**
     - RetrievalService implementation (`retrieve_context`, `retrieve_enriched_context`, `retrieve_private_memory`, `retrieve_related_content`, `retrieve_by_topic`).
     - Retrieval API Router (`/v1/retrieve/*`) implementation for context, private memory, related content, and topic retrieval.
     - Unit/Integration/API tests for retrieval components.
+    - E2E tests for related content retrieval endpoint fixed and now passing.
 - Test isolation improvements:
     - Added `pytest.mark.xdist_group` markers for Qdrant and Neo4j tests.
     - Refactored `ensure_collection_exists` fixtures in E2E tests for better Qdrant setup/cleanup per test class.
     - Adjusted `clear_test_data` fixture in E2E `conftest.py` to run automatically (`autouse=True`) for consistent cleanup.
     - Corrected `async_client` fixture in E2E `conftest.py` using `ASGITransport`.
+    - Added reusable `use_test_databases` fixture to properly override database connections in E2E tests.
 
 ### What's Broken
-- **`test_document_ingestion_end_to_end`:** Failing with `AssertionError: No document chunks found in Qdrant`. Needs investigation.
-- **E2E Tests for Retrieval:** Need to be implemented/verified for Tasks 6.2, 6.3, 6.4, 6.5.
+- **`test_document_ingestion_end_to_end`:** Still failing with `AssertionError: No document chunks found in Qdrant`. Investigation ongoing.
+- Still need to verify other E2E tests for remaining retrieval endpoints.
 
 ## Active Decisions & Considerations
 - Following the layered architecture defined in systemPatterns.md
@@ -66,7 +68,8 @@
 - Maintaining clear cleanup mechanisms for test resources
 - Standardized API path convention to use `/v1` prefix for all endpoints
 - Standardized on snake_case for all database property names
-- Using `xdist_group` markers and careful fixture design to manage E2E test isolation for shared resources (Qdrant, Neo4j).
+- Using `xdist_group` markers and careful fixture design to manage E2E test isolation for shared resources (Qdrant, Neo4j)
+- Implementing reusable test fixtures to ensure proper database connections in E2E tests
 
 ## Tech Stack
 - Backend: FastAPI (Python)
@@ -94,11 +97,14 @@
 - Clear initialization and cleanup mechanisms are essential for reliable tests
 - Following the architecture defined in systemPatterns.md leads to cleaner code organization
 - Connectors provide a clean way to handle specific data sources while maintaining separation of concerns
-- E2E tests using shared resources (like databases) need careful isolation management (e.g., `xdist_group`, explicit setup/teardown fixtures).
-- Relying on resources created/cleaned up by other tests is brittle; each test/test class should manage its own dependencies.
-- Correctly configuring async test clients (`httpx.AsyncClient` with `ASGITransport`) is crucial for FastAPI testing.
+- E2E tests using shared resources (like databases) need careful isolation management (e.g., `xdist_group`, explicit setup/teardown fixtures)
+- Relying on resources created/cleaned up by other tests is brittle; each test/test class should manage its own dependencies
+- Correctly configuring async test clients (`httpx.AsyncClient` with `ASGITransport`) is crucial for FastAPI testing
+- When testing API endpoints, database connections must be consistent between the test setup and the endpoint execution
+- Proper handling of list parameters in API endpoints requires careful type checking and conversion
 
 ## Next Steps
-- Implement/verify E2E tests for Retrieval Endpoints (Phase 6).
-- Investigate and fix the `AssertionError` in `test_document_ingestion_end_to_end`.
-- Move to Phase 7: Preference Endpoint.
+- Verify E2E tests for remaining retrieval endpoints in Phase 6
+- Investigate and fix the `AssertionError` in `test_document_ingestion_end_to_end`
+- Complete any remaining tasks for Phase 6
+- Move to Phase 7: Preference Endpoint
