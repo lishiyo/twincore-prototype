@@ -140,13 +140,13 @@ This document outlines the development tasks for building the TwinCore backend p
 - [ ] **Task 5.2: Ingest Document Endpoint** (D: 2.1, 3.5, 5.1)
     - [ ] Steps:
         - [x] Implement basic text chunking logic in `ingestion/processors`.
-        - [ ] Add DocumentConnector, add `ingest_document(data)` including chunking & handling `is_private`.
-        - [ ] Define `POST /ingest/document` endpoint in `ingest_router.py`.
-        - [ ] [TDD Steps]:
-            - [ ] [Unit] Test chunking logic.
-            - [ ] [Service Int] Test `ingest_document` logic.
-            - [ ] [API/Contract] Test endpoint schema/status.
-            - [ ] [E2E] Call endpoint, verify doc node, chunks, relationships, `is_private` flag propagation.
+        - [x] Add DocumentConnector, add `ingest_document(data)` including chunking & handling `is_private`.
+        - [x] Define `POST /ingest/document` endpoint in `ingest_router.py`.
+        - [x] [TDD Steps]:
+            - [x] [Unit] Test chunking logic.
+            - [x] [Service Int] Test `ingest_document` logic.
+            - [x] [API/Contract] Test endpoint schema/status.
+            - [x] [E2E] Call endpoint, verify doc node, chunks, relationships, `is_private` flag propagation.
 
 ---
 

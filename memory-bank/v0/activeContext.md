@@ -1,9 +1,9 @@
-# TwinCore Active Context - Sun May  4 09:16:21 PDT 2025
+# TwinCore Active Context - Sat May  3 19:58:13 PDT 2025
 
 ## Current Work Focus
 - Implementing TwinCore backend prototype
 - Completed Task 1.1 through Task 5.1
-- Refactored message ingestion to follow architecture defined in systemPatterns.md
+- Fixed end-to-end test event loop issues
 - Moving to Task 5.2: Ingest Document Endpoint
 
 ## Project State
@@ -37,6 +37,7 @@
 - Ingestion API Router with message ingestion endpoint
 - MessageConnector in the ingestion/connectors directory
 - Full test coverage for the message ingestion flow
+- All tests now run successfully together without event loop conflicts
 
 ### What's Broken
 - Nothing currently broken - all tests passing
@@ -48,7 +49,8 @@
 - Using Test-Driven Development approach consistently
 - Using Docker Compose to containerize Qdrant and Neo4j databases
 - Separate development and testing database instances to ensure test isolation
-- Using proper singleton patterns for database clients instead of LRU cache for async functions
+- Using proper singleton patterns ONLY for stateless services without event loop dependencies
+- Creating fresh instances per request for all services with async database connections
 - Providing both sync and async test fixtures for different test scenarios
 - Ensuring all API models have proper validation with complete required fields
 - Using factory functions for dependency injection rather than direct class dependencies
@@ -68,6 +70,12 @@
 - Text Processing: LangChain text splitters (SemanticChunker)
 
 ## Learnings and Insights
+- Global singleton instances that depend on event loops cause conflicts in sequential test runs
+- Each request should get fresh instances of services that depend on async connections
+- FastAPI's dependency injection system is perfect for creating fresh service instances per request
+- Creating fresh Neo4j connections for each request ensures resources are properly cleaned up
+- Test isolation requires proper resource management at every level of the application
+- Only stateless services without event loop dependencies should use global singleton patterns
 - Standard `@lru_cache` doesn't work correctly with async functions - a custom singleton pattern is required
 - FastAPI's dependency injection system requires careful handling of async/sync boundaries
 - Test fixtures should be designed to handle both synchronous and asynchronous testing needs

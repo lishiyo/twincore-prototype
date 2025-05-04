@@ -7,6 +7,7 @@
 3.  **Clear API Contract:** The FastAPI layer defines the stable interface for Dev A.
 4.  **Modular Ingestion:** Design ingestion pipelines to easily add new sources.
 5.  **Configuration Driven:** Use environment variables or config files for database connections, model names, etc.
+6.  **Proper Resource Management:** Avoid global singleton instances for services with event loop dependencies. Only use global singletons for stateless utilities without event loop dependencies.
 
 **Proposed Architecture Diagram:**
 
@@ -149,6 +150,7 @@ graph LR
         *   `PreferenceService`: Logic for interpreting preferences from retrieved data.
         *   `KnowledgeExtractionService`: (Phase 9) Calls external LLM API to extract structured information (topics, preferences, etc.) from text. Parses the result.
     *   **Extensibility:** Add new service methods for new features. If logic gets complex, split services further. Uses Dependency Injection (FastAPI `Depends`).
+    *   **Important:** Do NOT use global singleton instances for services that depend on event loops (e.g., services using Neo4j connections). Create fresh instances for each request using FastAPI's dependency injection system.
 
 3.  **Data Access Layer (`dal/`)**
     *   **Technology:** Python modules using specific DB clients (`qdrant-client`, `neo4j`, `sqlalchemy` or `psycopg2` for Postgres).
@@ -174,6 +176,7 @@ graph LR
         *   `qdrant_setup.py`: Logic specific to Qdrant setup.
         *   `neo4j_setup.py`: Logic specific to Neo4j setup.
         *   `__init__.py`: Orchestrates the individual setup steps (e.g., `initialize_databases`).
+    *   **Resource Management:** Only use global singletons or `@lru_cache` for stateless utilities that don't depend on event loops (e.g., configuration loading, embedding service). For services with event loop dependencies (e.g., Neo4j connections), create fresh instances for each request.
 
 **How This Addresses Extensibility:**
 

@@ -1,3 +1,28 @@
+## Sat May  3 19:58:13 PDT 2025 - Fixed End-to-End Test Event Loop Issue
+
+## Changes since last update
+- Fixed critical issue with end-to-end tests failing when run together:
+  - Identified root problem: "Future attached to a different loop" error with Neo4j connections
+  - Modified dependency injection functions in `main.py` to create fresh service instances for each request:
+    - Updated `get_message_connector`, `get_document_connector`, `get_data_seeder_service`, and `get_data_management_service`
+    - Removed unnecessary global variables for services with event loop dependencies
+    - Refactored each function to create fresh Neo4j drivers and service instances
+  - Ensured proper resource isolation between test runs
+  - Successfully ran all tests together without event loop conflicts
+
+## Learnings
+- Global singleton instances that depend on event loops cause conflicts in sequential test runs
+- Each request should get fresh instances of services that depend on async connections
+- Only stateless utilities without event loop dependencies should use global singletons
+- FastAPI's dependency injection system is perfect for creating fresh service instances per request
+- Creating fresh Neo4j connections for each request ensures resources are properly cleaned up
+- Test isolation requires proper resource management at every level of the application
+
+## Next steps
+- Implement Task 5.2: Ingest Document Endpoint
+- Create DocumentConnector in the ingestion/connectors directory
+- Implement text chunking logic for documents
+
 ## Sat May 3 09:15:53 PDT 2025 - Refactored Message Ingestion to Follow Architecture Pattern
 
 ## Changes since last update
