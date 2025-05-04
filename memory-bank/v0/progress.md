@@ -2,6 +2,38 @@
 
 **IMPORTANT**: Put your changes at the top!
 
+## Sun May  4 00:44:58 PDT 2025 - Completed Phase 6: Retrieval Endpoints
+
+### Changes since last update
+- **Completed Phase 6: Retrieval Endpoints**
+  - Verified and fixed all retrieval endpoints:
+    - `/v1/retrieve/context` - for retrieving context-aware information based on semantic search
+    - `/v1/retrieve/private_memory` - for retrieving user's private memory with query ingestion
+    - `/v1/retrieve/related_content` - for graph-based retrieval of related content
+    - `/v1/retrieve/topic` - for topic-based content retrieval
+  - Fixed Neo4j Cypher query syntax issues in `get_related_content` method:
+    - Corrected invalid usage of `WITH` clauses inside subqueries
+    - Ensured proper syntax for relationship traversal conditions
+    - Refactored query to avoid "Importing WITH should consist only of simple references" error
+  - All retrieval endpoint E2E tests are now passing
+  - Designed advanced retrieval strategies for Phase 11:
+    - Created `memory-bank/v1/retrieval_improvement.md` detailing Graph-Enhanced RAG, Graph-Aware Re-ranking, and Query Expansion
+    - Defined comprehensive API specifications for new advanced endpoints
+    - Added Phase 11 to `tasks.md` to track implementation of the improved retrieval endpoints
+
+### Errors & Learnings
+- Neo4j Cypher query syntax requires careful attention, especially with subqueries and `WITH` clauses
+- The `WITH` clause in Cypher should only contain simple references when importing variables into subqueries
+- Relationship traversal in Cypher is powerful but requires precise syntax
+- Combining vector search (Qdrant) and graph traversal (Neo4j) offers more contextually relevant results
+- Embedding relevant constraints and filters directly in Cypher queries improves performance and readability
+
+### Next Steps
+- Move to Phase 7: Preference Endpoint
+  - Implement Task 7.1: Preference Service & DAL Methods
+  - Implement Task 7.2: Preference API Endpoint (`GET /v1/retrieve/preferences`)
+  - Implement Task 7.3: Preference End-to-End Test
+- Continue investigating the document ingestion E2E test failure
 
 ## Sat May  3 23:17:13 PDT 2025 - Fixed E2E Tests for Relationship Retrieval
 

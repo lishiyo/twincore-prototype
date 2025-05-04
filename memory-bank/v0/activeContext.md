@@ -1,9 +1,10 @@
-# TwinCore Active Context - Sat May  3 23:17:13 PDT 2025
+# TwinCore Active Context - Sun May  4 00:44:58 PDT 2025
 
 ## Current Work Focus
-- Phase 6: Retrieval Endpoints
+- Completed Phase 6: Retrieval Endpoints
+- Moving to Phase 7: Preference Endpoint
 - Fixed E2E tests for the `/v1/retrieve/related_content` endpoint
-- Still investigating the E2E test failure for document ingestion (`test_document_ingestion_end_to_end`)
+- Still need to investigate the E2E test failure for document ingestion (`test_document_ingestion_end_to_end`)
 
 ## Project State
 ### What's Working
@@ -37,21 +38,21 @@
 - MessageConnector in the ingestion/connectors directory
 - Full test coverage for the message ingestion flow
 - **Task 5.2 Complete:** Document Ingestion Endpoint implementation (connector, service logic, API endpoint) is done.
-- **Phase 6 Progress:**
-    - RetrievalService implementation (`retrieve_context`, `retrieve_enriched_context`, `retrieve_private_memory`, `retrieve_related_content`, `retrieve_by_topic`).
-    - Retrieval API Router (`/v1/retrieve/*`) implementation for context, private memory, related content, and topic retrieval.
-    - Unit/Integration/API tests for retrieval components.
-    - E2E tests for related content retrieval endpoint fixed and now passing.
+- **Phase 6 Complete:** All retrieval endpoints are implemented and tested:
+    - `RetrievalService` implementation with all methods: `retrieve_context`, `retrieve_enriched_context`, `retrieve_private_memory`, `retrieve_related_content`, `retrieve_by_topic`
+    - Retrieval API Router (`/v1/retrieve/*`) with all planned endpoints: context, private memory, related content, and topic retrieval
+    - Unit/Integration/API tests for all retrieval components
+    - E2E tests for related content retrieval endpoint fixed and now passing
+    - All other retrieval endpoint E2E tests verified and passing
 - Test isolation improvements:
-    - Added `pytest.mark.xdist_group` markers for Qdrant and Neo4j tests.
-    - Refactored `ensure_collection_exists` fixtures in E2E tests for better Qdrant setup/cleanup per test class.
-    - Adjusted `clear_test_data` fixture in E2E `conftest.py` to run automatically (`autouse=True`) for consistent cleanup.
-    - Corrected `async_client` fixture in E2E `conftest.py` using `ASGITransport`.
-    - Added reusable `use_test_databases` fixture to properly override database connections in E2E tests.
+    - Added `pytest.mark.xdist_group` markers for Qdrant and Neo4j tests
+    - Refactored `ensure_collection_exists` fixtures in E2E tests for better Qdrant setup/cleanup per test class
+    - Adjusted `clear_test_data` fixture in E2E `conftest.py` to run automatically (`autouse=True`) for consistent cleanup
+    - Corrected `async_client` fixture in E2E `conftest.py` using `ASGITransport`
+    - Added reusable `use_test_databases` fixture to properly override database connections in E2E tests
 
 ### What's Broken
 - **`test_document_ingestion_end_to_end`:** Still failing with `AssertionError: No document chunks found in Qdrant`. Investigation ongoing.
-- Still need to verify other E2E tests for remaining retrieval endpoints.
 
 ## Active Decisions & Considerations
 - Following the layered architecture defined in systemPatterns.md
@@ -70,6 +71,8 @@
 - Standardized on snake_case for all database property names
 - Using `xdist_group` markers and careful fixture design to manage E2E test isolation for shared resources (Qdrant, Neo4j)
 - Implementing reusable test fixtures to ensure proper database connections in E2E tests
+- Created new design for advanced retrieval strategies combining Qdrant and Neo4j for better results
+- Defined future expansions for retrieval endpoints to be implemented in Phase 11
 
 ## Tech Stack
 - Backend: FastAPI (Python)
@@ -102,9 +105,11 @@
 - Correctly configuring async test clients (`httpx.AsyncClient` with `ASGITransport`) is crucial for FastAPI testing
 - When testing API endpoints, database connections must be consistent between the test setup and the endpoint execution
 - Proper handling of list parameters in API endpoints requires careful type checking and conversion
+- Combining Qdrant (vector search) and Neo4j (graph relationships) can provide more contextually relevant search results
+- Cypher query syntax requires careful handling of WITH clauses and relationship traversal paths
 
 ## Next Steps
-- Verify E2E tests for remaining retrieval endpoints in Phase 6
-- Investigate and fix the `AssertionError` in `test_document_ingestion_end_to_end`
-- Complete any remaining tasks for Phase 6
-- Move to Phase 7: Preference Endpoint
+- Implement Task 7.1: Preference Service & DAL Methods
+- Implement Task 7.2: Preference API Endpoint (make sure to follow correct `/v1/retrieve/preferences` path)
+- Implement Task 7.3: Preference End-to-End Test
+- Continue investigating and fix the `AssertionError` in `test_document_ingestion_end_to_end`

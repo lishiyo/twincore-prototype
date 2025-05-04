@@ -245,6 +245,16 @@ twincore_backend/
 │   └── qdrant_dal.py          # Qdrant specific data access logic
 │   └── postgres_shared_dal.py # Read-only access logic for shared Postgres (initially mocked)
 │
+├── ingestion/                 # Ingestion Pipeline for handling different data sources
+│   ├── __init__.py
+│   ├── connectors/            # Connectors for different data sources
+│   │   ├── __init__.py
+│   │   ├── message_connector.py  # Handles message ingestion
+│   │   └── document_connector.py # Handles document ingestion
+│   └── processors/            # Processors for transforming and chunking data
+│       ├── __init__.py
+│       └── text_chunker.py    # Handles text chunking for documents
+│
 ├── services/                  # Business Logic Layer
 │   ├── __init__.py
 │   ├── embedding_service.py   # Handles text embedding
@@ -269,6 +279,11 @@ twincore_backend/
 │   │   └── ...
 │   ├── services/              # Service Integration tests
 │   │   └── ...
+│   ├── ingestion/             # Tests for ingestion components
+│   │   ├── connectors/        # Tests for ingestion connectors
+│   │   │   └── ...
+│   │   └── processors/        # Tests for ingestion processors
+│   │       └── ...
 │   └── e2e/                   # End-to-end tests
 │       └── ...
 │
