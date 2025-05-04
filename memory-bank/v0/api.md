@@ -161,22 +161,22 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 ### 3.1 Retrieve Context
 
 *   **Endpoint:** `GET /retrieve/context`
-*   **Description:** Retrieves relevant text chunks based on a semantic query within a specified user and scope (project/session).
+*   **Description:** Retrieves relevant text chunks based on a semantic query within a specified user and scope (project/session). Can optionally enrich results with related graph context.
 *   **Query Parameters:**
-    *   `user_id`: `string (uuid)` - REQUIRED: The user for whom to retrieve context.
+    *   `query_text`: `string` - REQUIRED: The natural language query for semantic search.
     *   `session_id`: `string (uuid), optional` - Scope: Filter by session.
     *   `project_id`: `string (uuid), optional` - Scope: Filter by project.
-    *   `query`: `string` - REQUIRED: The natural language query for semantic search.
     *   `limit`: `integer, optional (default: 10)` - Maximum number of chunks to return.
+    *   `include_graph`: `boolean, optional (default: False)` - If true, results will be enriched with related graph context (e.g., project details, participants). This may increase response time.
 *   **Responses:**
     *   `200 OK`: Successfully retrieved context chunks.
       ```json
       {
-        "results": [
+        "chunks": [
           {
             "chunk_id": "string (uuid)",
-            "text": "string", // The retrieved text chunk
-            "score": "float", // Relevance score from Qdrant
+            "text": "string",
+            "score": "float",
             "metadata": {
               "source_type": "string (e.g., 'message', 'document')",
               "user_id": "string (uuid)",
@@ -184,17 +184,18 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
               "project_id": "string (uuid), optional",
               "doc_id": "string (uuid), optional",
               "message_id": "string (uuid), optional",
-              "timestamp": "string (isoformat)"
-              // ... other relevant metadata from Qdrant payload
+              "timestamp": "string (isoformat)",
+              "project_context": { /* ... */ },
+              "session_participants": [ /* ... */ ]
             }
           }
-          // ... more results up to limit
-        ]
+        ],
+        "total": "integer"
       }
       ```
-    *   `400 Bad Request`: Missing required query parameters (`user_id`, `query`).
+    *   `400 Bad Request`: Missing required query parameters (`query_text`).
     *   `401 Unauthorized`: Missing or invalid authentication token.
-    *   `404 Not Found`: If specified `user_id`, `session_id`, or `project_id` do not exist (optional check).
+    *   `404 Not Found`: If specified scope IDs do not exist (optional check).
 
 ### 3.2 Retrieve Preferences
 
@@ -264,3 +265,128 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `400 Bad Request`: Missing required query parameter (`query`), missing scope ID, or more than one scope ID provided.
     *   `401 Unauthorized`: Missing or invalid authentication token.
     *   `404 Not Found`: If the specified scope ID (`session_id`, `project_id`, `team_id`) does not exist or has no participants.
+
+### 3.4 Retrieve Related Content (Graph Traversal)
+
+*   **Endpoint:** `GET /retrieve/related_content`
+*   **Description:** Retrieves content chunks related to a specific starting chunk by traversing the Neo4j graph based on relationship types. This method does **not** use vector similarity search.
+*   **Query Parameters:**
+    *   `chunk_id`: `string` - REQUIRED: The ID of the starting chunk for traversal.
+    *   `limit`: `integer, optional (default: 10)` - Maximum number of related chunks to return.
+    *   `include_private`: `boolean, optional (default: False)` - Whether to include chunks marked as private.
+    *   `max_depth`: `integer, optional (default: 2)` - Maximum number of relationship hops to traverse.
+    *   `relationship_types`: `List[str], optional` - A list of relationship types (e.g., `MENTIONS`, `PART_OF`) to follow during traversal. If omitted, all relationship types are considered.
+*   **Responses:**
+    *   `200 OK`: Successfully retrieved related context chunks. The response format follows the `ChunksResponse` model, similar to `/retrieve/context`, but without relevance scores. The `metadata` within each chunk may contain `outgoing_relationships` and `incoming_relationships` lists detailing how it's connected.
+      ```json
+      {
+        "chunks": [
+          {
+            "chunk_id": "string (uuid)",
+            "text": "string",
+            "source_type": "string",
+            "timestamp": "string (isoformat)",
+            "user_id": "string (uuid), optional",
+            // ... other standard chunk fields
+            "metadata": {
+              // ... other metadata
+              "outgoing_relationships": [
+                {"type": "MENTIONS", "target_id": "...", "target_type": "Topic"}
+              ],
+              "incoming_relationships": [
+                 {"type": "PART_OF", "source_id": "...", "source_type": "Document"}
+              ]
+            }
+          }
+          // ... more results
+        ],
+        "total": "integer"
+      }
+      ```
+    *   `400 Bad Request`: Missing required query parameter (`chunk_id`).
+    *   `401 Unauthorized`: Missing or invalid authentication token.
+    *   `404 Not Found`: If the starting `chunk_id` does not exist.
+
+### 3.5 Retrieve by Topic
+
+*   **Endpoint:** `GET /retrieve/topic`
+*   **Description:** Retrieves content chunks related to a specific topic name. Primarily uses graph relationships (e.g., `MENTIONS`), potentially falling back to vector search if no direct graph connections are found.
+*   **Query Parameters:**
+    *   `topic_name`: `string` - REQUIRED: The name of the topic to query for.
+    *   `limit`: `integer, optional (default: 10)` - Maximum number of chunks to return.
+    *   `user_id`: `string (uuid), optional` - Filter results by user ID.
+    *   `project_id`: `string (uuid), optional` - Filter results by project ID.
+    *   `session_id`: `string (uuid), optional` - Filter results by session ID.
+    *   `include_private`: `boolean, optional (default: False)` - Whether to include private content.
+*   **Responses:**
+    *   `200 OK`: Successfully retrieved topic-related context chunks. The response format follows the `ChunksResponse` model. Chunks retrieved via graph match might include a `topic` object in their metadata. Chunks retrieved via fallback vector search will have a `score`.
+      ```json
+      {
+        "chunks": [
+          {
+            "chunk_id": "string (uuid)",
+            "text": "string",
+            "source_type": "string",
+            "timestamp": "string (isoformat)",
+            // ... other standard chunk fields
+            "score": "float, optional", // Present if fallback vector search was used
+            "metadata": {
+              // ... other metadata
+              "topic": { // Present if retrieved via graph relationship
+                "name": "string", 
+                "description": "string, optional" 
+                // ... other topic properties
+              } 
+            }
+          }
+          // ... more results
+        ],
+        "total": "integer"
+      }
+      ```
+    *   `400 Bad Request`: Missing required query parameter (`topic_name`).
+    *   `401 Unauthorized`: Missing or invalid authentication token.
+
+### 3.6 Retrieve Private Memory
+
+*   **Endpoint:** `POST /retrieve/private_memory`
+*   **Description:** Retrieves a user's private memory based on semantic search. It also ingests the query itself as a twin interaction. Can optionally enrich results with related graph context.
+*   **Request Body:**
+    ```json
+    {
+      "user_id": "string (uuid)", // REQUIRED
+      "query_text": "string", // REQUIRED: The query for semantic search
+      "project_id": "string (uuid), optional", // Optional context filter
+      "session_id": "string (uuid), optional", // Optional context filter
+      "limit": "integer, optional (default: 10)"
+    }
+    ```
+*   **Query Parameters:**
+    *   `include_graph`: `boolean, optional (default: False)` - If true, results will be enriched with related graph context (e.g., linked documents, related messages). This may increase response time.
+*   **Responses:**
+    *   `200 OK`: Successfully retrieved private memory chunks.
+      ```json
+      {
+        "chunks": [
+          {
+            "chunk_id": "string (uuid)",
+            "text": "string",
+            "score": "float", // Relevance score from Qdrant
+            "metadata": {
+              "source_type": "string (e.g., 'message', 'document')",
+              "user_id": "string (uuid)",
+              "session_id": "string (uuid), optional",
+              "project_id": "string (uuid), optional",
+              "doc_id": "string (uuid), optional",
+              "message_id": "string (uuid), optional",
+              "timestamp": "string (isoformat)",
+              "outgoing_relationships": [ /* ... */ ],
+              "incoming_relationships": [ /* ... */ ]
+            }
+          }
+        ],
+        "total": "integer"
+      }
+      ```
+    *   `400 Bad Request`: Invalid request body.
+    *   `401 Unauthorized`: Missing or invalid authentication token.
