@@ -18,6 +18,7 @@ from services.data_seeder_service import DataSeederService
 from services.data_management_service import DataManagementService
 from services.embedding_service import EmbeddingService
 from services.ingestion_service import IngestionService
+from services.retrieval_service import RetrievalService
 from ingestion.connectors.message_connector import MessageConnector
 from ingestion.connectors.document_connector import DocumentConnector
 from ingestion.processors.text_chunker import TextChunker
@@ -117,4 +118,114 @@ async def clear_test_data():
     
     # Clear again after the test  
     logger.info("Clearing test databases after test (autouse=True)")
-    await clear_test_databases() 
+    await clear_test_databases()
+
+@pytest_asyncio.fixture
+async def use_test_databases():
+    """Override FastAPI dependencies to use test databases for E2E tests.
+    
+    This fixture ensures that all endpoints in the API use the test databases
+    during E2E tests rather than the default production databases.
+    """
+    # Import the test database utilities
+    from .test_utils import get_test_neo4j_driver, get_test_async_qdrant_client, get_test_qdrant_client
+    
+    # Store original functions
+    from core.db_clients import get_neo4j_driver as original_get_neo4j_driver
+    from core.db_clients import get_async_qdrant_client as original_get_async_qdrant_client
+    from api.routers.retrieve_router import get_retrieval_service as original_get_retrieval_service
+    from api.routers.retrieve_router import get_retrieval_service_with_message_connector as original_get_retrieval_service_with_connector
+    
+    # Import preference service dependency if it exists
+    try:
+        from api.routers.retrieve_router import get_preference_service as original_get_preference_service
+    except ImportError:
+        original_get_preference_service = None
+    
+    # Override the Neo4j driver function to use the test database
+    async def test_get_neo4j_driver():
+        return await get_test_neo4j_driver()
+        
+    # Override the Qdrant client function to use the test database
+    # Important: We need to await the async client creation
+    async def test_get_async_qdrant_client():
+        client = await get_test_async_qdrant_client()
+        return client
+    
+    # Create a custom retrieval service function that uses the test databases
+    async def test_get_retrieval_service():
+        qdrant_client = await test_get_async_qdrant_client()
+        neo4j_driver = await test_get_neo4j_driver()
+        
+        qdrant_dal = QdrantDAL(client=qdrant_client)
+        neo4j_dal = Neo4jDAL(driver=neo4j_driver)
+        embedding_service = EmbeddingService()
+        
+        return RetrievalService(
+            qdrant_dal=qdrant_dal,
+            neo4j_dal=neo4j_dal,
+            embedding_service=embedding_service,
+        )
+    
+    # Create a custom retrieval service with message connector that uses test databases
+    async def test_get_retrieval_service_with_connector():
+        qdrant_client = await test_get_async_qdrant_client()
+        neo4j_driver = await test_get_neo4j_driver()
+        
+        qdrant_dal = QdrantDAL(client=qdrant_client)
+        neo4j_dal = Neo4jDAL(driver=neo4j_driver)
+        embedding_service = EmbeddingService()
+        
+        # Create IngestionService for the connector
+        ingestion_service = IngestionService(
+            qdrant_dal=qdrant_dal,
+            neo4j_dal=neo4j_dal,
+            embedding_service=embedding_service,
+        )
+        
+        # Create MessageConnector using IngestionService
+        message_connector = MessageConnector(ingestion_service=ingestion_service)
+        
+        return RetrievalService(
+            qdrant_dal=qdrant_dal,
+            neo4j_dal=neo4j_dal,
+            embedding_service=embedding_service,
+            message_connector=message_connector,
+        )
+    
+    # Create a custom preference service function that uses test databases
+    if original_get_preference_service:
+        async def test_get_preference_service():
+            from services.preference_service import PreferenceService
+            
+            qdrant_client = await test_get_async_qdrant_client()
+            neo4j_driver = await test_get_neo4j_driver()
+            
+            qdrant_dal = QdrantDAL(client=qdrant_client)
+            neo4j_dal = Neo4jDAL(driver=neo4j_driver)
+            embedding_service = EmbeddingService()
+            
+            return PreferenceService(
+                qdrant_dal=qdrant_dal,
+                neo4j_dal=neo4j_dal,
+                embedding_service=embedding_service
+            )
+    
+    # Apply the overrides
+    app.dependency_overrides[original_get_retrieval_service] = test_get_retrieval_service
+    app.dependency_overrides[original_get_retrieval_service_with_connector] = test_get_retrieval_service_with_connector
+    
+    # Apply preference service override if it exists
+    if original_get_preference_service:
+        app.dependency_overrides[original_get_preference_service] = test_get_preference_service
+    
+    # Yield control back to the test
+    yield
+    
+    # Cleanup: Restore the original dependencies
+    if original_get_retrieval_service in app.dependency_overrides:
+        del app.dependency_overrides[original_get_retrieval_service]
+    if original_get_retrieval_service_with_connector in app.dependency_overrides:
+        del app.dependency_overrides[original_get_retrieval_service_with_connector]
+    if original_get_preference_service and original_get_preference_service in app.dependency_overrides:
+        del app.dependency_overrides[original_get_preference_service] 

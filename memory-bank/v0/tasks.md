@@ -204,7 +204,7 @@ This document outlines the development tasks for building the TwinCore backend p
 
 - [ ] **Task 7.1: Preference Service & DAL Methods** (D: 3.3, 3.4, Phase 4)
     - [ ] Steps:
-        - [ ] Define & Implement necessary DAL methods for finding user statements/messages related to a topic (querying past statements/data) in `dal/qdrant_dal.py` and/or `dal/neo4j_dal.py`. *Note: Relies on existing data/embeddings for prototype; explicit Preference nodes are phase 9.* 
+        - [ ] Define & Implement necessary DAL methods for finding user statements/messages related to a topic (querying past statements/data) in `dal/qdrant_dal.py` and `dal/neo4j_dal.py`. *Note: Relies on existing data/embeddings for prototype; explicit Preference nodes are phase 9.* 
         - [ ] Create `services/preference_service.py`. Implement `PreferenceService` taking DAL dependencies.
         - [ ] Implement `query_user_preference(data)` logic in `PreferenceService`.
         - [ ] [TDD Steps]:

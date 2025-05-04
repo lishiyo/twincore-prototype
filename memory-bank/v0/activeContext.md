@@ -1,9 +1,8 @@
-# TwinCore Active Context - Sun May  4 00:44:58 PDT 2025
+# TwinCore Active Context - Sun May  4 01:28:26 PDT 2025
 
 ## Current Work Focus
-- Completed Phase 6: Retrieval Endpoints
-- Moving to Phase 7: Preference Endpoint
-- Fixed E2E tests for the `/v1/retrieve/related_content` endpoint
+- Completed Phase 7: Preference Endpoint
+- Moving to Phase 8: Twin Interaction Endpoints
 - Still need to investigate the E2E test failure for document ingestion (`test_document_ingestion_end_to_end`)
 
 ## Project State
@@ -50,6 +49,12 @@
     - Adjusted `clear_test_data` fixture in E2E `conftest.py` to run automatically (`autouse=True`) for consistent cleanup
     - Corrected `async_client` fixture in E2E `conftest.py` using `ASGITransport`
     - Added reusable `use_test_databases` fixture to properly override database connections in E2E tests
+- **Phase 7 Complete:** Preference retrieval endpoints implemented and tested:
+    - `PreferenceService` with multi-strategy `query_user_preference` method
+    - Extended DAL interfaces with `search_user_preferences` and `get_user_preference_statements`
+    - Added `/v1/retrieve/preferences` endpoint with proper request/response models
+    - Comprehensive unit, integration, and E2E tests for all preference components
+    - Successfully implemented fallback strategies for preference retrieval (explicit preferences, topic-based, vector similarity)
 
 ### What's Broken
 - **`test_document_ingestion_end_to_end`:** Still failing with `AssertionError: No document chunks found in Qdrant`. Investigation ongoing.
@@ -73,6 +78,7 @@
 - Implementing reusable test fixtures to ensure proper database connections in E2E tests
 - Created new design for advanced retrieval strategies combining Qdrant and Neo4j for better results
 - Defined future expansions for retrieval endpoints to be implemented in Phase 11
+- Implemented preference retrieval with multiple fallback strategies to ensure useful results even with sparse knowledge graphs (important before Phase 9's knowledge extraction implementation)
 
 ## Tech Stack
 - Backend: FastAPI (Python)
@@ -107,9 +113,11 @@
 - Proper handling of list parameters in API endpoints requires careful type checking and conversion
 - Combining Qdrant (vector search) and Neo4j (graph relationships) can provide more contextually relevant search results
 - Cypher query syntax requires careful handling of WITH clauses and relationship traversal paths
+- Multi-strategy retrieval approaches (combining explicit relationships, topic-based connections, and vector search) provide robust results even with incomplete knowledge graphs
 
 ## Next Steps
-- Implement Task 7.1: Preference Service & DAL Methods
-- Implement Task 7.2: Preference API Endpoint (make sure to follow correct `/v1/retrieve/preferences` path)
-- Implement Task 7.3: Preference End-to-End Test
-- Continue investigating and fix the `AssertionError` in `test_document_ingestion_end_to_end`
+- Investigate and fix the `AssertionError` in `test_document_ingestion_end_to_end`
+- Move to Phase 8: Twin Interaction Endpoints
+  - Implement Task 8.1: Twin Detection Service 
+  - Implement Task 8.2: Twin Response API Endpoint
+  - Implement Task 8.3: End-to-End Test for Twin Interactions

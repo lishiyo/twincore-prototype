@@ -69,6 +69,31 @@ class IQdrantDAL(ABC):
         """Delete vectors from the collection."""
         pass
 
+    @abstractmethod
+    async def search_user_preferences(
+        self,
+        query_vector: np.ndarray,
+        user_id: str,
+        decision_topic: str,
+        limit: int = 5,
+        project_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Search for vectors related to user preferences on a specific topic.
+        
+        Args:
+            query_vector: Embedding vector of the decision topic
+            user_id: ID of the user whose preferences to query
+            decision_topic: The topic to find preferences for
+            limit: Maximum number of results to return
+            project_id: Optional filter by project ID
+            session_id: Optional filter by session ID
+            
+        Returns:
+            List of vectors containing user preferences related to the topic
+        """
+        pass
+
 
 class INeo4jDAL(ABC):
     """Interface for Neo4j graph database operations."""
@@ -173,6 +198,29 @@ class INeo4jDAL(ABC):
         include_private: bool = False,
     ) -> List[Dict[str, Any]]:
         """Get content related to a specific topic using graph relationships."""
+        pass
+
+    @abstractmethod
+    async def get_user_preference_statements(
+        self,
+        user_id: str,
+        topic: str,
+        limit: int = 5,
+        project_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Get user statements related to preferences on a specific topic.
+        
+        Args:
+            user_id: ID of the user
+            topic: The topic to find preference statements about
+            limit: Maximum number of statements to return
+            project_id: Optional filter by project ID
+            session_id: Optional filter by session ID
+            
+        Returns:
+            List of content nodes containing preference statements
+        """
         pass
 
 

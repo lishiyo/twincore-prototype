@@ -6,6 +6,7 @@ import pytest
 from unittest.mock import patch, AsyncMock
 import numpy as np
 from urllib.parse import urlencode
+import uuid
 
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
@@ -69,14 +70,17 @@ def test_retrieve_context_endpoint(test_client, mock_retrieval_service):
     """Test the /retrieve/context endpoint."""
     # Arrange
     now = datetime.now()
+    # Use real UUIDs rather than plain strings
+    test_project_id = str(uuid.uuid4())
+    test_session_id = str(uuid.uuid4())
     test_results = [
         {
             "chunk_id": "test-id-1",
             "text_content": "This is test content 1",
             "source_type": "message",
             "user_id": "user-1",
-            "project_id": "project-1",
-            "session_id": "session-1",
+            "project_id": test_project_id,
+            "session_id": test_session_id,
             "timestamp": now.timestamp(),
             "score": 0.95,
         }
@@ -85,16 +89,20 @@ def test_retrieve_context_endpoint(test_client, mock_retrieval_service):
     # Configure the mock to return test results
     mock_retrieval_service.retrieve_context.return_value = test_results
     
-    # Prepare query parameters
+    # Prepare query parameters with valid UUIDs
     query_params = {
         "query_text": "test query",
-        "project_id": "project-1",
-        "session_id": "session-1",
+        "project_id": test_project_id,
+        "session_id": test_session_id,
         "limit": 10
     }
     
-    # Act
-    response = test_client.get(f"/v1/retrieve/context?{urlencode(query_params)}")
+    # Act - Use query parameters directly
+    response = test_client.get("/v1/retrieve/context", params=query_params)
+    
+    # Print the response body for debugging
+    print(f"Response status: {response.status_code}")
+    print(f"Response body: {response.text}")
     
     # Assert
     assert response.status_code == 200
@@ -119,15 +127,16 @@ def test_retrieve_context_endpoint(test_client, mock_retrieval_service):
     assert chunk["text"] == "This is test content 1"
     assert chunk["source_type"] == "message"
     assert chunk["user_id"] == "user-1"
-    assert chunk["project_id"] == "project-1"
-    assert chunk["session_id"] == "session-1"
+    assert chunk["project_id"] == test_project_id
+    assert chunk["session_id"] == test_session_id
     assert chunk["score"] == 0.95
 
 
 def test_retrieve_private_memory_endpoint(test_client, mock_retrieval_service_with_message_connector):
     """Test the /v1/retrieve/private_memory endpoint."""
     # Arrange
-    user_id = "user-1"
+    user_id = str(uuid.uuid4())
+    project_id = str(uuid.uuid4())
     now = datetime.now()
     test_results = [
         {
@@ -135,7 +144,7 @@ def test_retrieve_private_memory_endpoint(test_client, mock_retrieval_service_wi
             "text_content": "This is private content",
             "source_type": "document",
             "user_id": user_id,
-            "project_id": "project-1",
+            "project_id": project_id,
             "timestamp": now.timestamp(),
             "is_private": True,
             "score": 0.88,
@@ -149,7 +158,7 @@ def test_retrieve_private_memory_endpoint(test_client, mock_retrieval_service_wi
     payload = {
         "user_id": user_id,
         "query_text": "find my private notes",
-        "project_id": "project-1",
+        "project_id": project_id,
         "limit": 5
     }
     
@@ -179,7 +188,7 @@ def test_retrieve_private_memory_endpoint(test_client, mock_retrieval_service_wi
     assert chunk["text"] == "This is private content"
     assert chunk["source_type"] == "document"
     assert chunk["user_id"] == user_id
-    assert chunk["project_id"] == "project-1"
+    assert chunk["project_id"] == project_id
     assert chunk["score"] == 0.88
 
 
@@ -197,14 +206,19 @@ def test_retrieve_context_with_graph_data(test_client, mock_retrieval_service):
     """Test the /retrieve/context endpoint with graph enrichment."""
     # Arrange
     now = datetime.now()
+    # Use real UUIDs rather than plain strings
+    test_project_id = str(uuid.uuid4())
+    test_session_id = str(uuid.uuid4())
+    test_user1_id = str(uuid.uuid4())
+    test_user2_id = str(uuid.uuid4())
     test_results = [
         {
             "chunk_id": "test-id-1",
             "text_content": "This is test content 1",
             "source_type": "message",
-            "user_id": "user-1",
-            "project_id": "project-1",
-            "session_id": "session-1",
+            "user_id": test_user1_id,
+            "project_id": test_project_id,
+            "session_id": test_session_id,
             "timestamp": now.timestamp(),
             "score": 0.95,
             "project_context": {
@@ -213,8 +227,8 @@ def test_retrieve_context_with_graph_data(test_client, mock_retrieval_service):
                 "user_count": 2
             },
             "session_participants": [
-                {"user_id": "user-1", "name": "Test User 1"},
-                {"user_id": "user-2", "name": "Test User 2"}
+                {"user_id": test_user1_id, "name": "Test User 1"},
+                {"user_id": test_user2_id, "name": "Test User 2"}
             ]
         }
     ]
@@ -225,13 +239,17 @@ def test_retrieve_context_with_graph_data(test_client, mock_retrieval_service):
     # Prepare query parameters
     query_params = {
         "query_text": "test query",
-        "project_id": "project-1",
-        "session_id": "session-1",
+        "project_id": test_project_id,
+        "session_id": test_session_id,
         "include_graph": True
     }
     
-    # Act
-    response = test_client.get(f"/v1/retrieve/context?{urlencode(query_params)}")
+    # Act - Use query parameters directly
+    response = test_client.get("/v1/retrieve/context", params=query_params)
+    
+    # Print response details for debugging
+    print(f"Response status: {response.status_code}")
+    print(f"Response body: {response.text}")
     
     # Assert
     assert response.status_code == 200
@@ -254,6 +272,7 @@ def test_retrieve_context_with_graph_data(test_client, mock_retrieval_service):
     assert chunk["chunk_id"] == "test-id-1"
     assert chunk["text"] == "This is test content 1"
     assert "metadata" in chunk
+    print(f"Chunk metadata: {chunk['metadata']}")
     assert "project_context" in chunk["metadata"]
     assert "session_participants" in chunk["metadata"]
     assert chunk["metadata"]["project_context"]["session_count"] == 3
@@ -263,17 +282,23 @@ def test_retrieve_related_content_endpoint(test_client, mock_retrieval_service):
     """Test the /retrieve/related_content endpoint."""
     # Arrange
     now = datetime.now()
+    source_chunk_id = str(uuid.uuid4())
+    related_chunk_id = str(uuid.uuid4())
+    user_id = str(uuid.uuid4())
+    project_id = str(uuid.uuid4())
+    session_id = str(uuid.uuid4())
+    topic_id = str(uuid.uuid4())
     test_results = [
         {
-            "chunk_id": "related-chunk-1",
+            "chunk_id": related_chunk_id,
             "text_content": "This is related content",
             "source_type": "message",
-            "user_id": "user-1",
-            "project_id": "project-1",
-            "session_id": "session-1",
+            "user_id": user_id,
+            "project_id": project_id,
+            "session_id": session_id,
             "timestamp": now.timestamp(),
             "outgoing_relationships": [
-                {"type": "MENTIONS", "target_id": "topic-1", "target_type": "Topic"}
+                {"type": "MENTIONS", "target_id": topic_id, "target_type": "Topic"}
             ],
             "incoming_relationships": []
         }
@@ -284,18 +309,19 @@ def test_retrieve_related_content_endpoint(test_client, mock_retrieval_service):
     
     # Prepare query parameters
     query_params = {
-        "chunk_id": "source-chunk-id",
+        "chunk_id": source_chunk_id,
         "limit": 5,
         "max_depth": 2,
         "relationship_types": ["MENTIONS", "SIMILAR_TO"]
     }
     
-    # Act - use array notation for multiple values of the same parameter
-    url = "/v1/retrieve/related_content"
-    url += f"?chunk_id={query_params['chunk_id']}&limit={query_params['limit']}&max_depth={query_params['max_depth']}"
-    url += f"&relationship_types={query_params['relationship_types'][0]}&relationship_types={query_params['relationship_types'][1]}"
-    
-    response = test_client.get(url)
+    # Act - Use query parameters directly with relationship_types as a list
+    response = test_client.get("/v1/retrieve/related_content", params={
+        "chunk_id": query_params["chunk_id"],
+        "limit": query_params["limit"],
+        "max_depth": query_params["max_depth"],
+        "relationship_types": query_params["relationship_types"]
+    })
     
     # Assert
     assert response.status_code == 200
@@ -316,7 +342,7 @@ def test_retrieve_related_content_endpoint(test_client, mock_retrieval_service):
     
     # Verify chunk contents including relationship data
     chunk = response_data["chunks"][0]
-    assert chunk["chunk_id"] == "related-chunk-1"
+    assert chunk["chunk_id"] == related_chunk_id
     assert chunk["text"] == "This is related content"
     assert "metadata" in chunk
     assert "outgoing_relationships" in chunk["metadata"]
@@ -328,18 +354,23 @@ def test_retrieve_by_topic_endpoint(test_client, mock_retrieval_service):
     """Test the /retrieve/topic endpoint."""
     # Arrange
     now = datetime.now()
+    topic_name = "test-topic"
+    chunk_id = str(uuid.uuid4())
+    user_id = str(uuid.uuid4())
+    project_id = str(uuid.uuid4())
+    session_id = str(uuid.uuid4())
     test_results = [
         {
-            "chunk_id": "topic-chunk-1",
+            "chunk_id": chunk_id,
             "text_content": "This content mentions a topic",
             "source_type": "message",
-            "user_id": "user-1",
-            "project_id": "project-1",
-            "session_id": "session-1",
+            "user_id": user_id,
+            "project_id": project_id,
+            "session_id": session_id,
             "timestamp": now.timestamp(),
             "score": 0.92,
             "topic": {
-                "name": "test-topic",
+                "name": topic_name,
                 "description": "This is a test topic"
             }
         }
@@ -350,14 +381,14 @@ def test_retrieve_by_topic_endpoint(test_client, mock_retrieval_service):
     
     # Prepare query parameters
     query_params = {
-        "topic_name": "test-topic",
+        "topic_name": topic_name,
         "limit": 5,
-        "user_id": "user-1",
-        "project_id": "project-1"
+        "user_id": user_id,
+        "project_id": project_id
     }
     
-    # Act
-    response = test_client.get(f"/v1/retrieve/topic?{urlencode(query_params)}")
+    # Act - Use query parameters directly
+    response = test_client.get("/v1/retrieve/topic", params=query_params)
     
     # Assert
     assert response.status_code == 200
@@ -378,8 +409,86 @@ def test_retrieve_by_topic_endpoint(test_client, mock_retrieval_service):
     
     # Verify chunk contents including topic data
     chunk = response_data["chunks"][0]
-    assert chunk["chunk_id"] == "topic-chunk-1"
+    assert chunk["chunk_id"] == chunk_id
     assert chunk["text"] == "This content mentions a topic"
     assert "metadata" in chunk
     assert "topic" in chunk["metadata"]
-    assert chunk["metadata"]["topic"]["name"] == "test-topic" 
+    assert chunk["metadata"]["topic"]["name"] == topic_name
+
+
+@pytest.fixture
+def mock_preference_service():
+    """Create a mock PreferenceService."""
+    service_instance = AsyncMock()
+    service_instance.query_user_preference = AsyncMock()
+    
+    # Store the original dependency resolver
+    original_dependency = app.dependency_overrides.get(retrieve_router.get_preference_service)
+    
+    # Override the dependency with our mock
+    app.dependency_overrides[retrieve_router.get_preference_service] = lambda: service_instance
+    
+    yield service_instance
+    
+    # Restore the original dependency after the test
+    if original_dependency:
+        app.dependency_overrides[retrieve_router.get_preference_service] = original_dependency
+    else:
+        del app.dependency_overrides[retrieve_router.get_preference_service]
+
+
+def test_retrieve_preferences_endpoint(test_client, mock_preference_service):
+    """Test the preferences retrieval endpoint."""
+    # Create mock preference data with valid UUIDs
+    test_user_id = str(uuid.uuid4())
+    test_chunk_1 = str(uuid.uuid4())
+    test_chunk_2 = str(uuid.uuid4())
+    decision_topic = "dark mode"
+    
+    mock_preferences = {
+        "user_id": test_user_id,
+        "decision_topic": decision_topic,
+        "has_preferences": True,
+        "preference_statements": [
+            {
+                "chunk_id": test_chunk_1,
+                "text_content": "I prefer dark mode for all my apps.",
+                "source_type": "message",
+                "user_id": test_user_id,
+                "score": 0.95,
+                "source": "vector"
+            },
+            {
+                "chunk_id": test_chunk_2,
+                "text_content": "Dark mode is easier on my eyes at night.",
+                "source_type": "message",
+                "user_id": test_user_id,
+                "source": "graph"
+            }
+        ],
+        "graph_results_count": 1,
+        "vector_results_count": 1
+    }
+    
+    # Configure the mock to return test results
+    mock_preference_service.query_user_preference.return_value = mock_preferences
+    
+    # Call the endpoint with individual parameters
+    response = test_client.get(
+        "/v1/retrieve/preferences",
+        params={
+            "user_id": test_user_id,
+            "decision_topic": decision_topic,
+            "limit": 5
+        }
+    )
+    
+    # Verify response
+    assert response.status_code == 200
+    data = response.json()
+    assert data["user_id"] == test_user_id
+    assert data["decision_topic"] == decision_topic
+    assert data["has_preferences"] is True
+    assert len(data["preference_statements"]) == 2
+    assert data["graph_results_count"] == 1
+    assert data["vector_results_count"] == 1 

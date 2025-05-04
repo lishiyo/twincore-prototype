@@ -748,4 +748,55 @@ async def test_delete_vectors_without_filters_raises_error(
     """Test that calling delete_vectors without filters raises an error."""
     # Act & Assert
     with pytest.raises(ValueError, match=r"At least one filter parameter \(chunk_ids or metadata field\) must be provided"):
-        await test_qdrant_dal.delete_vectors() 
+        await test_qdrant_dal.delete_vectors()
+
+
+@pytest.mark.asyncio
+async def test_search_user_preferences(
+    test_qdrant_dal: QdrantDAL, 
+    clean_test_collection
+):
+    """Test searching for user preferences in Qdrant."""
+    # Setup: Insert a test vector with user preferences
+    test_user_id = str(uuid.uuid4())
+    test_project_id = str(uuid.uuid4())
+    test_chunk_id = str(uuid.uuid4())
+    test_content = "I really prefer dark mode interfaces, especially at night."
+    test_vector = create_test_vector()  # Use the helper function for consistency
+    
+    # Insert the vector
+    await test_qdrant_dal.upsert_vector(
+        chunk_id=test_chunk_id,
+        vector=test_vector,
+        text_content=test_content,
+        source_type="message",
+        user_id=test_user_id,
+        project_id=test_project_id,
+        is_twin_interaction=False
+    )
+    
+    # Generate a similar query vector (slightly perturbed version of test_vector)
+    query_vector = test_vector.copy()
+    # Add small random noise while keeping vector normalized
+    noise = np.random.rand(len(query_vector)).astype(np.float32) * 0.1
+    query_vector = query_vector + noise
+    # Renormalize
+    query_vector = query_vector / np.linalg.norm(query_vector)
+    
+    # Execute: Search for preferences related to "dark mode"
+    results = await test_qdrant_dal.search_user_preferences(
+        query_vector=query_vector,
+        user_id=test_user_id,
+        decision_topic="dark mode",
+        project_id=test_project_id
+    )
+    
+    # Verify: Results should include our test data
+    assert results, "No results found"
+    assert len(results) > 0, "Empty results list"
+    assert results[0]["chunk_id"] == test_chunk_id, "Wrong chunk ID returned"
+    assert results[0]["text_content"] == test_content, "Wrong text content returned"
+    assert results[0]["user_id"] == test_user_id, "Wrong user ID returned"
+    assert results[0]["project_id"] == test_project_id, "Wrong project ID returned"
+    assert results[0]["query_topic"] == "dark mode", "Query topic not included in results"
+    assert not results[0]["is_twin_interaction"], "Twin interaction flag should be False" 

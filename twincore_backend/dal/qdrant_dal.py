@@ -352,3 +352,88 @@ class QdrantDAL(IQdrantDAL):
         except Exception as e:
             logger.error(f"Unexpected error deleting vectors: {str(e)}")
             raise 
+
+    async def search_user_preferences(
+        self,
+        query_vector: np.ndarray,
+        user_id: str,
+        decision_topic: str,
+        limit: int = 5,
+        project_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Search for vectors related to user preferences on a specific topic.
+        
+        This method performs a semantic search for preferences related to the specified topic
+        that belong to the specified user. It applies filters to ensure only the correct
+        user's content is returned.
+        
+        Args:
+            query_vector: Embedding vector of the decision topic
+            user_id: ID of the user whose preferences to query
+            decision_topic: The topic to find preferences for
+            limit: Maximum number of results to return
+            project_id: Optional filter by project ID
+            session_id: Optional filter by session ID
+            
+        Returns:
+            List of vectors containing user preferences related to the topic
+        """
+        try:
+            # Create filters to ensure we're only looking at the specified user's content
+            filter_conditions = [
+                models.FieldCondition(key="user_id", match=models.MatchValue(value=user_id))
+            ]
+            
+            # Include messages and potentially documents, but exclude twin interactions
+            # This ensures we're looking at the user's statements, not queries to the twin
+            filter_conditions.append(
+                models.FieldCondition(key="is_twin_interaction", match=models.MatchValue(value=False))
+            )
+            
+            # Add optional project and session filters
+            if project_id:
+                filter_conditions.append(
+                    models.FieldCondition(key="project_id", match=models.MatchValue(value=project_id))
+                )
+            if session_id:
+                filter_conditions.append(
+                    models.FieldCondition(key="session_id", match=models.MatchValue(value=session_id))
+                )
+                
+            # Create the search filter
+            search_filter = models.Filter(must=filter_conditions)
+            
+            # Prepare the query vector
+            vector_data = query_vector.tolist() if isinstance(query_vector, np.ndarray) else query_vector
+            
+            # Search for relevant content
+            search_results = await self._client.search(
+                collection_name=self._collection_name,
+                query_vector=vector_data,
+                query_filter=search_filter,
+                limit=limit,
+                with_payload=True,
+                with_vectors=False
+            )
+            
+            # Format the results
+            formatted_results = []
+            for hit in search_results:
+                result = {
+                    "chunk_id": hit.id,
+                    "score": hit.score,
+                    "query_topic": decision_topic,
+                    **hit.payload  # Include all payload fields
+                }
+                formatted_results.append(result)
+            
+            logger.info(f"Found {len(formatted_results)} preference-related chunks for user {user_id} on topic '{decision_topic}'")
+            return formatted_results
+            
+        except UnexpectedResponse as e:
+            logger.error(f"Qdrant error searching user preferences: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error searching user preferences: {str(e)}")
+            raise 

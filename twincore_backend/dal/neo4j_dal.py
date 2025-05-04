@@ -544,6 +544,127 @@ class Neo4jDAL(INeo4jDAL):
             logger.error(f"Unexpected error getting content by topic: {str(e)}")
             raise
 
+    async def get_user_preference_statements(
+        self,
+        user_id: str,
+        topic: str,
+        limit: int = 5,
+        project_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Get user statements related to preferences on a specific topic.
+        
+        This method searches the graph database for content where the user has
+        expressed preferences or opinions related to the specified topic.
+        It first looks for Content nodes explicitly connected to Topic nodes,
+        then falls back to more general relationships if needed.
+        
+        Args:
+            user_id: ID of the user
+            topic: The topic to find preference statements about
+            limit: Maximum number of statements to return
+            project_id: Optional filter by project ID
+            session_id: Optional filter by session ID
+            
+        Returns:
+            List of content nodes containing preference statements
+        """
+        try:
+            driver = self.driver
+            
+            # Build conditions for optional filters
+            project_condition = "AND c.project_id = $project_id" if project_id else ""
+            session_condition = "AND c.session_id = $session_id" if session_id else ""
+            
+            # Initialize parameters
+            params = {
+                "user_id": user_id,
+                "topic": topic,
+                "limit": limit
+            }
+            if project_id:
+                params["project_id"] = project_id
+            if session_id:
+                params["session_id"] = session_id
+            
+            # First query: Look for explicit preference relationships
+            # This targets content that has been identified as expressing a preference
+            # either through explicit STATES_PREFERENCE relationships or 
+            # connections to Preference nodes (these would be created in Phase 9)
+            query1 = f"""
+            // Try first to find explicit preference statements
+            MATCH (u:User {{user_id: $user_id}})-[:CREATED]->(c:Content)
+            WHERE NOT c.is_twin_interaction {project_condition} {session_condition}
+            MATCH (c)-[:STATES_PREFERENCE]->(t:Topic)
+            WHERE t.name CONTAINS $topic OR $topic CONTAINS t.name
+            RETURN c
+            LIMIT $limit
+            """
+            
+            # Second query: Look for content mentioning topics
+            # Less specific, but finds content related to the topic
+            query2 = f"""
+            // If no explicit preferences, look for content mentioning the topic
+            MATCH (u:User {{user_id: $user_id}})-[:CREATED]->(c:Content)
+            WHERE NOT c.is_twin_interaction {project_condition} {session_condition}
+            MATCH (c)-[:MENTIONS]->(t:Topic)
+            WHERE t.name CONTAINS $topic OR $topic CONTAINS t.name
+            RETURN c
+            LIMIT $limit
+            """
+            
+            # Third query: If Topic nodes don't exist yet, just find user content
+            # Most general fallback when the knowledge graph is still sparse
+            query3 = f"""
+            // Fallback: Just find user-created content (will rely on vector similarity)
+            MATCH (u:User {{user_id: $user_id}})-[:CREATED]->(c:Content)
+            WHERE NOT c.is_twin_interaction {project_condition} {session_condition}
+            RETURN c
+            LIMIT $limit
+            """
+            
+            logger.debug(f"Querying user preference statements for user {user_id} on topic '{topic}'")
+            
+            # Try each query in order, stopping when we get results
+            preference_statements = []
+            
+            async with driver.session() as session:
+                # Try the first query - explicit preferences
+                result1 = await session.run(query1, params)
+                async for record in result1:
+                    content_node = record["c"]
+                    preference_statements.append(dict(content_node.items()))
+                
+                # If we don't have enough results, try the second query
+                if len(preference_statements) < limit:
+                    remaining = limit - len(preference_statements)
+                    params["limit"] = remaining
+                    
+                    result2 = await session.run(query2, params)
+                    async for record in result2:
+                        content_node = record["c"]
+                        preference_statements.append(dict(content_node.items()))
+                
+                # If we still don't have enough, use the fallback query
+                if len(preference_statements) < limit:
+                    remaining = limit - len(preference_statements)
+                    params["limit"] = remaining
+                    
+                    result3 = await session.run(query3, params)
+                    async for record in result3:
+                        content_node = record["c"]
+                        preference_statements.append(dict(content_node.items()))
+            
+            logger.info(f"Found {len(preference_statements)} preference statements for user {user_id} on topic '{topic}'")
+            return preference_statements
+                
+        except (ServiceUnavailable, ClientError, DatabaseError) as e:
+            logger.error(f"Neo4j error getting user preference statements: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error getting user preference statements: {str(e)}")
+            raise
+
     async def close(self):
         """Close the Neo4j driver and release resources."""
         if self._driver:

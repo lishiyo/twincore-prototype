@@ -819,6 +819,132 @@ async def test_get_content_by_topic_with_filters(
     assert len(combined_results) == 2  # Content for user-1 AND project-1
 
 
+@pytest.mark.asyncio
+async def test_get_user_preference_statements(test_neo4j_dal: Neo4jDAL,):
+    """Test retrieving user preference statements from Neo4j."""
+    # Create a test user
+    test_user_id = f"test_user_{uuid.uuid4()}"
+    test_topic = "dark mode"
+    test_content = f"I really prefer {test_topic} interfaces over light ones."
+    test_chunk_id = f"chunk_{uuid.uuid4()}"
+    
+    try:
+        # Setup: Create a user node, a content node, and a topic node with relationships
+        user_node = await test_neo4j_dal.create_node_if_not_exists(
+            label="User",
+            properties={"user_id": test_user_id, "name": "Test User"},
+            constraints={"user_id": test_user_id}
+        )
+        
+        # Create content node
+        content_node = await test_neo4j_dal.create_node_if_not_exists(
+            label="Content",
+            properties={
+                "chunk_id": test_chunk_id,
+                "text_content": test_content,
+                "user_id": test_user_id,
+                "is_twin_interaction": False
+            },
+            constraints={"chunk_id": test_chunk_id}
+        )
+        
+        # Create topic node
+        topic_node = await test_neo4j_dal.create_node_if_not_exists(
+            label="Topic",
+            properties={"name": test_topic},
+            constraints={"name": test_topic}
+        )
+        
+        # Create relationships
+        await test_neo4j_dal.create_relationship_if_not_exists(
+            start_label="User",
+            start_constraints={"user_id": test_user_id},
+            end_label="Content",
+            end_constraints={"chunk_id": test_chunk_id},
+            relationship_type="CREATED"
+        )
+        
+        # Create MENTIONS relationship
+        await test_neo4j_dal.create_relationship_if_not_exists(
+            start_label="Content",
+            start_constraints={"chunk_id": test_chunk_id},
+            end_label="Topic",
+            end_constraints={"name": test_topic},
+            relationship_type="MENTIONS"
+        )
+        
+        # Create STATES_PREFERENCE relationship (stronger signal)
+        await test_neo4j_dal.create_relationship_if_not_exists(
+            start_label="Content",
+            start_constraints={"chunk_id": test_chunk_id},
+            end_label="Topic",
+            end_constraints={"name": test_topic},
+            relationship_type="STATES_PREFERENCE"
+        )
+        
+        # Test the first query path (explicit STATES_PREFERENCE)
+        preference_statements1 = await test_neo4j_dal.get_user_preference_statements(
+            user_id=test_user_id,
+            topic=test_topic
+        )
+        
+        assert preference_statements1, "No preference statements found (explicit path)"
+        assert len(preference_statements1) > 0, "Empty results list (explicit path)"
+        assert preference_statements1[0]["chunk_id"] == test_chunk_id, "Wrong chunk ID returned"
+        assert preference_statements1[0]["text_content"] == test_content, "Wrong text content returned"
+        
+        # Break the STATES_PREFERENCE relationship to test the second query path
+        async with test_neo4j_dal.driver.session() as session:
+            await session.run(
+                "MATCH (c:Content {chunk_id: $chunk_id})-[r:STATES_PREFERENCE]->(t:Topic {name: $topic}) DELETE r",
+                {"chunk_id": test_chunk_id, "topic": test_topic}
+            )
+        
+        # Test the second query path (MENTIONS)
+        preference_statements2 = await test_neo4j_dal.get_user_preference_statements(
+            user_id=test_user_id,
+            topic=test_topic
+        )
+        
+        assert preference_statements2, "No preference statements found (mentions path)"
+        assert len(preference_statements2) > 0, "Empty results list (mentions path)"
+        assert preference_statements2[0]["chunk_id"] == test_chunk_id, "Wrong chunk ID returned"
+        
+        # Break the MENTIONS relationship to test the fallback query path
+        async with test_neo4j_dal.driver.session() as session:
+            await session.run(
+                "MATCH (c:Content {chunk_id: $chunk_id})-[r:MENTIONS]->(t:Topic {name: $topic}) DELETE r",
+                {"chunk_id": test_chunk_id, "topic": test_topic}
+            )
+        
+        # Test the third query path (fallback)
+        preference_statements3 = await test_neo4j_dal.get_user_preference_statements(
+            user_id=test_user_id,
+            topic=test_topic
+        )
+        
+        assert preference_statements3, "No preference statements found (fallback path)"
+        assert len(preference_statements3) > 0, "Empty results list (fallback path)"
+        assert preference_statements3[0]["chunk_id"] == test_chunk_id, "Wrong chunk ID returned"
+        
+    finally:
+        # Cleanup
+        try:
+            async with test_neo4j_dal.driver.session() as session:
+                # Delete all created nodes and relationships
+                await session.run(
+                    """
+                    MATCH (u:User {user_id: $user_id})
+                    OPTIONAL MATCH (u)-[r1]->(c:Content {chunk_id: $chunk_id})
+                    OPTIONAL MATCH (c)-[r2]->(t:Topic {name: $topic})
+                    DETACH DELETE u, c, t
+                    """,
+                    {"user_id": test_user_id, "chunk_id": test_chunk_id, "topic": test_topic}
+                )
+        except Exception as e:
+            logger.error(f"Error during test cleanup: {e}")
+
+
 async def close(self):
     """Close the Neo4j driver and release resources."""
     if self._driver:
