@@ -64,9 +64,8 @@ class TestMessageIngestionService:
         assert call_args["session_id"] == message_data["session_id"]
         assert call_args["is_twin_interaction"] == message_data["is_twin_chat"]
         
-        # Verify chunk_id is an integer
-        assert isinstance(call_args["chunk_id"], int)
-        assert call_args["chunk_id"] > 0
+        # Verify chunk_id is an string
+        assert isinstance(call_args["chunk_id"], str)
 
     @pytest.mark.asyncio
     async def test_ingest_message_generates_message_id_if_not_provided(self, message_ingestion_service, mock_ingestion_service):

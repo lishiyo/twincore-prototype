@@ -101,34 +101,92 @@ The API will be available at http://localhost:8000. API documentation is availab
 
 ### Running Tests
 
-Run all tests:
+### Setup Test Environment
+
+Before running tests, start the test database containers:
+
+```bash
+docker-compose -f docker-compose.test.yml up -d
 ```
+
+Verify the test containers are running:
+
+```bash
+docker-compose -f docker-compose.test.yml ps
+```
+
+### Running All Tests
+
+Run the entire test suite:
+
+```bash
 pytest
 ```
 
-Run specific test categories:
-```
-# Run unit tests only
+### Running Specific Test Categories
+
+```bash
+# Run only unit tests
 pytest tests/unit/
 
-# Run integration tests only
-pytest -m integration
+# Run only integration tests 
+pytest tests/integration/
+
+# Run only end-to-end tests
+pytest tests/e2e/
 ```
 
-Run database setup tests (requires test databases to be running):
-```
-# Run Qdrant collection setup tests
+### Database Integration Tests
+
+```bash
+# Test Qdrant collection setup
 pytest tests/core/test_db_setup.py::test_setup_qdrant_collection_creates_collection
 
-# Run Neo4j constraint setup tests
+# Test Neo4j constraint setup
 pytest tests/core/test_db_setup.py::test_setup_neo4j_constraints_creates_constraints
 
-# Run idempotency tests
+# Test idempotency
 pytest tests/core/test_db_setup.py::test_setup_qdrant_collection_is_idempotent
 pytest tests/core/test_db_setup.py::test_setup_neo4j_constraints_is_idempotent
 ```
 
-**Note**: Database setup tests require that the test databases are running. Make sure to start them with `docker-compose -f docker-compose.test.yml up -d` before running these tests.
+### DAL Implementation Tests
+
+```bash
+# Neo4j DAL tests
+pytest tests/dal/test_neo4j_dal.py
+
+# Qdrant DAL tests
+pytest tests/dal/test_qdrant_dal.py
+```
+
+### Service Tests
+
+```bash
+# Embedding Service tests
+pytest tests/services/test_embedding_service.py
+
+# Ingestion Service tests
+pytest tests/services/test_ingestion_service.py
+
+# Data Seeder Service tests
+pytest tests/services/test_data_seeder_service.py
+```
+
+### End-to-End Tests
+
+```bash
+# Test data seeding end-to-end
+pytest tests/e2e/test_seed_data_e2e.py
+```
+
+### Cleaning Up Test Environment
+
+When finished testing, stop the test containers:
+
+```bash
+docker-compose -f docker-compose.test.yml down
+```
 
 ## Project Structure
 
