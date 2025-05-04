@@ -50,11 +50,11 @@ class TestMessageIngestionE2E:
         }
         
         # 1. Call the API to ingest the message
-        response = await async_client.post("/v1/api/ingest/message", json=message_data)
+        response = await async_client.post("/v1/ingest/message", json=message_data)
         
         # Verify the API response
-        assert response.status_code == 200
-        assert response.json() == {"status": "success", "message": "Message ingested successfully"}
+        assert response.status_code == 202
+        assert response.json() == {"status": "accepted", "message": "Message received and queued for ingestion."}
         
         # 2. Verify the data was stored in Qdrant
         qdrant_client = get_async_qdrant_client()

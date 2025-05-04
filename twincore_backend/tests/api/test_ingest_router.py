@@ -44,11 +44,11 @@ class TestMessageIngestionEndpoint:
         }
         
         # Act
-        response = client.post("/v1/api/ingest/message", json=message_data)
+        response = client.post("/v1/ingest/message", json=message_data)
         
         # Assert
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json() == {"status": "success", "message": "Message ingested successfully"}
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert response.json() == {"status": "accepted", "message": "Message received and queued for ingestion."}
         mock_message_ingestion_service.ingest_message.assert_called_once()
         
         # Clean up
@@ -71,10 +71,10 @@ class TestMessageIngestionEndpoint:
         }
         
         # Act
-        response = client.post("/v1/api/ingest/message", json=message_data)
+        response = client.post("/v1/ingest/message", json=message_data)
         
         # Assert
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_202_ACCEPTED
         mock_message_ingestion_service.ingest_message.assert_called_once()
         
         # Clean up
@@ -93,7 +93,7 @@ class TestMessageIngestionEndpoint:
         }
         
         # Act
-        response = client.post("/v1/api/ingest/message", json=message_data)
+        response = client.post("/v1/ingest/message", json=message_data)
         
         # Assert
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -118,7 +118,7 @@ class TestMessageIngestionEndpoint:
         }
         
         # Act
-        response = client.post("/v1/api/ingest/message", json=message_data)
+        response = client.post("/v1/ingest/message", json=message_data)
         
         # Assert
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR

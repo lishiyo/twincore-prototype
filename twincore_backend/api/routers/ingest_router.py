@@ -9,7 +9,7 @@ from services.message_ingestion_service import MessageIngestionService
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/v1/api/ingest",
+    prefix="/v1/ingest",
     tags=["ingestion"],
     responses={404: {"description": "Not found"}},
 )
@@ -28,7 +28,7 @@ async def get_message_ingestion_service() -> MessageIngestionService:
 @router.post(
     "/message",
     response_model=StatusResponse,
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_202_ACCEPTED,
     summary="Ingest a message",
     description="Ingest a message into the system, storing it in both Qdrant (vector DB) and Neo4j (graph DB)."
 )
@@ -58,7 +58,7 @@ async def ingest_message(
         await message_ingestion_service.ingest_message(message_data)
         
         logger.info(f"Successfully ingested message from user {message.user_id}")
-        return StatusResponse(status="success", message="Message ingested successfully")
+        return StatusResponse(status="accepted", message="Message received and queued for ingestion.")
         
     except ValueError as e:
         # Value error indicates invalid input

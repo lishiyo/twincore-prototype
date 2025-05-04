@@ -131,7 +131,7 @@ This document outlines the development tasks for building the TwinCore backend p
 - [x] **Task 5.1: Ingest Message Endpoint** (D: 2.1, 3.5, 4.4)
     - [x] Steps:
         - [x] Add MessageIngestionService using `IngestionService`, add `ingest_message(data)` logic.
-        - [x] Create `api/routers/ingest_router.py`. Define `POST /api/ingest/message`. Use Pydantic models. Inject service. Register router.
+        - [x] Create `api/routers/ingest_router.py`. Define `POST /ingest/message`. Use Pydantic models. Inject service. Register router.
         - [x] [TDD Steps]:
             - [x] [Service Int] Test `ingest_message` logic.
             - [x] [API/Contract] Test endpoint schema/status.
@@ -140,8 +140,8 @@ This document outlines the development tasks for building the TwinCore backend p
 - [ ] **Task 5.2: Ingest Document Endpoint** (D: 2.1, 3.5, 5.1)
     - [ ] Steps:
         - [ ] Implement basic text chunking logic (e.g., in `core/utils.py`).
-        - [ ] Add `ingest_document(data)` logic to `IngestionService`, including chunking & handling `is_private`.
-        - [ ] Define `POST /api/ingest/document` endpoint in `ingest_router.py`.
+        - [ ] Add DocumentIngestionService using IngestionService, add `ingest_document(data)` including chunking & handling `is_private`.
+        - [ ] Define `POST /ingest/document` endpoint in `ingest_router.py`.
         - [ ] [TDD Steps]:
             - [ ] [Unit] Test chunking logic.
             - [ ] [Service Int] Test `ingest_document` logic.
