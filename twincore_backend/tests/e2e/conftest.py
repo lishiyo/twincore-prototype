@@ -5,7 +5,8 @@ import asyncio
 import pytest_asyncio
 import numpy as np
 from unittest.mock import AsyncMock
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
+from fastapi.testclient import TestClient
 
 # Add parent directory to path to allow imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
@@ -25,7 +26,9 @@ from dal.neo4j_dal import Neo4jDAL
 from core.config import settings
 from core.db_clients import get_async_qdrant_client, get_neo4j_driver
 from .test_utils import setup_test_databases, clear_test_databases, get_test_neo4j_driver, get_test_async_qdrant_client
+import logging
 
+logger = logging.getLogger(__name__)
 
 # For E2E tests, we want to use the real dependencies and test databases
 
@@ -90,13 +93,28 @@ async def initialized_app():
     
     return app
 
-@pytest_asyncio.fixture(autouse=True)
+@pytest_asyncio.fixture
+async def async_client(initialized_app):
+    """Create an async test client for the FastAPI app."""
+    async with AsyncClient(
+        transport=ASGITransport(app=initialized_app),
+        base_url="http://test"
+    ) as client:
+        yield client
+
+@pytest_asyncio.fixture(autouse=True) # Revert to autouse=True
 async def clear_test_data():
-    """Clear test data before and after each test."""
+    """
+    Clear test data before and after each test. 
+    Runs automatically for all tests in this directory.
+    """
+    logger.info("Clearing test databases before test (autouse=True)")
+    
     # Clear before test
     await clear_test_databases()
     
     yield  # Run the test
     
-    # Clear again after the test
+    # Clear again after the test  
+    logger.info("Clearing test databases after test (autouse=True)")
     await clear_test_databases() 
