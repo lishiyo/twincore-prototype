@@ -161,8 +161,10 @@ The `is_twin_interaction` boolean flag in the Qdrant payload serves a critical r
     *   Standard ingestion endpoints (`/v1/ingest/message`, `/v1/ingest/document`) typically result in chunks with `is_twin_interaction: False`.
     *   Endpoints simulating a direct user-twin interaction (like `/v1/retrieve/private_memory`, which ingests the user's query) should set `is_twin_interaction: True` for the ingested query chunk.
 2.  **Filtering during Retrieval:**
-    *   General context retrieval (e.g., `/v1/retrieve/context`) usually aims to find relevant *Source Content* and should filter *out* records where `is_twin_interaction: True` (using the `exclude_twin_interactions` filter in the DAL).
-    *   Preference retrieval (`/v1/retrieve/preferences`) explicitly filters *out* twin interactions in the vector search component (`QdrantDAL.search_user_preferences`) to focus on the user's original statements.
-    *   Private memory retrieval (`/v1/retrieve/private_memory`) might *include* `is_twin_interaction: True` records if the goal is to show the history of interactions, or filter them depending on the exact use case (e.g., only show source material relevant to the query).
+    *   Retrieval endpoints that perform vector searches can control whether to include Interaction Content using an `include_messages_to_twin` (or similarly named) parameter.
+    *   **Default Behavior:**
+        *   General context retrieval (e.g., `/v1/retrieve/context`, `/v1/retrieve/group`, `/v1/retrieve/timeline`) typically defaults to `include_messages_to_twin: False` to focus on original source material.
+        *   User-specific retrieval like preferences (`/v1/retrieve/preferences`) and private memory (`/v1/retrieve/private_memory`) typically defaults to `include_messages_to_twin: True`, as the user's direct statements to the twin are often crucial for these tasks.
+    *   The DAL methods (`QdrantDAL.search_vectors`, `QdrantDAL.search_user_preferences`) accept a corresponding boolean flag to implement this filtering.
 
-This distinction allows retrieval endpoints to fetch the appropriate type of information based on the user's intent.
+This distinction, controlled by the API parameter, allows retrieval endpoints to fetch the appropriate type of information based on the specific use case.

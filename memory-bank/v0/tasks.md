@@ -223,6 +223,17 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] Ingest real data, call endpoint, verify responses look correct.
         - [x] Debug and fix E2E test failures related to status codes, request payloads, fixture overrides, async timing, and vector search thresholds.
 
+- [x] **Task 7.4: Refine Twin Interaction Filtering** (D: 7.1, 7.2, 7.3)
+    - [ ] Steps:
+        - [ ] Modify `QdrantDAL.search_vectors` and `QdrantDAL.search_user_preferences` to accept `include_twin_interactions: bool` parameter (instead of `exclude_twin_interactions`) and update filtering logic.
+        - [ ] Modify `RetrievalService` and `PreferenceService` methods to accept the new flag (e.g., `include_messages_to_twin`) and pass it to DAL methods. Adjust default behavior based on endpoint purpose (True for preferences/private memory, False otherwise).
+        - [ ] Modify relevant API endpoints (`/context`, `/preferences`, `/private_memory`, `/group`, `/timeline`) to accept the `include_messages_to_twin` parameter (in query or body) with appropriate defaults as specified in `api.md`.
+        - [ ] Update Pydantic models if necessary for the new parameter (e.g., in `PrivateMemoryQuery`).
+        - [ ] [TDD - DAL] Update Qdrant DAL tests to verify filtering behavior with `include_twin_interactions=True` and `include_twin_interactions=False`.
+        - [ ] [TDD - Service] Update Service tests to verify the flag is passed correctly to DAL mocks.
+        - [ ] [TDD - API/Contract] Update API tests to verify the new parameter, its defaults, and schema validation.
+        - [ ] [TDD - E2E] Update relevant E2E tests (e.g., for private memory, context, preferences) to specifically test scenarios with both `include_messages_to_twin=True` and `include_messages_to_twin=False` to ensure correct filtering.
+
 ---
 
 ## Phase 8: Verification UI (Streamlit)

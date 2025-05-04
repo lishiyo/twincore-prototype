@@ -161,12 +161,13 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 ### 3.1 Retrieve Context
 
 *   **Endpoint:** `GET /v1/retrieve/context`
-*   **Description:** Retrieves relevant text chunks based on a semantic query within a specified user and scope (project/session). **By default, this excludes content generated during direct user-twin interactions (i.e., `is_twin_interaction: true`).** Can optionally enrich results with related graph context.
+*   **Description:** Retrieves relevant text chunks based on a semantic query within a specified user and scope (project/session). By default, this excludes content generated during direct user-twin interactions. Use the `include_messages_to_twin` parameter to include them. Can optionally enrich results with related graph context.
 *   **Query Parameters:**
     *   `query_text`: `string` - REQUIRED: The natural language query for semantic search.
     *   `session_id`: `string (uuid), optional` - Scope: Filter by session.
     *   `project_id`: `string (uuid), optional` - Scope: Filter by project.
     *   `limit`: `integer, optional (default: 10)` - Maximum number of chunks to return.
+    *   `include_messages_to_twin`: `boolean, optional (default: False)` - If true, results will include chunks where `is_twin_interaction` is true (i.e., user queries to the twin).
     *   `include_graph`: `boolean, optional (default: False)` - If true, results will be enriched with related graph context (e.g., project details, participants). This may increase response time.
 *   **Responses:**
     *   `200 OK`: Successfully retrieved context chunks.
@@ -200,7 +201,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 ### 3.2 Retrieve Preferences
 
 *   **Endpoint:** `GET /v1/retrieve/preferences`
-*   **Description:** Retrieves known preferences for a user, potentially filtered by project or topic. Combines explicit statements, inferred preferences, and relevant chat history. **It specifically excludes content generated during direct user-twin interactions (i.e., `is_twin_interaction: true`) from the vector search component to focus on the user's original statements.**
+*   **Description:** Retrieves known preferences for a user, potentially filtered by project or topic. Combines explicit statements, inferred preferences, and relevant chat history. By default, this **includes** content generated during direct user-twin interactions (user queries/statements to the twin). Use `include_messages_to_twin=false` to exclude them.
 *   **Query Parameters:**
     *   `user_id`: `string (uuid)` - REQUIRED: The user whose preferences are being queried.
     *   `decision_topic`: `string` - REQUIRED: The topic to find preferences for.
@@ -208,6 +209,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `session_id`: `string (uuid), optional` - Scope: Filter preferences relevant to a specific session.
     *   `limit`: `integer, optional (default: 5)` - Maximum number of preference statements to return.
     *   `score_threshold`: `float, optional (default: 0.6)` - Minimum score for vector search results to be considered.
+    *   `include_messages_to_twin`: `boolean, optional (default: True)` - If false, results from the vector search will exclude chunks where `is_twin_interaction` is true.
 *   **Responses:**
     *   `200 OK`: Successfully retrieved preference information.
       ```json
@@ -234,15 +236,15 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 
 ### 3.3 Retrieve Group Context
 
-*   **Endpoint:** `GET /retrieve/group`
-*   **Description:** Retrieves relevant information (experiences, preferences, or memories) from multiple participants within a defined group scope (session, project, or team) based on a query.
+*   **Endpoint:** `GET /v1/retrieve/group`
+*   **Description:** Retrieves relevant information (experiences, preferences, or memories) from multiple participants within a defined group scope (session, project, or team) based on a query. By default, this excludes content generated during direct user-twin interactions. Use the `include_messages_to_twin` parameter to include them.
 *   **Query Parameters:**
     *   `session_id`: `string (uuid), optional` - Scope: Required if `project_id` and `team_id` are not provided.
     *   `project_id`: `string (uuid), optional` - Scope: Required if `session_id` and `team_id` are not provided.
     *   `team_id`: `string (uuid), optional` - Scope: Required if `session_id` and `project_id` are not provided.
     *   `query`: `string` - REQUIRED: The natural language query for semantic search across the group.
     *   `limit_per_user`: `integer, optional (default: 5)` - Maximum results per user.
-    *Note: Exactly one of `session_id`, `project_id`, or `team_id` must be provided.*
+    *   `include_messages_to_twin`: `boolean, optional (default: False)` - If true, results will include chunks where `is_twin_interaction` is true.
     *   `metadata`: `dict, optional` - Filter here for explicit votes, preferences, or just the results of semantic search across the group.
 *   **Responses:**
     *   `200 OK`: Successfully retrieved group context, grouped by user.
@@ -272,7 +274,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 ### 3.4 Retrieve Related Content (Graph Traversal)
 
 *   **Endpoint:** `GET /retrieve/related_content`
-*   **Description:** Retrieves content chunks related to a specific starting chunk by traversing the Neo4j graph based on relationship types. This method does **not** use vector similarity search.
+*   **Description:** Retrieves content chunks related to a specific starting chunk by traversing the Neo4j graph based on relationship types. This method does **not** use Qdrant vector similarity search.
 *   **Query Parameters:**
     *   `chunk_id`: `string` - REQUIRED: The ID of the starting chunk for traversal.
     *   `limit`: `integer, optional (default: 10)` - Maximum number of related chunks to return.
@@ -313,7 +315,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 ### 3.5 Retrieve by Topic
 
 *   **Endpoint:** `GET /retrieve/topic`
-*   **Description:** Retrieves content chunks related to a specific topic name. Primarily uses graph relationships (e.g., `MENTIONS`), potentially falling back to vector search if no direct graph connections are found.
+*   **Description:** Retrieves content chunks related to a specific topic name. Primarily uses Neo4j graph relationships (e.g., `MENTIONS`), potentially falling back to vector search if no direct graph connections are found.
 *   **Query Parameters:**
     *   `topic_name`: `string` - REQUIRED: The name of the topic to query for.
     *   `limit`: `integer, optional (default: 10)` - Maximum number of chunks to return.
@@ -353,7 +355,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 ### 3.6 Retrieve Private Memory
 
 *   **Endpoint:** `POST /v1/retrieve/private_memory`
-*   **Description:** Retrieves a user's private memory based on semantic search. It also ingests the query itself as a twin interaction (marked with `is_twin_interaction: true`). **The retrieval part typically searches only the user's source content (`is_twin_interaction: false`), excluding previous twin interactions unless specifically designed otherwise.** Can optionally enrich results with related graph context.
+*   **Description:** Retrieves a user's private memory based on semantic search. It also ingests the query itself as a twin interaction (marked with `is_twin_interaction: true`). By default, the retrieval **includes** previous user messages to the twin. Set `include_messages_to_twin` to false in the request body to exclude them. Can optionally enrich results with related graph context.
 *   **Request Body:**
     ```json
     {
@@ -361,7 +363,8 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
       "query_text": "string", // REQUIRED: The query for semantic search
       "project_id": "string (uuid), optional", // Optional context filter
       "session_id": "string (uuid), optional", // Optional context filter
-      "limit": "integer, optional (default: 10)"
+      "limit": "integer, optional (default: 10)",
+      "include_messages_to_twin": "boolean, optional (default: True)" // Control inclusion of interaction history
     }
     ```
 *   **Query Parameters:**
@@ -397,7 +400,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 ### 3.7 Retrieve Entity Connections (Graph Traversal)
 
 *   **Endpoint:** `GET /retrieve/entity_connections`
-*   **Description:** Provides a snapshot of how a specific entity (identified by its primary ID) is connected within the Neo4j knowledge graph. Useful for visualization or exploration.
+*   **Description:** Provides a snapshot of how a specific entity (identified by its primary ID) is connected within the Neo4j knowledge graph. Useful for visualization or exploration. This does NOT include Qdrant vector search.
 *   **Query Parameters:**
     *   `entity_id`: `string` - REQUIRED: The primary ID of the starting entity (e.g., a `chunk_id`, `doc_id`, `user_id`, `topic_name`).
     *   `max_depth`: `integer, optional (default: 1)` - Maximum number of relationship hops to traverse from the starting entity.
@@ -425,7 +428,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 ### 3.8 Retrieve Timeline
 
 *   **Endpoint:** `GET /v1/retrieve/timeline`
-*   **Description:** Retrieves a chronologically sorted list of content chunks (messages, document chunks) within a specified context. **Filtering by `is_twin_interaction` is possible via the underlying DAL method but not directly exposed as a parameter in this endpoint by default.**
+*   **Description:** Retrieves a chronologically sorted list of content chunks (messages, document chunks) within a specified context. By default, this excludes content generated during direct user-twin interactions. Use the `include_messages_to_twin` parameter to include them.
 *   **Query Parameters:**
     *   `user_id`: `string (uuid), optional` - Filter by user.
     *   `project_id`: `string (uuid), optional` - Filter by project.
@@ -434,6 +437,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `end_time`: `string (isoformat), optional` - Filter items created before this time.
     *   `limit`: `integer, optional (default: 50)` - Maximum number of items to return.
     *   `sort_order`: `string ('asc'|'desc'), optional (default: 'desc')` - Sort by timestamp ascending or descending.
+    *   `include_messages_to_twin`: `boolean, optional (default: False)` - If true, results will include chunks where `is_twin_interaction` is true.
 *   **Responses:**
     *   `200 OK`: Successfully retrieved timeline chunks. The response format follows the `ChunksResponse` model, sorted by timestamp. Relevance scores are typically not applicable here.
       ```json
