@@ -46,6 +46,7 @@ class PreferenceService:
         project_id: Optional[str] = None,
         session_id: Optional[str] = None,
         limit: int = 5,
+        score_threshold: Optional[float] = 0.6,
     ) -> Dict[str, Any]:
         """Query user preferences on a specific topic.
         
@@ -59,6 +60,7 @@ class PreferenceService:
             project_id: Optional filter by project ID
             session_id: Optional filter by session ID
             limit: Maximum number of results to return per source
+            score_threshold: Optional score threshold for vector search
             
         Returns:
             Dictionary containing relevant preference statements and metadata
@@ -94,6 +96,7 @@ class PreferenceService:
                 limit=limit,
                 project_id=project_id,
                 session_id=session_id,
+                score_threshold=score_threshold
             )
             logger.info(f"Found {len(vector_results)} preference statements via vector search for user {user_id}")
         except Exception as e:

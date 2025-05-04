@@ -361,6 +361,7 @@ class QdrantDAL(IQdrantDAL):
         limit: int = 5,
         project_id: Optional[str] = None,
         session_id: Optional[str] = None,
+        score_threshold: Optional[float] = 0.6
     ) -> List[Dict[str, Any]]:
         """Search for vectors related to user preferences on a specific topic.
         
@@ -413,22 +414,29 @@ class QdrantDAL(IQdrantDAL):
                 query_vector=vector_data,
                 query_filter=search_filter,
                 limit=limit,
+                score_threshold=score_threshold,
                 with_payload=True,
                 with_vectors=False
             )
-            
-            # Format the results
+
+            # Log the raw results with scores
+            logger.info(f"Raw Qdrant search results for user {user_id} on topic '{decision_topic}': {search_results}")
+
+            # Format the results, applying the score threshold manually
             formatted_results = []
             for hit in search_results:
-                result = {
-                    "chunk_id": hit.id,
-                    "score": hit.score,
-                    "query_topic": decision_topic,
-                    **hit.payload  # Include all payload fields
-                }
-                formatted_results.append(result)
+                # Ensure score meets the threshold if provided
+                if score_threshold is None or hit.score >= score_threshold:
+                    result = {
+                        "chunk_id": hit.id,
+                        "score": hit.score,
+                        "query_topic": decision_topic,
+                        **hit.payload  # Include all payload fields
+                    }
+                    formatted_results.append(result)
             
-            logger.info(f"Found {len(formatted_results)} preference-related chunks for user {user_id} on topic '{decision_topic}'")
+            # Log the count AFTER filtering
+            logger.info(f"Found {len(formatted_results)} preference-related chunks (above threshold {score_threshold}) for user {user_id} on topic '{decision_topic}'")
             return formatted_results
             
         except UnexpectedResponse as e:

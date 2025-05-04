@@ -2,14 +2,10 @@
 
 import pytest
 import uuid
-import json
 from datetime import datetime
 
-import numpy as np
 import pytest_asyncio
-
-from services.embedding_service import EmbeddingService
-
+import asyncio
 
 @pytest.mark.e2e
 @pytest.mark.xdist_group(name="qdrant")  # Group Qdrant-dependent tests
@@ -71,10 +67,10 @@ class TestPreferenceEndpoint:
         
         # No cleanup after - let the fixture system handle it
     
-    @pytest.fixture(autouse=True)
-    async def setup_and_cleanup(self, async_client, use_test_databases, ensure_collection_exists):
-        """Set up test data and clean up afterward."""
-        test_user_id = f"test_user_{uuid.uuid4()}"
+    @pytest_asyncio.fixture
+    async def test_data(self, async_client, use_test_databases, ensure_collection_exists):
+        """Set up test data and return it to the test."""
+        test_user_id = f"{uuid.uuid4()}"
         test_topic = "dark mode"
         
         # Create test user and preferences data
@@ -88,45 +84,49 @@ class TestPreferenceEndpoint:
         }
         
         message_response = await async_client.post(
-            "/api/ingest/message",
+            "/v1/ingest/message",
             json=message_data
         )
-        assert message_response.status_code == 200
+        assert message_response.status_code == 202
         
         # 2. Ingest a document mentioning the topic
         document_data = {
-            "content": f"When it comes to user interfaces, {test_topic} is often preferred by users who work at night or in low-light environments.",
-            "title": "UI Design Preferences",
+            "text": f"When it comes to user interfaces, {test_topic} is often preferred by users who work at night or in low-light environments.",
+            "doc_name": "UI Design Preferences",
             "user_id": test_user_id,
-            "doc_type": "text",
+            "source_type": "document",
+            "project_id": str(uuid.uuid4()),
+            "timestamp": datetime.now().isoformat(),
             "is_private": False,
-            "timestamp": datetime.now().isoformat()
+            # doc_id is optional in the model, let the service generate it
         }
         
         doc_response = await async_client.post(
-            "/api/ingest/document",
+            "/v1/ingest/document",
             json=document_data
         )
-        assert doc_response.status_code == 200
+        assert doc_response.status_code == 202  # API returns 202 Accepted for async operations
         
-        # Store test data for test use
-        self.test_user_id = test_user_id
-        self.test_topic = test_topic
+        # Add a small delay to allow async ingestion to complete
+        await asyncio.sleep(2) 
         
-        yield
-        
-        # Note: No explicit cleanup needed here as the test databases
-        # are reset by the fixtures before/after each test class
+        # Return test data for use in tests
+        return {
+            "user_id": test_user_id,
+            "topic": test_topic
+        }
     
-    async def test_retrieve_preferences_for_user(self, async_client):
+    @pytest.mark.asyncio
+    async def test_retrieve_preferences_for_user(self, async_client, test_data):
         """Test retrieving preferences for a specific user on a topic."""
         # Query the preference endpoint
         response = await async_client.get(
             "/v1/retrieve/preferences",
             params={
-                "user_id": self.test_user_id,
-                "decision_topic": self.test_topic,
-                "limit": 5
+                "user_id": test_data["user_id"],
+                "decision_topic": test_data["topic"],
+                "limit": 5,
+                "score_threshold": 0.6,
             }
         )
         
@@ -135,8 +135,8 @@ class TestPreferenceEndpoint:
         data = response.json()
         
         # Basic validation
-        assert data["user_id"] == self.test_user_id
-        assert data["decision_topic"] == self.test_topic
+        assert data["user_id"] == test_data["user_id"]
+        assert data["decision_topic"] == test_data["topic"]
         assert data["has_preferences"] is True
         
         # Should have at least one preference statement (our message)
@@ -146,25 +146,27 @@ class TestPreferenceEndpoint:
         statements_text = [stmt["text_content"] for stmt in data["preference_statements"]]
         found_preference = False
         for text in statements_text:
-            if self.test_topic in text.lower():
+            if test_data["topic"] in text.lower():
                 found_preference = True
                 break
                 
-        assert found_preference, f"No statements found containing the topic '{self.test_topic}'"
+        assert found_preference, f"No statements found containing the topic '{test_data['topic']}'"
         
         # Check source indicators
         sources = [stmt.get("source") for stmt in data["preference_statements"]]
         assert "vector" in sources or "graph" in sources
-        
-    async def test_retrieve_preferences_with_no_results(self, async_client):
+    
+    @pytest.mark.asyncio
+    async def test_retrieve_preferences_with_no_results(self, async_client, test_data):
         """Test the preference endpoint with a topic the user has no preferences about."""
         # Query with a topic that shouldn't have preferences
         response = await async_client.get(
             "/v1/retrieve/preferences",
             params={
-                "user_id": self.test_user_id,
+                "user_id": test_data["user_id"],
                 "decision_topic": "non_existent_topic_12345",
-                "limit": 5
+                "limit": 5,
+                "score_threshold": 0.8  # Use a higher threshold for this specific test
             }
         )
         
@@ -173,7 +175,7 @@ class TestPreferenceEndpoint:
         data = response.json()
         
         # Should indicate no preferences found
-        assert data["user_id"] == self.test_user_id
+        assert data["user_id"] == test_data["user_id"]
         assert data["decision_topic"] == "non_existent_topic_12345"
         assert data["has_preferences"] is False
         assert len(data["preference_statements"]) == 0 

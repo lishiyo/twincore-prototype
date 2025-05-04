@@ -516,6 +516,7 @@ async def retrieve_preferences(
     project_id: Optional[str] = None,
     session_id: Optional[str] = None,
     limit: int = 5,
+    score_threshold: Optional[float] = 0.6,
     preference_service: PreferenceService = Depends(get_preference_service)
 ):
     """Retrieve the user's preference statements related to a specific decision topic.
@@ -529,6 +530,7 @@ async def retrieve_preferences(
         project_id: Optional project ID for context
         session_id: Optional session ID for context
         limit: Maximum number of preference statements to return
+        score_threshold: Optional score threshold for vector search
         preference_service: The preference service dependency
     
     Returns:
@@ -540,7 +542,8 @@ async def retrieve_preferences(
             decision_topic=decision_topic,
             project_id=project_id,
             session_id=session_id,
-            limit=limit
+            limit=limit,
+            score_threshold=score_threshold
         )
         
         return preference_data

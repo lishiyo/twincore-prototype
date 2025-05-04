@@ -135,6 +135,8 @@ async def use_test_databases():
     from core.db_clients import get_async_qdrant_client as original_get_async_qdrant_client
     from api.routers.retrieve_router import get_retrieval_service as original_get_retrieval_service
     from api.routers.retrieve_router import get_retrieval_service_with_message_connector as original_get_retrieval_service_with_connector
+    from api.routers.ingest_router import get_message_connector as original_get_message_connector
+    from api.routers.ingest_router import get_document_connector as original_get_document_connector
     
     # Import preference service dependency if it exists
     try:
@@ -193,7 +195,33 @@ async def use_test_databases():
             message_connector=message_connector,
         )
     
-    # Create a custom preference service function that uses test databases
+    # Create custom connector functions that use the test databases
+    async def test_get_message_connector():
+        qdrant_client = await test_get_async_qdrant_client()
+        neo4j_driver = await test_get_neo4j_driver()
+        qdrant_dal = QdrantDAL(client=qdrant_client)
+        neo4j_dal = Neo4jDAL(driver=neo4j_driver)
+        embedding_service = EmbeddingService()
+        ingestion_service = IngestionService(embedding_service=embedding_service, qdrant_dal=qdrant_dal, neo4j_dal=neo4j_dal)
+        return MessageConnector(ingestion_service=ingestion_service)
+
+    async def test_get_document_connector():
+        qdrant_client = await test_get_async_qdrant_client()
+        neo4j_driver = await test_get_neo4j_driver()
+        qdrant_dal = QdrantDAL(client=qdrant_client)
+        neo4j_dal = Neo4jDAL(driver=neo4j_driver)
+        embedding_service = EmbeddingService()
+        ingestion_service = IngestionService(embedding_service=embedding_service, qdrant_dal=qdrant_dal, neo4j_dal=neo4j_dal)
+        text_chunker = TextChunker()
+        return DocumentConnector(ingestion_service=ingestion_service, text_chunker=text_chunker)
+    
+    # Apply the overrides
+    app.dependency_overrides[original_get_retrieval_service] = test_get_retrieval_service
+    app.dependency_overrides[original_get_retrieval_service_with_connector] = test_get_retrieval_service_with_connector
+    app.dependency_overrides[original_get_message_connector] = test_get_message_connector
+    app.dependency_overrides[original_get_document_connector] = test_get_document_connector
+    
+    # Apply preference service override if it exists
     if original_get_preference_service:
         async def test_get_preference_service():
             from services.preference_service import PreferenceService
@@ -210,13 +238,6 @@ async def use_test_databases():
                 neo4j_dal=neo4j_dal,
                 embedding_service=embedding_service
             )
-    
-    # Apply the overrides
-    app.dependency_overrides[original_get_retrieval_service] = test_get_retrieval_service
-    app.dependency_overrides[original_get_retrieval_service_with_connector] = test_get_retrieval_service_with_connector
-    
-    # Apply preference service override if it exists
-    if original_get_preference_service:
         app.dependency_overrides[original_get_preference_service] = test_get_preference_service
     
     # Yield control back to the test
@@ -228,4 +249,9 @@ async def use_test_databases():
     if original_get_retrieval_service_with_connector in app.dependency_overrides:
         del app.dependency_overrides[original_get_retrieval_service_with_connector]
     if original_get_preference_service and original_get_preference_service in app.dependency_overrides:
-        del app.dependency_overrides[original_get_preference_service] 
+        del app.dependency_overrides[original_get_preference_service]
+    # --- Add cleanup for ingest connectors ---
+    if original_get_message_connector in app.dependency_overrides:
+        del app.dependency_overrides[original_get_message_connector]
+    if original_get_document_connector in app.dependency_overrides:
+        del app.dependency_overrides[original_get_document_connector] 
