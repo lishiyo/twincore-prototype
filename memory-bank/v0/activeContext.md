@@ -1,15 +1,10 @@
-# TwinCore Active Context - Sat May  3 18:17:49 PDT 2025
+# TwinCore Active Context - Sun May  4 09:16:21 PDT 2025
 
 ## Current Work Focus
 - Implementing TwinCore backend prototype
-- Completed Task 1.1 through Task 4.4
-- Fixed critical backend framework issues:
-  - Async function caching
-  - Database client connection management
-  - Dependency injection configuration
-  - Test failures and fixtures
-  - API model validation
-- Moving to Phase 5: Ingestion Endpoints (`/api/ingest/*`)
+- Completed Task 1.1 through Task 5.1
+- Refactored message ingestion to follow architecture defined in systemPatterns.md
+- Moving to Task 5.2: Ingest Document Endpoint
 
 ## Project State
 ### What's Working
@@ -39,12 +34,16 @@
 - Proper async dependency functions in router files
 - Corrected FastAPI dependency injection throughout the app
 - Comprehensive test fixtures for both sync and async tests
+- Ingestion API Router with message ingestion endpoint
+- MessageConnector in the ingestion/connectors directory
+- Full test coverage for the message ingestion flow
 
 ### What's Broken
 - Nothing currently broken - all tests passing
 
 ## Active Decisions & Considerations
 - Following the layered architecture defined in systemPatterns.md
+- Using the connector pattern for specialized data source handling
 - Implementing strict typing with Pydantic models
 - Using Test-Driven Development approach consistently
 - Using Docker Compose to containerize Qdrant and Neo4j databases
@@ -66,6 +65,7 @@
 - Testing: pytest, httpx, pytest-asyncio, pytest-mock, pytest-cov, Schemathesis
 - Configuration: pydantic-settings with environment variables
 - Qdrant Client: 1.7.0
+- Text Processing: LangChain text splitters (SemanticChunker)
 
 ## Learnings and Insights
 - Standard `@lru_cache` doesn't work correctly with async functions - a custom singleton pattern is required
@@ -74,7 +74,10 @@
 - API model validation requires complete test data with all required fields
 - Proper test documentation improves contributor experience and code quality
 - Clear initialization and cleanup mechanisms are essential for reliable tests
+- Following the architecture defined in systemPatterns.md leads to cleaner code organization
+- Connectors provide a clean way to handle specific data sources while maintaining separation of concerns
 
 ## Next Steps
-- Implement Task 5.1: Ingest Message Endpoint
 - Implement Task 5.2: Ingest Document Endpoint
+- Create DocumentConnector in the ingestion/connectors directory
+- Implement text chunking logic for documents

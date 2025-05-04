@@ -1,29 +1,28 @@
-"""Message Ingestion Service for handling message data ingestion.
+"""Message Connector for handling message data ingestion.
 
-This service specializes in handling message data ingestion, using
+This connector specializes in handling message data ingestion, using
 the core IngestionService for actual data storage operations.
 """
 
 import logging
 import uuid
-import random
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
-from services.ingestion_service import IngestionService, IngestionServiceError
+from services.ingestion_service import IngestionService
 
 logger = logging.getLogger(__name__)
 
 
-class MessageIngestionService:
-    """Service for ingesting message data into the system.
+class MessageConnector:
+    """Connector for ingesting message data into the system.
     
-    This service specializes in handling message-specific ingestion
+    This connector specializes in handling message-specific ingestion
     logic, leveraging the core IngestionService for actual storage.
     """
     
     def __init__(self, ingestion_service: IngestionService):
-        """Initialize the message ingestion service.
+        """Initialize the message connector.
         
         Args:
             ingestion_service: Core service for handling data storage
@@ -32,10 +31,10 @@ class MessageIngestionService:
             ValueError: If the ingestion_service is None
         """
         if ingestion_service is None:
-            raise ValueError("IngestionService must be provided to MessageIngestionService")
+            raise ValueError("IngestionService must be provided to MessageConnector")
         
         self._ingestion_service = ingestion_service
-        logger.info("MessageIngestionService initialized")
+        logger.info("MessageConnector initialized")
     
     async def ingest_message(self, message_data: Dict[str, Any]) -> bool:
         """Ingest a message into the system.
@@ -56,7 +55,6 @@ class MessageIngestionService:
             
         Raises:
             ValueError: If required fields are missing
-            IngestionServiceError: If ingestion fails
         """
         # Validate required fields
         if "text" not in message_data:
@@ -77,7 +75,7 @@ class MessageIngestionService:
         if timestamp is not None and isinstance(timestamp, datetime):
             timestamp = timestamp.isoformat()
         
-        # Generate a UUID for the chunk - using UUID instead of random int
+        # Generate a UUID for the chunk
         chunk_id = str(uuid.uuid4())
         
         logger.info(f"Ingesting message from user {user_id}, message_id: {message_id}")

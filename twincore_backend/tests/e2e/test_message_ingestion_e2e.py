@@ -6,7 +6,7 @@ from datetime import datetime
 from httpx import AsyncClient
 
 from core.db_clients import get_async_qdrant_client, get_neo4j_driver
-from main import app, get_message_ingestion_service
+from main import app, get_message_connector
 from api.routers import ingest_router
 from qdrant_client import models
 
@@ -20,7 +20,7 @@ class TestMessageIngestionE2E:
         """Setup dependencies for the test and cleanup afterward."""
         # For E2E tests, we want to use the real services, not mocks
         # Make sure the default dependency setup from main.py is used
-        app.dependency_overrides[ingest_router.get_message_ingestion_service] = get_message_ingestion_service
+        app.dependency_overrides[ingest_router.get_message_connector] = get_message_connector
         
         yield
         

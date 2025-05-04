@@ -7,7 +7,7 @@ from dal.qdrant_dal import QdrantDAL
 from dal.neo4j_dal import Neo4jDAL
 from services.embedding_service import EmbeddingService
 from services.ingestion_service import IngestionService
-from services.message_ingestion_service import MessageIngestionService
+from ingestion.connectors.message_connector import MessageConnector
 from services.data_seeder_service import DataSeederService
 from services.data_management_service import DataManagementService
 from api.routers import admin_router, ingest_router
@@ -23,7 +23,7 @@ _embedding_service = None
 _qdrant_dal = None
 _neo4j_dal = None
 _ingestion_service = None
-_message_ingestion_service = None
+_message_connector = None
 _data_seeder_service = None
 _data_management_service = None
 
@@ -63,14 +63,14 @@ async def get_ingestion_service() -> IngestionService:
         )
     return _ingestion_service
 
-async def get_message_ingestion_service() -> MessageIngestionService:
-    """Create and cache the MessageIngestionService."""
-    global _message_ingestion_service
-    if _message_ingestion_service is None:
-        _message_ingestion_service = MessageIngestionService(
+async def get_message_connector() -> MessageConnector:
+    """Create and cache the MessageConnector."""
+    global _message_connector
+    if _message_connector is None:
+        _message_connector = MessageConnector(
             ingestion_service=await get_ingestion_service()
         )
-    return _message_ingestion_service
+    return _message_connector
 
 async def get_data_seeder_service() -> DataSeederService:
     """Create and cache the DataSeederService."""
@@ -98,7 +98,7 @@ app.include_router(ingest_router.router)
 # Set up application-level dependency overrides
 app.dependency_overrides[admin_router.get_data_seeder_service] = get_data_seeder_service
 app.dependency_overrides[admin_router.get_data_management_service] = get_data_management_service
-app.dependency_overrides[ingest_router.get_message_ingestion_service] = get_message_ingestion_service
+app.dependency_overrides[ingest_router.get_message_connector] = get_message_connector
 
 @app.get("/")
 async def root():

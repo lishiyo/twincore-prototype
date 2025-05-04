@@ -4,7 +4,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from api.models import MessageIngest, StatusResponse
-from services.message_ingestion_service import MessageIngestionService
+from ingestion.connectors.message_connector import MessageConnector
 
 logger = logging.getLogger(__name__)
 
@@ -14,8 +14,8 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-# Define a dependency function to get MessageIngestionService instance
-async def get_message_ingestion_service() -> MessageIngestionService:
+# Define a dependency function to get MessageConnector instance
+async def get_message_connector() -> MessageConnector:
     """
     This is just a placeholder function for FastAPI's dependency injection.
     The actual implementation will be provided via dependency_overrides in main.py.
@@ -34,13 +34,13 @@ async def get_message_ingestion_service() -> MessageIngestionService:
 )
 async def ingest_message(
     message: MessageIngest,
-    message_ingestion_service: MessageIngestionService = Depends(get_message_ingestion_service)
+    message_connector: MessageConnector = Depends(get_message_connector)
 ) -> StatusResponse:
     """Ingest a message into the system.
     
     Args:
         message: The message data to ingest
-        message_ingestion_service: Service for ingesting messages (injected by FastAPI)
+        message_connector: Connector for ingesting messages (injected by FastAPI)
         
     Returns:
         StatusResponse: Status information about the ingestion
@@ -51,11 +51,11 @@ async def ingest_message(
     try:
         logger.info(f"Request to ingest message from user {message.user_id}")
         
-        # Convert the Pydantic model to a dictionary for the service
+        # Convert the Pydantic model to a dictionary for the connector
         message_data = message.model_dump()
         
         # Ingest the message
-        await message_ingestion_service.ingest_message(message_data)
+        await message_connector.ingest_message(message_data)
         
         logger.info(f"Successfully ingested message from user {message.user_id}")
         return StatusResponse(status="accepted", message="Message received and queued for ingestion.")

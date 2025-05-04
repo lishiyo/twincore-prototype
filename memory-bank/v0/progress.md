@@ -1,3 +1,29 @@
+## Sat May 3 09:15:53 PDT 2025 - Refactored Message Ingestion to Follow Architecture Pattern
+
+## Changes since last update
+- Refactored message ingestion to follow the architecture defined in systemPatterns.md:
+  - Moved `MessageIngestionService` from `services/` to `ingestion/connectors/`
+  - Renamed to `MessageConnector` to better reflect its role in the architecture
+  - Updated all imports and references throughout the codebase
+  - Fixed tests to use the new connector structure
+  - Ensured all unit, integration, and E2E tests pass with the refactored structure
+- Maintained proper architectural boundaries:
+  - Connectors handle specific data sources (messages in this case)
+  - Core services handle more generic operations (like the IngestionService)
+  - The API layer uses connectors via dependency injection
+
+## Learnings
+- Following the layered architecture from systemPatterns.md helps maintain clean separation of concerns
+- Connectors provide a specialized layer for handling specific input types
+- Consistent naming conventions make the codebase easier to understand
+- Tests are essential when refactoring to ensure functionality remains intact
+- Proper dependency injection makes it easy to update implementation details without breaking the API
+
+## Next steps
+- Continue with Task 5.2: Implement Document Ingestion Endpoint
+- Create a DocumentConnector following the same pattern
+- Implement text chunking logic for documents
+
 ## Sat May  3 18:17:49 PDT 2025 - Fixed Backend Framework Issues
 
 ## Changes since last update

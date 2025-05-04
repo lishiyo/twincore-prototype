@@ -8,28 +8,28 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from services.message_ingestion_service import MessageIngestionService
+from ingestion.connectors.message_connector import MessageConnector
 from api.routers import ingest_router
 
 
 @pytest.fixture
-def mock_message_ingestion_service():
-    """Mock MessageIngestionService for testing."""
-    service = AsyncMock(spec=MessageIngestionService)
-    return service
+def mock_message_connector():
+    """Mock MessageConnector for testing."""
+    connector = AsyncMock(spec=MessageConnector)
+    return connector
 
 
 class TestMessageIngestionEndpoint:
     """Tests for the message ingestion endpoint."""
 
-    def test_ingest_message_success(self, client, mock_message_ingestion_service):
+    def test_ingest_message_success(self, client, mock_message_connector):
         """Test successful message ingestion."""
         # Arrange
-        mock_message_ingestion_service.ingest_message.return_value = True
+        mock_message_connector.ingest_message.return_value = True
         
         # Apply the mock using FastAPI's dependency_overrides
         from main import app
-        app.dependency_overrides[ingest_router.get_message_ingestion_service] = lambda: mock_message_ingestion_service
+        app.dependency_overrides[ingest_router.get_message_connector] = lambda: mock_message_connector
         
         # Test data
         message_data = {
@@ -49,19 +49,19 @@ class TestMessageIngestionEndpoint:
         # Assert
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.json() == {"status": "accepted", "message": "Message received and queued for ingestion."}
-        mock_message_ingestion_service.ingest_message.assert_called_once()
+        mock_message_connector.ingest_message.assert_called_once()
         
         # Clean up
         app.dependency_overrides.clear()
 
-    def test_ingest_message_without_optional_fields(self, client, mock_message_ingestion_service):
+    def test_ingest_message_without_optional_fields(self, client, mock_message_connector):
         """Test message ingestion with only required fields."""
         # Arrange
-        mock_message_ingestion_service.ingest_message.return_value = True
+        mock_message_connector.ingest_message.return_value = True
         
         # Apply the mock using FastAPI's dependency_overrides
         from main import app
-        app.dependency_overrides[ingest_router.get_message_ingestion_service] = lambda: mock_message_ingestion_service
+        app.dependency_overrides[ingest_router.get_message_connector] = lambda: mock_message_connector
         
         # Test data with only required fields
         message_data = {
@@ -75,16 +75,16 @@ class TestMessageIngestionEndpoint:
         
         # Assert
         assert response.status_code == status.HTTP_202_ACCEPTED
-        mock_message_ingestion_service.ingest_message.assert_called_once()
+        mock_message_connector.ingest_message.assert_called_once()
         
         # Clean up
         app.dependency_overrides.clear()
 
-    def test_ingest_message_missing_required_fields(self, client, mock_message_ingestion_service):
+    def test_ingest_message_missing_required_fields(self, client, mock_message_connector):
         """Test message ingestion fails with missing required fields."""
         # Apply the mock using FastAPI's dependency_overrides
         from main import app
-        app.dependency_overrides[ingest_router.get_message_ingestion_service] = lambda: mock_message_ingestion_service
+        app.dependency_overrides[ingest_router.get_message_connector] = lambda: mock_message_connector
         
         # Test data missing required user_id
         message_data = {
@@ -101,14 +101,14 @@ class TestMessageIngestionEndpoint:
         # Clean up
         app.dependency_overrides.clear()
 
-    def test_ingest_message_service_error(self, client, mock_message_ingestion_service):
+    def test_ingest_message_service_error(self, client, mock_message_connector):
         """Test handling of service errors during message ingestion."""
         # Arrange
-        mock_message_ingestion_service.ingest_message.side_effect = Exception("Test error")
+        mock_message_connector.ingest_message.side_effect = Exception("Test error")
         
         # Apply the mock using FastAPI's dependency_overrides
         from main import app
-        app.dependency_overrides[ingest_router.get_message_ingestion_service] = lambda: mock_message_ingestion_service
+        app.dependency_overrides[ingest_router.get_message_connector] = lambda: mock_message_connector
         
         # Test data
         message_data = {

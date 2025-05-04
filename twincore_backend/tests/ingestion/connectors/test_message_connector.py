@@ -1,4 +1,4 @@
-"""Tests for MessageIngestionService."""
+"""Tests for MessageConnector."""
 
 import asyncio
 import uuid
@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import ValidationError
 
-from services.message_ingestion_service import MessageIngestionService
+from ingestion.connectors.message_connector import MessageConnector
 from services.ingestion_service import IngestionService, IngestionServiceError
 
 
@@ -20,18 +20,18 @@ def mock_ingestion_service():
 
 
 @pytest.fixture
-def message_ingestion_service(mock_ingestion_service):
-    """Create MessageIngestionService with mocked dependencies."""
-    return MessageIngestionService(
+def message_connector(mock_ingestion_service):
+    """Create MessageConnector with mocked dependencies."""
+    return MessageConnector(
         ingestion_service=mock_ingestion_service
     )
 
 
-class TestMessageIngestionService:
-    """Tests for MessageIngestionService."""
+class TestMessageConnector:
+    """Tests for MessageConnector."""
 
     @pytest.mark.asyncio
-    async def test_ingest_message_success(self, message_ingestion_service, mock_ingestion_service):
+    async def test_ingest_message_success(self, message_connector, mock_ingestion_service):
         """Test successful message ingestion."""
         # Arrange
         message_data = {
@@ -48,7 +48,7 @@ class TestMessageIngestionService:
         mock_ingestion_service.ingest_chunk.return_value = True
         
         # Act
-        result = await message_ingestion_service.ingest_message(message_data)
+        result = await message_connector.ingest_message(message_data)
         
         # Assert
         assert result is True
@@ -68,7 +68,7 @@ class TestMessageIngestionService:
         assert isinstance(call_args["chunk_id"], str)
 
     @pytest.mark.asyncio
-    async def test_ingest_message_generates_message_id_if_not_provided(self, message_ingestion_service, mock_ingestion_service):
+    async def test_ingest_message_generates_message_id_if_not_provided(self, message_connector, mock_ingestion_service):
         """Test message ingestion generates message_id if not provided."""
         # Arrange
         message_data = {
@@ -83,7 +83,7 @@ class TestMessageIngestionService:
         mock_ingestion_service.ingest_chunk.return_value = True
         
         # Act
-        result = await message_ingestion_service.ingest_message(message_data)
+        result = await message_connector.ingest_message(message_data)
         
         # Assert
         assert result is True
@@ -98,7 +98,7 @@ class TestMessageIngestionService:
             pytest.fail(f"Generated message_id is not a valid UUID: {call_args['message_id']}")
 
     @pytest.mark.asyncio
-    async def test_ingest_message_handles_ingestion_error(self, message_ingestion_service, mock_ingestion_service):
+    async def test_ingest_message_handles_ingestion_error(self, message_connector, mock_ingestion_service):
         """Test handling of ingestion service errors."""
         # Arrange
         message_data = {
@@ -112,10 +112,10 @@ class TestMessageIngestionService:
         
         # Act & Assert
         with pytest.raises(IngestionServiceError):
-            await message_ingestion_service.ingest_message(message_data)
+            await message_connector.ingest_message(message_data)
 
     @pytest.mark.asyncio
-    async def test_ingest_message_validates_required_fields(self, message_ingestion_service):
+    async def test_ingest_message_validates_required_fields(self, message_connector):
         """Test that message ingestion validates required fields."""
         # Arrange
         # Missing required field 'user_id'
@@ -126,4 +126,4 @@ class TestMessageIngestionService:
         
         # Act & Assert
         with pytest.raises(ValueError, match="user_id"):
-            await message_ingestion_service.ingest_message(message_data) 
+            await message_connector.ingest_message(message_data) 
