@@ -390,3 +390,96 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
       ```
     *   `400 Bad Request`: Invalid request body.
     *   `401 Unauthorized`: Missing or invalid authentication token.
+
+### 3.7 Retrieve Entity Connections (Graph Traversal)
+
+*   **Endpoint:** `GET /retrieve/entity_connections`
+*   **Description:** Provides a snapshot of how a specific entity (identified by its primary ID) is connected within the Neo4j knowledge graph. Useful for visualization or exploration.
+*   **Query Parameters:**
+    *   `entity_id`: `string` - REQUIRED: The primary ID of the starting entity (e.g., a `chunk_id`, `doc_id`, `user_id`, `topic_name`).
+    *   `max_depth`: `integer, optional (default: 1)` - Maximum number of relationship hops to traverse from the starting entity.
+    *   `limit`: `integer, optional (default: 25)` - Maximum number of connections (nodes + relationships) to return.
+*   **Responses:**
+    *   `200 OK`: Successfully retrieved graph connections.
+      ```json
+      {
+        "start_node": { "id": "string", "labels": ["string"], "properties": { ... } },
+        "connections": [
+          {
+            "node": { "id": "string", "labels": ["string"], "properties": { ... } },
+            "relationship": { "type": "string", "direction": "string ('outgoing'|'incoming')", "properties": { ... } },
+            "depth": "integer"
+          }
+          // ... more connections
+        ],
+        "total_connections": "integer"
+      }
+      ```
+    *   `400 Bad Request`: Missing required query parameter (`entity_id`).
+    *   `401 Unauthorized`: Missing or invalid authentication token.
+    *   `404 Not Found`: If the starting `entity_id` does not exist in Neo4j.
+
+### 3.8 Retrieve Timeline
+
+*   **Endpoint:** `GET /retrieve/timeline`
+*   **Description:** Retrieves a chronologically sorted list of content chunks (messages, document chunks) within a specified context.
+*   **Query Parameters:**
+    *   `user_id`: `string (uuid), optional` - Filter by user.
+    *   `project_id`: `string (uuid), optional` - Filter by project.
+    *   `session_id`: `string (uuid), optional` - Filter by session.
+    *   `start_time`: `string (isoformat), optional` - Filter items created after this time.
+    *   `end_time`: `string (isoformat), optional` - Filter items created before this time.
+    *   `limit`: `integer, optional (default: 50)` - Maximum number of items to return.
+    *   `sort_order`: `string ('asc'|'desc'), optional (default: 'desc')` - Sort by timestamp ascending or descending.
+*   **Responses:**
+    *   `200 OK`: Successfully retrieved timeline chunks. The response format follows the `ChunksResponse` model, sorted by timestamp. Relevance scores are typically not applicable here.
+      ```json
+      {
+        "chunks": [ // Sorted by timestamp
+          {
+            "chunk_id": "string (uuid)",
+            "text": "string",
+            "source_type": "string",
+            "timestamp": "string (isoformat)",
+            "user_id": "string (uuid), optional",
+            // ... other standard chunk fields
+            "metadata": { ... }
+          }
+        ],
+        "total": "integer"
+      }
+      ```
+    *   `400 Bad Request`: Invalid time format or filter combination.
+    *   `401 Unauthorized`: Missing or invalid authentication token.
+
+### 3.9 Suggest Related Entities
+
+*   **Endpoint:** `GET /suggest/related_entities`
+*   **Description:** Suggests related entities (Topics, Documents, Users) based on either a specific content chunk or a natural language query, leveraging graph connections.
+*   **Query Parameters:**
+    *   `chunk_id`: `string, optional` - Context: ID of a specific chunk to find related entities for.
+    *   `query_text`: `string, optional` - Context: A natural language query to find related entities for (performs semantic search first).
+    *   `limit_topics`: `integer, optional (default: 5)` - Max number of suggested topics.
+    *   `limit_docs`: `integer, optional (default: 3)` - Max number of suggested documents.
+    *   `limit_users`: `integer, optional (default: 3)` - Max number of suggested users.
+    *Note: Exactly one of `chunk_id` or `query_text` must be provided.*
+*   **Responses:**
+    *   `200 OK`: Successfully generated suggestions.
+      ```json
+      {
+        "suggestions": {
+          "topics": [
+            { "id": "string", "name": "string", "relevance_score": "float, optional" }
+          ],
+          "documents": [
+            { "id": "string (uuid)", "name": "string, optional", "relevance_score": "float, optional" }
+          ],
+          "users": [
+            { "id": "string (uuid)", "name": "string, optional", "relevance_score": "float, optional" }
+          ]
+        }
+      }
+      ```
+    *   `400 Bad Request`: Missing context parameter, or both `chunk_id` and `query_text` provided.
+    *   `401 Unauthorized`: Missing or invalid authentication token.
+    *   `404 Not Found`: If `chunk_id` is provided but not found.

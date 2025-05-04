@@ -204,7 +204,7 @@ This document outlines the development tasks for building the TwinCore backend p
 
 - [ ] **Task 7.1: Preference Service & DAL Methods** (D: 3.3, 3.4, Phase 4)
     - [ ] Steps:
-        - [ ] Define & Implement necessary DAL methods for finding user statements/messages related to a topic (querying past statements/data) in `dal/qdrant_dal.py` and/or `dal/neo4j_dal.py`. *Note: Relies on existing data/embeddings for prototype; explicit Preference nodes are phase 9.*
+        - [ ] Define & Implement necessary DAL methods for finding user statements/messages related to a topic (querying past statements/data) in `dal/qdrant_dal.py` and/or `dal/neo4j_dal.py`. *Note: Relies on existing data/embeddings for prototype; explicit Preference nodes are phase 9.* 
         - [ ] Create `services/preference_service.py`. Implement `PreferenceService` taking DAL dependencies.
         - [ ] Implement `query_user_preference(data)` logic in `PreferenceService`.
         - [ ] [TDD Steps]:
@@ -213,7 +213,7 @@ This document outlines the development tasks for building the TwinCore backend p
 
 - [ ] **Task 7.2: Preference API Endpoint** (D: 2.1, 7.1)
     - [ ] Steps:
-        - [ ] Create `api/routers/query_router.py`. Define `POST /api/query/user_preference`. Use Pydantic models. Inject service. Register router.
+        - [ ] Define the API endpoint structure for preference retrieval (using Pydantic models) in a relevant router (e.g., `retrieve_router.py` or a new `query_router.py`). Ensure it aligns with the final API spec (`GET /v1/retrieve/preferences`). Inject the service. Register router.
         - [ ] [TDD Steps]:
             - [ ] [API/Contract] Test endpoint schema/status.
 
@@ -297,3 +297,64 @@ This document outlines the development tasks for building the TwinCore backend p
         - [ ] Review code for clarity, consistency, and adherence to patterns (`systemPatterns.md`).
         - [ ] Refactor code as needed based on testing and review.
         - [ ] Update `README.md` with final usage instructions.
+
+---
+
+## Phase 11: Advanced Retrieval & Suggestions
+
+*Note: This phase implements the more advanced retrieval endpoints suggested during the design review, leveraging combined Qdrant/Neo4j strategies outlined in `memory-bank/v1/retrieval_improvement.md`.* 
+
+- [ ] **Task 11.1: Implement Full User Preference Endpoint (`/retrieve/preferences`)** (D: 2.1, 7.1 - requires refinement/completion)
+    - [ ] Steps:
+        - [ ] Refine/Implement `PreferenceService` and DAL methods (Neo4j query for preferences, Qdrant for related statements).
+        - [ ] Define `GET /retrieve/preferences` endpoint in a relevant router (e.g., `query_router.py` or `retrieve_router.py`). Use Pydantic models.
+        - [ ] [TDD Steps]:
+            - [ ] [DAL Int] Test preference retrieval queries (requires seeding explicit/implicit preference data or reliable extraction).
+            - [ ] [Service Int] Test `PreferenceService` logic.
+            - [ ] [API/Contract] Test endpoint schema/status.
+            - [ ] [E2E] Test full preference retrieval scenario.
+
+- [ ] **Task 11.2: Implement Group Context Endpoint (`/retrieve/group`)** (D: 2.1, 6.1)
+    - [ ] Steps:
+        - [ ] Implement `retrieve_group_context(data)` logic in `RetrievalService` (identify participants via Neo4j, query Qdrant per user/group, aggregate results).
+        - [ ] Define `GET /retrieve/group` endpoint in `retrieve_router.py`. Use Pydantic models. Inject RetrievalService.
+        - [ ] [TDD Steps]:
+            - [ ] [DAL Int/Service Int] Test participant identification and cross-user Qdrant querying logic.
+            - [ ] [API/Contract] Verify specific request/response for this endpoint.
+            - [ ] [E2E] Test scenario retrieving context across multiple users in a project/session.
+
+- [ ] **Task 11.3: Implement Entity Connections Endpoint (`/retrieve/entity_connections`)** (D: 3.3)
+    - [ ] Steps:
+        - [ ] Implement `get_entity_connections(entity_id, depth, limit)` method in `Neo4jDAL` to perform graph traversal.
+        - [ ] Implement corresponding service method in `RetrievalService`.
+        - [ ] Define `GET /retrieve/entity_connections` endpoint in `retrieve_router.py`. Use Pydantic models.
+        - [ ] [TDD Steps]:
+            - [ ] [DAL Int] Test graph traversal query in Neo4jDAL.
+            - [ ] [API/Contract] Test endpoint schema/status.
+            - [ ] [E2E] Call endpoint for various entity types, verify connections.
+
+- [ ] **Task 11.4: Implement Timeline Endpoint (`/retrieve/timeline`)** (D: 3.4)
+    - [ ] Steps:
+        - [ ] Implement time-based filtering and sorting logic in `QdrantDAL` or adapt `search_vectors`.
+        - [ ] Implement `retrieve_timeline(data)` method in `RetrievalService`.
+        - [ ] Define `GET /retrieve/timeline` endpoint in `retrieve_router.py`. Use Pydantic models.
+        - [ ] [TDD Steps]:
+            - [ ] [DAL Int] Test Qdrant time filtering/sorting.
+            - [ ] [API/Contract] Test endpoint schema/status.
+            - [ ] [E2E] Test retrieving chronological data within different contexts.
+
+- [ ] **Task 11.5: Implement Suggest Related Entities Endpoint (`/suggest/related_entities`)** (D: 3.3, 3.4, 6.1)
+    - [ ] Steps:
+        - [ ] Implement `suggest_related_entities(context)` logic in `RetrievalService` (handle chunk_id vs query_text input, combine Qdrant lookup + Neo4j traversal).
+        - [ ] Define `GET /suggest/related_entities` endpoint in `retrieve_router.py`. Use Pydantic models.
+        - [ ] [TDD Steps]:
+            - [ ] [Service Int] Test suggestion logic, mocking DALs.
+            - [ ] [API/Contract] Test endpoint schema/status.
+            - [ ] [E2E] Test suggestions for different inputs (chunk vs query).
+
+- [ ] **Task 11.6: (Optional) Implement Advanced Retrieval Strategies** (D: All Phase 11 endpoints, `v1_retrieval.md`)
+    - [ ] Steps:
+        - [ ] Choose one or more strategies (Graph-Enhanced RAG, Re-ranking, Query Expansion) from `v1_retrieval.md`.
+        - [ ] Refactor relevant `RetrievalService` methods and potentially DAL methods to implement the chosen strategy.
+        - [ ] Add flags/parameters to API endpoints if needed to control the strategy.
+        - [ ] Write tests specifically verifying the impact of the new strategy (e.g., checking enriched metadata, verifying rank changes).
