@@ -25,7 +25,7 @@ For the full project, we would be using Postgres, Qdrant, and Neo4j. For the pro
   "user_id": "uuid | null", // Author/owner of the content, OR the user interacting with the twin. Null if system-generated/unowned.
   "session_id": "uuid | null", // Session context, if applicable
   "project_id": "uuid | null", // Project context, if applicable
-  "doc_id": "uuid | null", // Source document ID, if applicable
+  "doc_id": "uuid | null", // Source document ID, if applicable. **For transcript_snippet, this MUST be the consistent ID of the parent transcript Document.**
   "message_id": "uuid | null", // Source message ID, if applicable
   // --- IDs for future use (keep nullable for prototype) ---
   "preference_id": "uuid | null", // If this chunk is an explicit preference statement
@@ -72,7 +72,7 @@ Models relationships essential for context, authorship, and preference tracking 
 *   `Session`
     *   Properties: `session_id` (UUID, primary key), `timestamp` (approx. start time)
 *   `Document`
-    *   Properties: `document_id` (UUID, primary key), `name`, `source_type`, `is_private` (boolean, mirrors Qdrant flag)
+    *   Properties: `document_id` (UUID, primary key), `name`, `source_type`, `is_private` (boolean, mirrors Qdrant flag), `source_uri` (string, nullable, URI to raw file if applicable)
 *   `Message`
     *   Properties: `message_id` (UUID, primary key), `timestamp`, `is_twin_interaction` (boolean, mirrors Qdrant flag)
 *   `Preference` *(Used if explicitly modeling stated preferences)*
@@ -149,16 +149,15 @@ Models relationships essential for context, authorship, and preference tracking 
 
 The `is_twin_interaction` boolean flag in the Qdrant payload serves a critical role in distinguishing the origin and nature of the text content:
 
-*   **`is_twin_interaction: False` (or null/absent):** Represents **Source Content**. This is the raw material ingested from external user activities, such as messages sent in a chat application, uploaded documents, calendar entries, transcripts, etc. It forms the basis of the twin's knowledge.
+*   **`is_twin_interaction: False` (or null/absent):** Represents **Source Content**. This is the raw material ingested from external user activities, such as messages sent in a chat application (`source_type: 'message'`), uploaded documents (`source_type: 'document_chunk'`), or transcript utterances (`source_type: 'transcript_snippet'`). It forms the basis of the twin's knowledge.
 
 *   **`is_twin_interaction: True`:** Represents **Interaction Content**. This data is generated *specifically* during a direct interaction loop between a user and their digital twin. This typically includes:
-    *   The user's query or prompt directed *to* the twin (e.g., when calling `/v1/retrieve/private_memory`).
-    *   *(Future)* The twin's generated response back to the user.
+    *   The user's query or prompt directed *to* the twin (e.g., when calling `/v1/retrieve/private_memory` which yields `source_type: 'twin_chat_query'`).
 
 **Usage Pattern:**
 
 1.  **Setting the Flag:**
-    *   Standard ingestion endpoints (`/v1/ingest/message`, `/v1/ingest/document`) typically result in chunks with `is_twin_interaction: False`.
+    *   Standard ingestion endpoints (`/v1/ingest/message`, `/v1/ingest/document`, `/v1/ingest/chunk`) typically result in chunks with `is_twin_interaction: False`.
     *   Endpoints simulating a direct user-twin interaction (like `/v1/retrieve/private_memory`, which ingests the user's query) should set `is_twin_interaction: True` for the ingested query chunk.
 2.  **Filtering during Retrieval:**
     *   Retrieval endpoints that perform vector searches can control whether to include Interaction Content using an `include_messages_to_twin` (or similarly named) parameter.

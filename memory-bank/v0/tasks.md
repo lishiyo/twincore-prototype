@@ -234,6 +234,27 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] [TDD - API/Contract] Update API tests to verify the new parameter, its defaults, and schema validation.
         - [x] [TDD - E2E] Update relevant E2E tests (e.g., for private memory, context, preferences) to specifically test scenarios with both `include_messages_to_twin=True` and `include_messages_to_twin=False` to ensure correct filtering.
 
+- [ ] **Task 7.5: Implement Transcript Ingestion Strategy** (D: 2.1, 3.3, 3.4, 3.5)
+    - [ ] Steps:
+        - [ ] **Sub-task 7.5.1: Update Neo4j DAL for Document Metadata**
+            - [ ] Add `source_uri` property handling to `Document` node creation/update methods in `dal/neo4j_dal.py`.
+            - [ ] Add new method `update_document_metadata(doc_id, source_uri=None, metadata=None)` to update existing document nodes.
+            - [ ] [DAL Int] Write/update integration tests to verify `source_uri` and metadata updates on `Document` nodes.
+        - [ ] **Sub-task 7.5.2: Implement Chunk Ingestion Logic**
+            - [ ] Add `ingest_chunk(data)` method to `ingestion/connectors/document_connector.py` (or a new `transcript_connector.py`).
+            - [ ] Logic should ensure parent `Document` node exists in Neo4j (creating if first chunk via DAL call) and upsert chunk to Qdrant via DAL.
+            - [ ] [Service Int] Test `ingest_chunk` logic in isolation, mocking DAL calls.
+        - [ ] **Sub-task 7.5.3: Implement Chunk Ingestion API Endpoint (`/v1/ingest/chunk`)**
+            - [ ] Define `POST /v1/ingest/chunk` endpoint in `api/routers/ingest_router.py`. Use Pydantic models. Inject relevant connector/service.
+            - [ ] [API/Contract] Write API test verifying endpoint schema, request/response, status code.
+            - [ ] [E2E] Write E2E test: Call `/v1/ingest/chunk` multiple times for the same `doc_id`, verify chunks in Qdrant with correct metadata and the parent `Document` node in Neo4j.
+        - [ ] **Sub-task 7.5.4: Implement Document Metadata Update API Endpoint (`/v1/documents/{doc_id}/metadata`)**
+            - [ ] Define `POST /v1/documents/{doc_id}/metadata` endpoint in a relevant router (e.g., `api/routers/admin_router.py` or `ingest_router.py`).
+            - [ ] Add service logic (e.g., in `DataManagementService` or `IngestionService`) to call the new `neo4j_dal.update_document_metadata` method.
+            - [ ] [Service Int] Test service logic for metadata updates, mocking DAL.
+            - [ ] [API/Contract] Write API test verifying endpoint schema, path parameter, request/response, status code.
+            - [ ] [E2E] Write E2E test: Create a document via ingestion, then call `/v1/documents/{doc_id}/metadata` to update `source_uri`, verify change in Neo4j.
+
 ---
 
 ## Phase 8: Verification UI (Streamlit)
@@ -250,17 +271,24 @@ This document outlines the development tasks for building the TwinCore backend p
         - [ ] Implement Canvas Agent Simulation section (text inputs, buttons for context/preference).
         - [ ] Implement User <> Twin Interaction section (text area, button).
         - [ ] Implement Document Upload Simulation section (text inputs, checkbox, button).
+        - [ ] Implement **Transcript Simulation Section:**
+            - [ ] Text input for `doc_id` (to represent the ongoing transcript).
+            - [ ] Text area for entering utterance chunks.
+            - [ ] Button like "Send Utterance Chunk".
+            - [ ] Button like "Finalize Transcript & Add URI" (requires input for URI).
         - [ ] Implement Output Display area (`st.text_area` or `st.json`).
 
 - [ ] **Task 8.3: Backend API Integration** (D: 4.3, 5.1, 5.2, 6.2, 6.3, 7.2, 8.2)
     - [ ] Steps:
-        - [ ] Add `requests` calls within button callbacks to hit the corresponding backend API endpoints (`/retrieve/context`, `/query/user_preference`, `/retrieve/private_memory`, `/ingest/document`, `/ingest/message` implicitly via private memory).
+        - [ ] Add `requests` calls within button callbacks to hit the corresponding backend API endpoints (`/v1/retrieve/context`, `/v1/retrieve/preferences`, `/v1/retrieve/private_memory`, `/v1/ingest/document`, `/v1/ingest/message` implicitly via private memory).
+        - [ ] Add `requests` call for "Send Utterance Chunk" button to hit `POST /v1/ingest/chunk` with `doc_id`, selected user, utterance text, session context.
+        - [ ] Add `requests` call for "Finalize Transcript" button to hit `POST /v1/documents/{doc_id}/metadata` with `doc_id`, `source_uri` input, etc.
         - [ ] Pass appropriate data (selected user ID, text inputs, context IDs) to the API calls.
         - [ ] Display API responses in the Output Display area.
 
 - [ ] **Task 8.4: (Bonus) DB Stats Display** (D: 8.3, potentially new admin endpoints)
     - [ ] Steps:
-        - [ ] (Optional) Create simple backend endpoints in `admin_router.py` to return counts from Qdrant/Neo4j (e.g., `/api/stats/qdrant_count`, `/api/stats/neo4j_nodes`). Test these endpoints.
+        - [ ] (Optional) Create simple backend endpoints in `admin_router.py` to return counts from Qdrant/Neo4j (e.g., `/v1/stats/qdrant_count`, `/v1/stats/neo4j_nodes`). Test these endpoints.
         - [ ] Add a "Show DB Stats" button to Streamlit UI.
         - [ ] Call the stats endpoints and display results.
 
