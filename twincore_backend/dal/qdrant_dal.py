@@ -146,50 +146,32 @@ class QdrantDAL(IQdrantDAL):
                 payload.update(metadata)
             
             # Ensure vector is in the correct format (list)
-            if isinstance(vector, np.ndarray):
-                vector_data = vector.tolist()
-            else:
-                vector_data = vector
+            vector_data = vector.tolist() if isinstance(vector, np.ndarray) else vector
                 
             # Check for NaN or Inf values in the vector
             if not np.isfinite(vector_data).all():
                 logger.error(f"Vector for chunk_id={chunk_id} contains NaN or Inf values.")
                 raise ValueError(f"Vector for chunk_id={chunk_id} contains NaN or Inf values.")
-                
-            # Use models.PointStruct directly
-            # point = PointStruct(
-            #     id=chunk_id,
-            #     vector=vector_data,
-            #     payload=payload
-            # )
             
-            # Log the points structure before upserting
-            # points=[point]  # Pass the PointStruct instance inside a list
-            # logger.debug(f"Upserting points: {points}")
+            # debug vector length
+            logger.error(f"Vector length: {len(vector_data)}")
+            logger.error(f"Upserting vector with chunk_id={chunk_id_str} and payload={payload}")
+            
+            # Create a list of PointStruct objects for upsert
+            points = [
+                models.PointStruct(
+                    id=chunk_id_str,  # Use string ID
+                    vector=vector_data,
+                    payload=payload
+                )
+            ]
 
- # Ensure vector is in the correct format (list)
-            vector_data = vector.tolist() if isinstance(vector, np.ndarray) else vector
-
-            # Revert to using models.Batch
-            points_batch = models.Batch(
-                 ids=[chunk_id_str],  # Use the string version
-                 vectors=[vector_data],
-                 payloads=[payload] # Payload dict is inside a list
-            )
-
-            # Use the direct upsert method with the Batch object
+            # Use the upsert method with points list
             await self._client.upsert(
                 collection_name=self._collection_name,
                 wait=True,
-                points=points_batch # Pass the Batch object directly
+                points=points  # Pass the list of PointStruct objects
             )
-            
-            # # Use the direct upsert method with a list containing the PointStruct
-            # await self._client.upsert(
-            #     collection_name=self._collection_name,
-            #     wait=True,
-            #     points=points
-            # )
             
             logger.debug(f"Successfully upserted vector with chunk_id={chunk_id}")
             return True

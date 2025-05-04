@@ -77,8 +77,8 @@ class MessageIngestionService:
         if timestamp is not None and isinstance(timestamp, datetime):
             timestamp = timestamp.isoformat()
         
-        # Generate an integer ID for the chunk - using a large random int
-        chunk_id = random.randint(1, 2**31 - 1)
+        # Generate a UUID for the chunk - using UUID instead of random int
+        chunk_id = str(uuid.uuid4())
         
         logger.info(f"Ingesting message from user {user_id}, message_id: {message_id}")
         

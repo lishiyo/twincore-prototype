@@ -226,7 +226,7 @@ class TestIngestionService:
         """Test the main ingest_chunk method."""
         
         # Arrange
-        chunk_id = 12345  # Use an integer instead of UUID
+        chunk_id = str(uuid.uuid4())  # Use UUID instead of integer
         text_content = "Test chunk content"
         source_type = "message"
         user_id = str(uuid.uuid4())
@@ -277,7 +277,7 @@ class TestIngestionService:
         """Test error handling in ingest_chunk method."""
         
         # Arrange
-        chunk_id = 67890  # Use an integer instead of UUID
+        chunk_id = str(uuid.uuid4())  # Use UUID instead of integer
         text_content = "Test chunk content"
         source_type = "message"
         
