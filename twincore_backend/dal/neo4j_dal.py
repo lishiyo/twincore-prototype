@@ -369,31 +369,39 @@ class Neo4jDAL(INeo4jDAL):
         try:
             driver = self.driver
             
-            # Build relationship filter based on provided types or use all relationships
+            # Debug: Log input parameters
+            logger.info(f"get_related_content called with chunk_id={chunk_id}, relationship_types={relationship_types}, max_depth={max_depth}, include_private={include_private}")
+            
+            # Build relationship type filter for the path
             if relationship_types and len(relationship_types) > 0:
-                # Join relationship types with the OR operator and place the variable length pattern inside the brackets
-                rel_types = "|".join([f":{rel_type}" for rel_type in relationship_types])
-                rel_filter = f"[{rel_types}*1..{max_depth}]"  # Asterisk INSIDE the brackets
+                # Format like :REL_TYPE1|:REL_TYPE2
+                rel_type_filter = "|".join([f":`{rel_type}`" for rel_type in relationship_types]) # Use backticks for safety
+                logger.info(f"Built relationship type filter: {rel_type_filter}")
             else:
-                # For any relationship type, still keep the asterisk inside the brackets
-                rel_filter = f"[*1..{max_depth}]"  # Asterisk INSIDE the brackets
+                rel_type_filter = "" # Match any relationship type if none specified
+                logger.info(f"No relationship type filter applied (will match any relationship type)")
             
             # Build privacy filter
             privacy_filter = ""
             if not include_private:
+                # Apply filter on the destination node c2
                 privacy_filter = "WHERE NOT c2.is_private"
             
-            # Build the Cypher query for variable depth traversal
-            # This finds content nodes connected to our starting node through relationships
+            # Build the Cypher query using standard variable-length path syntax
+            # Match outgoing relationships first
             query = f"""
             MATCH (c1:Content {{chunk_id: $chunk_id}})
-            MATCH (c1)-{rel_filter}-(c2:Content)
-            {privacy_filter}
-            RETURN c2, 
+            MATCH path = (c1)-[{rel_type_filter}*1..{max_depth}]->(c2:Content)
+            {privacy_filter} // Apply privacy filter on the end node
+            WITH c1, c2 // Ensure c1 and c2 are distinct
+            WHERE c1 <> c2
+            RETURN DISTINCT c2, 
                    [(c2)-[r]->(n) | {{type: type(r), target_id: n.chunk_id, target_type: labels(n)[0]}}] as outgoing_rels,
                    [(n)-[r]->(c2) | {{type: type(r), source_id: n.chunk_id, source_type: labels(n)[0]}}] as incoming_rels
             LIMIT $limit
             """
+            
+            logger.debug(f"Executing get_related_content query:\n{query}")
             
             related_content = []
             

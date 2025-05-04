@@ -147,7 +147,7 @@ class RetrievalService:
             project_id=project_id,
             session_id=session_id,
             include_private=True,  # Include both private and non-private content
-            exclude_twin_interactions=True,  # Exclude other twin interactions
+            exclude_twin_interactions=False,
         )
         
         logger.info(f"Retrieved {len(search_results)} private memory chunks for user {user_id}")

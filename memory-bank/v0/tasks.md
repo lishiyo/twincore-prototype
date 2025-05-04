@@ -153,14 +153,14 @@ This document outlines the development tasks for building the TwinCore backend p
 
 ## Phase 6: Retrieval Endpoints (`/v1/retrieve/*`)
 
-- [ ] **Task 6.1: Retrieval Service & DAL Methods** (D: 3.3, 3.4, Phase 4)
+- [x] **Task 6.1: Retrieval Service & DAL Methods** (D: 3.3, 3.4, Phase 4)
     - [x] Steps:
         - [x] Define & Implement retrieval methods in `dal/interfaces.py`, `dal/neo4j_dal.py`, `dal/qdrant_dal.py` (e.g., get_session_participants, get_project_context, get_related_content, get_content_by_topic, search_with_filters). Focus on filter logic.
         - [x] [TDD Steps]:
             - [x] [DAL Int] Test retrieval methods against test DBs (filtering, scoring, limits).
             - [x] [Service Int] Implement `RetrievalService`, mock DALs, test logic combining search results.
-            - [ ] [API/Contract] Test endpoint schema/status for `/v1/retrieve/*` endpoints.
-            - [ ] [E2E] Call endpoints, verify correct filtered data is retrieved from Qdrant/Neo4j.
+            - [x] [API/Contract] Test endpoint schema/status for `/v1/retrieve/*` endpoints.
+            - [x] [E2E] Call endpoints, verify correct filtered data is retrieved from Qdrant/Neo4j.
 
 - [x] **Task 6.2: Context Retrieval Endpoint (`/v1/retrieve/context`)** (D: 2.1, 6.1)
     - [x] Steps:
@@ -168,7 +168,7 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] Define `GET /v1/retrieve/context` endpoint in `retrieve_router.py` (with `include_graph` flag). Use Pydantic models. Inject RetrievalService. Register router.
         - [x] [TDD Steps]:
             - [x] [API/Contract] Verify specific request/response for this endpoint.
-            - [ ] [E2E] Test scenario simulating Canvas Agent call, verify group context retrieval.
+            - [x] [E2E] Test scenario simulating Canvas Agent call, verify group context retrieval.
 
 - [x] **Task 6.3: Private Memory Retrieval Endpoint (`/v1/retrieve/private_memory`)** (D: 2.1, 5.1, 6.1)
     - [x] Steps:
@@ -179,8 +179,8 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] [TDD Steps]:
             - [x] [Service Int] Test combined retrieval + ingestion logic for private memory.
             - [x] [API/Contract] Verify specific request/response for this endpoint.
-            - [ ] [E2E] Test scenario simulating User->Twin call, verify private filtering AND query ingestion.
-            - [ ] [E2E] Seed public/private data, call endpoint as different users, verify query ingestion AND correct data/privacy filtering in results.
+            - [x] [E2E] Test scenario simulating User->Twin call, verify private filtering AND query ingestion.
+            - [x] [E2E] Seed public/private data, call endpoint as different users, verify query ingestion AND correct data/privacy filtering in results.
 
 - [x] **Task 6.4: Related Content Retrieval Endpoint (`/v1/retrieve/related_content`)** (D: 2.1, 6.1)
     - [x] Steps:
@@ -188,7 +188,7 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] Define `GET /v1/retrieve/related_content` endpoint in `retrieve_router.py`. Use Pydantic models. Inject RetrievalService.
         - [x] [TDD Steps]:
             - [x] [API/Contract] Verify specific request/response for this endpoint.
-            - [ ] [E2E] Test scenario retrieving related content via graph traversal.
+            - [x] [E2E] Test scenario retrieving related content via graph traversal.
 
 - [x] **Task 6.5: Topic Retrieval Endpoint (`/v1/retrieve/topic`)** (D: 2.1, 6.1)
     - [x] Steps:
@@ -196,7 +196,7 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] Define `GET /v1/retrieve/topic` endpoint in `retrieve_router.py`. Use Pydantic models. Inject RetrievalService.
         - [x] [TDD Steps]:
             - [x] [API/Contract] Verify specific request/response for this endpoint.
-            - [ ] [E2E] Test scenario retrieving content by topic.
+            - [x] [E2E] Test scenario retrieving content by topic.
 
 ---
 

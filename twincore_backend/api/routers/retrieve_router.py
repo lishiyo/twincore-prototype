@@ -308,6 +308,9 @@ async def retrieve_related_content(
         retrieval_service: The retrieval service dependency
     """
     try:
+        # Log the received parameters for debugging
+        logger.info(f"Retrieve related content request with chunk_id={chunk_id}, relationship_types={relationship_types}")
+        
         # Call the graph-based retrieval method
         results = await retrieval_service.retrieve_related_content(
             chunk_id=chunk_id,
@@ -316,6 +319,8 @@ async def retrieve_related_content(
             include_private=include_private,
             max_depth=max_depth,
         )
+        
+        print(f"Retrieved {len(results)} related content items for chunk {chunk_id}")
         
         # Convert to ContentChunk model objects
         chunks = []
