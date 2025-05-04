@@ -7,6 +7,7 @@ for Qdrant (vector database) and Neo4j (graph database).
 
 from functools import lru_cache
 import logging
+import asyncio
 from typing import Optional
 
 from neo4j import AsyncGraphDatabase, AsyncDriver
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 # Singleton instances
 _async_qdrant_client = None
 _neo4j_driver = None
+_neo4j_loop = None  # To track which event loop created the driver
 
 
 def get_async_qdrant_client() -> AsyncQdrantClient:
@@ -53,37 +55,30 @@ def get_async_qdrant_client() -> AsyncQdrantClient:
 
 async def get_neo4j_driver() -> AsyncDriver:
     """
-    Initialize and return an asynchronous Neo4j driver.
-    Uses singleton pattern to prevent multiple driver instances.
+    Create a fresh Neo4j driver.
+    Creates a new connection each time to avoid event loop issues.
     
     Returns:
-        AsyncDriver: A configured async Neo4j driver instance
+        AsyncDriver: A newly configured Neo4j driver instance
     """
-    global _neo4j_driver
-    if _neo4j_driver is None:
-        try:
-            logger.info(f"Initializing async Neo4j driver at {settings.neo4j_uri}")
-            # Use AsyncGraphDatabase to explicitly get an async driver
-            driver = AsyncGraphDatabase.driver(
-                settings.neo4j_uri,
-                auth=(settings.neo4j_user, settings.neo4j_password),
-            )
-            # Verify connection asynchronously
-            async with driver.session() as session:
-                await session.run("RETURN 1")
-            logger.info("Async Neo4j driver initialized successfully")
-            _neo4j_driver = driver
-        except Exception as e:
-            logger.error(f"Failed to connect to Neo4j database: {e}")
-            raise
-    return _neo4j_driver
+    logger.info(f"Creating fresh Neo4j driver at {settings.neo4j_uri}")
+    driver = AsyncGraphDatabase.driver(
+        settings.neo4j_uri,
+        auth=(settings.neo4j_user, settings.neo4j_password),
+    )
+    # Verify connection
+    async with driver.session() as session:
+        await session.run("RETURN 1")
+    logger.info("Neo4j driver created successfully")
+    return driver
 
 
 # Helper function to clear caches for testing
 def clear_all_client_caches():
     """Clear all client instances for testing."""
-    global _async_qdrant_client, _neo4j_driver
+    global _async_qdrant_client, _neo4j_driver, _neo4j_loop
     _async_qdrant_client = None
     _neo4j_driver = None
+    _neo4j_loop = None
 
 # Helper functions for testing removed, as they are replaced by fixture in conftest.py 

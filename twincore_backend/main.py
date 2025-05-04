@@ -20,16 +20,10 @@ app = FastAPI(
     version="0.1.0"
 )
 
-# Singleton instances
+# Singleton instances - only used for services that don't depend on event loop
 _embedding_service = None
 _qdrant_dal = None
-_neo4j_dal = None
-_ingestion_service = None
-_message_connector = None
 _text_chunker = None
-_document_connector = None
-_data_seeder_service = None
-_data_management_service = None
 
 # Dependencies setup
 @lru_cache
@@ -49,12 +43,12 @@ def get_qdrant_dal() -> QdrantDAL:
     return _qdrant_dal
 
 async def get_neo4j_dal() -> Neo4jDAL:
-    """Create and cache the Neo4jDAL."""
-    global _neo4j_dal
-    if _neo4j_dal is None:
-        driver = await get_neo4j_driver()
-        _neo4j_dal = Neo4jDAL(driver=driver)
-    return _neo4j_dal
+    """
+    Create Neo4jDAL with a fresh driver.
+    Each call creates a new driver to avoid event loop issues.
+    """
+    driver = await get_neo4j_driver()
+    return Neo4jDAL(driver=driver)
 
 async def get_ingestion_service() -> IngestionService:
     """Create and cache the IngestionService."""
@@ -76,42 +70,67 @@ def get_text_chunker() -> TextChunker:
     return _text_chunker
 
 async def get_message_connector() -> MessageConnector:
-    """Create and cache the MessageConnector."""
-    global _message_connector
-    if _message_connector is None:
-        _message_connector = MessageConnector(
-            ingestion_service=await get_ingestion_service()
-        )
-    return _message_connector
+    """
+    Create a fresh MessageConnector instance for each request.
+    This ensures no event loop issues between test runs.
+    """
+    # Create a fresh ingestion service for this request
+    ingestion_service = IngestionService(
+        embedding_service=get_embedding_service(),
+        qdrant_dal=get_qdrant_dal(),
+        neo4j_dal=await get_neo4j_dal()
+    )
+    
+    # Create a fresh connector
+    return MessageConnector(ingestion_service=ingestion_service)
 
 async def get_document_connector() -> DocumentConnector:
-    """Create and cache the DocumentConnector."""
-    global _document_connector
-    if _document_connector is None:
-        _document_connector = DocumentConnector(
-            ingestion_service=await get_ingestion_service(),
-            text_chunker=get_text_chunker()
-        )
-    return _document_connector
+    """
+    Create a fresh DocumentConnector instance for each request.
+    This ensures no event loop issues between test runs.
+    """
+    # Create a fresh ingestion service for this request
+    ingestion_service = IngestionService(
+        embedding_service=get_embedding_service(),
+        qdrant_dal=get_qdrant_dal(),
+        neo4j_dal=await get_neo4j_dal()
+    )
+    
+    # Create a fresh connector
+    return DocumentConnector(
+        ingestion_service=ingestion_service,
+        text_chunker=get_text_chunker()
+    )
 
 async def get_data_seeder_service() -> DataSeederService:
-    """Create and cache the DataSeederService."""
-    global _data_seeder_service
-    if _data_seeder_service is None:
-        _data_seeder_service = DataSeederService(
-            ingestion_service=await get_ingestion_service()
-        )
-    return _data_seeder_service
+    """
+    Create a fresh DataSeederService instance for each request.
+    This ensures no event loop issues between test runs.
+    """
+    # Create a fresh ingestion service for this request
+    ingestion_service = IngestionService(
+        embedding_service=get_embedding_service(),
+        qdrant_dal=get_qdrant_dal(),
+        neo4j_dal=await get_neo4j_dal()
+    )
+    
+    # Create a fresh seeder service
+    return DataSeederService(ingestion_service=ingestion_service)
 
 async def get_data_management_service() -> DataManagementService:
-    """Create and cache the DataManagementService."""
-    global _data_management_service
-    if _data_management_service is None:
-        _data_management_service = DataManagementService(
-            qdrant_dal=get_qdrant_dal(),
-            neo4j_dal=await get_neo4j_dal()
-        )
-    return _data_management_service
+    """
+    Create a fresh DataManagementService instance for each request.
+    This ensures no event loop issues between test runs.
+    """
+    # Create a fresh DALs for this request
+    qdrant_dal = get_qdrant_dal()
+    neo4j_dal = await get_neo4j_dal()
+    
+    # Create a fresh management service
+    return DataManagementService(
+        qdrant_dal=qdrant_dal,
+        neo4j_dal=neo4j_dal
+    )
 
 # Register routers
 app.include_router(admin_router.router)
@@ -127,6 +146,13 @@ app.dependency_overrides[ingest_router.get_document_connector] = get_document_co
 async def root():
     """Root endpoint to verify API is running."""
     return {"status": "online", "service": "TwinCore API"}
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up resources when the application stops."""
+    # There are no global connections to clean up now,
+    # as we create fresh connections for each request
+    pass
 
 if __name__ == "__main__":
     import uvicorn

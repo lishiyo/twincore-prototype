@@ -12,11 +12,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 # Import app after modifying path
 from main import app
-from api.routers import admin_router
+from api.routers import admin_router, ingest_router
 from services.data_seeder_service import DataSeederService
 from services.data_management_service import DataManagementService
 from services.embedding_service import EmbeddingService
 from services.ingestion_service import IngestionService
+from ingestion.connectors.message_connector import MessageConnector
+from ingestion.connectors.document_connector import DocumentConnector
+from ingestion.processors.text_chunker import TextChunker
 from dal.qdrant_dal import QdrantDAL
 from dal.neo4j_dal import Neo4jDAL
 from core.config import settings
@@ -28,13 +31,9 @@ from .test_utils import setup_test_databases, clear_test_databases, get_test_neo
 
 @pytest_asyncio.fixture
 async def initialized_app():
-    """Ensures the app is initialized with proper database setup."""
-    # Initialize databases for E2E tests using test databases
+    """Ensures test databases are initialized and sets up proper test dependencies."""
+    # Initialize databases for E2E tests
     await setup_test_databases()
-    
-    # Clear any existing app dependency overrides from unit tests
-    # This is crucial to ensure E2E tests use real services, not mocks
-    app.dependency_overrides = {}
     
     # Set up real service dependencies for E2E tests with test database connections
     async def get_real_neo4j_dal():
@@ -43,20 +42,14 @@ async def initialized_app():
         return Neo4jDAL(driver=driver)
     
     async def get_real_embedding_service():
-        """
-        Get a mock embedding service to avoid OpenAI API dependencies in tests.
-        The mock will return random vectors of the correct dimensionality.
-        """
-        # Create a mock embedding service for testing
+        """Get a mock embedding service for testing."""
         mock_embedding_service = AsyncMock(spec=EmbeddingService)
         
-        # Mock the get_embedding method to return a random vector of the correct dimensionality
+        # Mock the get_embedding method to return a random vector
         async def mock_get_embedding(text):
-            # Create a random vector of the correct dimensionality (from settings)
             vector = np.random.randn(settings.embedding_dimension).astype(np.float32).tolist()
             return vector
         
-        # Assign the mock method
         mock_embedding_service.get_embedding = mock_get_embedding
         return mock_embedding_service
     
@@ -90,7 +83,8 @@ async def initialized_app():
             neo4j_dal=neo4j_dal
         )
     
-    # Override dependencies to use real services with test databases
+    # Override admin router dependencies to use real services with test databases
+    # This is crucial for the seed_data test to work
     app.dependency_overrides[admin_router.get_data_seeder_service] = get_real_data_seeder_service
     app.dependency_overrides[admin_router.get_data_management_service] = get_real_data_management_service
     

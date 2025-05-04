@@ -9,9 +9,13 @@ from core.db_clients import get_async_qdrant_client, get_neo4j_driver
 from main import app, get_message_connector
 from api.routers import ingest_router
 from qdrant_client import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.mark.e2e
+@pytest.mark.xdist_group("neo4j")  # Group Neo4j tests so they don't run concurrently
 class TestMessageIngestionE2E:
     """End-to-end tests for message ingestion functionality."""
 
@@ -92,60 +96,65 @@ class TestMessageIngestionE2E:
         
         # 3. Verify the graph was updated in Neo4j
         neo4j_driver = await get_neo4j_driver()
-        async with neo4j_driver.session() as session:
-            # Check for User node
-            user_result = await session.run(
-                "MATCH (u:User {user_id: $user_id}) RETURN u",
-                user_id=user_id
-            )
-            user_records = await user_result.values()
-            assert len(user_records) > 0, "User node not found in Neo4j"
-            
-            # Check for Message node
-            message_result = await session.run(
-                "MATCH (m:Message {message_id: $message_id}) RETURN m",
-                message_id=message_id
-            )
-            message_records = await message_result.values()
-            assert len(message_records) > 0, "Message node not found in Neo4j"
-            
-            # Check for relationship between User and Message
-            relationship_result = await session.run(
-                """
-                MATCH (u:User {user_id: $user_id})-[r:AUTHORED]->(m:Message {message_id: $message_id})
-                RETURN r
-                """,
-                user_id=user_id,
-                message_id=message_id
-            )
-            relationship_records = await relationship_result.values()
-            assert len(relationship_records) > 0, "User->Message relationship not found in Neo4j"
-            
-            # Check for Chunk node - note that chunk_id is stored as a string in Neo4j
-            # We don't know the exact chunk_id, so we find it via the relation to the Message
-            chunk_result = await session.run(
-                """
-                MATCH (c:Chunk)-[:PART_OF]->(m:Message {message_id: $message_id})
-                RETURN c
-                """,
-                message_id=message_id
-            )
-            chunk_records = await chunk_result.values()
-            assert len(chunk_records) > 0, "Chunk node not found in Neo4j"
-            
-            # Check for Project and Session nodes if provided
-            if project_id:
-                project_result = await session.run(
-                    "MATCH (p:Project {project_id: $project_id}) RETURN p",
-                    project_id=project_id
+        try:
+            async with neo4j_driver.session() as session:
+                # Check for User node
+                user_result = await session.run(
+                    "MATCH (u:User {user_id: $user_id}) RETURN u",
+                    user_id=user_id
                 )
-                project_records = await project_result.values()
-                assert len(project_records) > 0, "Project node not found in Neo4j"
-            
-            if session_id:
-                session_result = await session.run(
-                    "MATCH (s:Session {session_id: $session_id}) RETURN s",
-                    session_id=session_id
+                user_records = await user_result.values()
+                assert len(user_records) > 0, "User node not found in Neo4j"
+                
+                # Check for Message node
+                message_result = await session.run(
+                    "MATCH (m:Message {message_id: $message_id}) RETURN m",
+                    message_id=message_id
                 )
-                session_records = await session_result.values()
-                assert len(session_records) > 0, "Session node not found in Neo4j" 
+                message_records = await message_result.values()
+                assert len(message_records) > 0, "Message node not found in Neo4j"
+                
+                # Check for relationship between User and Message
+                relationship_result = await session.run(
+                    """
+                    MATCH (u:User {user_id: $user_id})-[r:AUTHORED]->(m:Message {message_id: $message_id})
+                    RETURN r
+                    """,
+                    user_id=user_id,
+                    message_id=message_id
+                )
+                relationship_records = await relationship_result.values()
+                assert len(relationship_records) > 0, "User->Message relationship not found in Neo4j"
+                
+                # Check for Chunk node - note that chunk_id is stored as a string in Neo4j
+                # We don't know the exact chunk_id, so we find it via the relation to the Message
+                chunk_result = await session.run(
+                    """
+                    MATCH (c:Chunk)-[:PART_OF]->(m:Message {message_id: $message_id})
+                    RETURN c
+                    """,
+                    message_id=message_id
+                )
+                chunk_records = await chunk_result.values()
+                assert len(chunk_records) > 0, "Chunk node not found in Neo4j"
+                
+                # Check for Project and Session nodes if provided
+                if project_id:
+                    project_result = await session.run(
+                        "MATCH (p:Project {project_id: $project_id}) RETURN p",
+                        project_id=project_id
+                    )
+                    project_records = await project_result.values()
+                    assert len(project_records) > 0, "Project node not found in Neo4j"
+                
+                if session_id:
+                    session_result = await session.run(
+                        "MATCH (s:Session {session_id: $session_id}) RETURN s",
+                        session_id=session_id
+                    )
+                    session_records = await session_result.values()
+                    assert len(session_records) > 0, "Session node not found in Neo4j"
+        finally:
+            # ALWAYS close the driver when done
+            await neo4j_driver.close()
+            logger.info("Neo4j driver closed in message test") 

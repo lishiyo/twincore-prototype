@@ -342,3 +342,12 @@ class Neo4jDAL(INeo4jDAL):
         except Exception as e:
             logger.error(f"Unexpected error getting project context: {str(e)}")
             raise 
+
+    async def close(self):
+        """Close the Neo4j driver and release resources."""
+        if self._driver:
+            try:
+                await self._driver.close()
+                logger.info("Neo4j driver closed successfully")
+            except Exception as e:
+                logger.error(f"Error closing Neo4j driver: {e}") 

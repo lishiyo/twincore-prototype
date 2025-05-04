@@ -27,14 +27,29 @@ mock_data_seeder_service.return_value = mock_data_seeder_instance
 mock_data_management_instance = AsyncMock()
 mock_data_management_instance.clear_all_data = AsyncMock()
 
-# Set up app-level dependency overrides - this is the key fix
-app.dependency_overrides[admin_router.get_data_seeder_service] = lambda: mock_data_seeder_instance
-app.dependency_overrides[admin_router.get_data_management_service] = lambda: mock_data_management_instance
+# We'll set these up in the fixture instead of globally
+# to avoid interfering with E2E tests
 
 
 @pytest.fixture
-def client():
-    """Create a test client for the FastAPI app."""
+def setup_mock_dependencies():
+    """Set up mock dependencies for unit tests."""
+    # Save existing overrides to restore later
+    original_overrides = app.dependency_overrides.copy()
+    
+    # Apply mock overrides for unit tests
+    app.dependency_overrides[admin_router.get_data_seeder_service] = lambda: mock_data_seeder_instance
+    app.dependency_overrides[admin_router.get_data_management_service] = lambda: mock_data_management_instance
+    
+    yield
+    
+    # Restore original overrides after the test
+    app.dependency_overrides = original_overrides
+
+
+@pytest.fixture
+def client(setup_mock_dependencies):
+    """Create a test client for the FastAPI app with mock dependencies."""
     return TestClient(app)
 
 
