@@ -128,14 +128,14 @@ This document outlines the development tasks for building the TwinCore backend p
 
 ## Phase 5: Ingestion Endpoints (`/api/ingest/*`)
 
-- [ ] **Task 5.1: Ingest Message Endpoint** (D: 2.1, 3.5, 4.4)
-    - [ ] Steps:
-        - [ ] Add MessageIngestionService using `IngestionService`, add `ingest_message(data)` logic.
-        - [ ] Create `api/routers/ingest_router.py`. Define `POST /api/ingest/message`. Use Pydantic models. Inject service. Register router.
-        - [ ] [TDD Steps]:
-            - [ ] [Service Int] Test `ingest_message` logic.
-            - [ ] [API/Contract] Test endpoint schema/status.
-            - [ ] [E2E] Call endpoint, verify data in Qdrant/Neo4j.
+- [x] **Task 5.1: Ingest Message Endpoint** (D: 2.1, 3.5, 4.4)
+    - [x] Steps:
+        - [x] Add MessageIngestionService using `IngestionService`, add `ingest_message(data)` logic.
+        - [x] Create `api/routers/ingest_router.py`. Define `POST /api/ingest/message`. Use Pydantic models. Inject service. Register router.
+        - [x] [TDD Steps]:
+            - [x] [Service Int] Test `ingest_message` logic.
+            - [x] [API/Contract] Test endpoint schema/status.
+            - [x] [E2E] Call endpoint, verify data in Qdrant/Neo4j.
 
 - [ ] **Task 5.2: Ingest Document Endpoint** (D: 2.1, 3.5, 5.1)
     - [ ] Steps:

@@ -1,3 +1,43 @@
+## Sat May  3 18:17:49 PDT 2025 - Fixed Backend Framework Issues
+
+## Changes since last update
+- Fixed async function caching issues throughout the codebase:
+  - Replaced incorrect usage of `@lru_cache` on async functions with proper singleton pattern
+  - Implemented global variable-based singleton pattern for database clients
+  - Added `clear_all_client_caches()` function to reset singleton instances during testing
+- Improved database client connection management:
+  - Updated `db_clients.py` to use consistent singleton pattern for database connections
+  - Added proper async initialization for database clients
+  - Ensured proper resource cleanup in tests
+- Fixed dependency injection configuration:
+  - Updated FastAPI dependency injection to use factory functions instead of direct class dependencies
+  - Corrected dependency overrides in main.py
+  - Created proper async dependency functions in routers
+- Resolved test failures:
+  - Fixed async/sync mismatches in test code (removed redundant awaits from sync client calls)
+  - Added dedicated `async_client` fixture in conftest.py for async tests
+  - Ensured test data contains all required validation fields
+- Fixed API model validation:
+  - Updated test data to include required `source_type` field in ContentBase models
+  - Ensured proper model validation across API schema
+- Updated README with comprehensive test running instructions:
+  - Added detailed commands for running different test categories
+  - Included setup and teardown instructions for test database containers
+  - Added component-specific test commands for targeted testing
+
+## Learnings
+- Standard `@lru_cache` does not work correctly with async functions and can cause unexpected behavior
+- Singleton patterns need clear initialization and cleanup mechanisms for testing
+- FastAPI's dependency injection needs careful handling of async/sync boundaries
+- Test data must include all fields required by validation models
+- Consistent test fixtures improve test reliability and simplify test code
+- Properly documenting test commands helps contributors understand the testing structure
+
+## Next steps
+- Continue with Phase 5: Implement Ingestion Endpoints (`/api/ingest/*`)
+- Implement Task 5.1: Ingest Message Endpoint
+- Implement Task 5.2: Ingest Document Endpoint
+
 ## Sat May  3 11:22:14 PDT 2025 - Fixed Database Issues and API Compatibility
 
 ## Changes since last update
