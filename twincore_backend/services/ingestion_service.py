@@ -375,7 +375,7 @@ class IngestionService:
         This is the main entry point for ingesting data into the system.
         
         Args:
-            chunk_id: Unique identifier for the text chunk (integer or string convertible to int)
+            chunk_id: Unique identifier for the text chunk (integer or string)
             text_content: The text to ingest
             source_type: Type of source (e.g., 'message', 'document', 'document_chunk')
             user_id: Optional ID of the user who created/owns the content
@@ -394,17 +394,10 @@ class IngestionService:
             
         Raises:
             IngestionServiceError: If ingestion fails
-            ValueError: If chunk_id is not a valid integer or integer string
         """
         try:
-            # Validate and convert chunk_id to an integer
-            if isinstance(chunk_id, str):
-                try:
-                    chunk_id = int(chunk_id)
-                except ValueError:
-                    raise ValueError(f"chunk_id must be an integer or convertible to integer, got: {chunk_id}")
-            elif not isinstance(chunk_id, int):
-                raise ValueError(f"chunk_id must be an integer, got: {type(chunk_id)}")
+            # No need to validate or convert chunk_id - just use it as provided
+            # Can be integer or string (like UUID)
                 
             logger.info(f"Ingesting chunk {chunk_id} of source type {source_type}")
             
@@ -459,9 +452,6 @@ class IngestionService:
             logger.info(f"Successfully ingested chunk {chunk_id}")
             return True
             
-        except ValueError as e:
-            logger.error(f"Invalid parameter: {str(e)}")
-            raise
         except Exception as e:
             logger.error(f"Failed to ingest chunk {chunk_id}: {str(e)}")
             raise IngestionServiceError(f"Failed to ingest chunk: {str(e)}") 
