@@ -90,11 +90,11 @@ async def test_create_node_if_not_exists_creates_new_node(test_neo4j_dal: Neo4jD
     user_id = str(uuid.uuid4())
     label = "User"
     properties = {
-        "userId": user_id, # Using correct property name
+        "user_id": user_id, # Using snake_case property name
         "name": "Test User",
         "email": "test@example.com"
     }
-    constraints = {"userId": user_id}
+    constraints = {"user_id": user_id}
     
     # Act
     result = await test_neo4j_dal.create_node_if_not_exists(
@@ -103,7 +103,7 @@ async def test_create_node_if_not_exists_creates_new_node(test_neo4j_dal: Neo4jD
     
     # Assert
     assert result is not None
-    assert result["userId"] == user_id
+    assert result["user_id"] == user_id
     assert result["name"] == "Test User"
     assert result["email"] == "test@example.com"
 
@@ -115,11 +115,11 @@ async def test_create_node_if_not_exists_returns_existing_node(test_neo4j_dal: N
     user_id = str(uuid.uuid4())
     label = "User"
     properties = {
-        "userId": user_id,
+        "user_id": user_id,
         "name": "Test User",
         "email": "test@example.com"
     }
-    constraints = {"userId": user_id}
+    constraints = {"user_id": user_id}
     
     # Create the node first
     await test_neo4j_dal.create_node_if_not_exists(
@@ -128,7 +128,7 @@ async def test_create_node_if_not_exists_returns_existing_node(test_neo4j_dal: N
     
     # Act - Try to create the same node again with different properties
     new_properties = {
-        "userId": user_id,
+        "user_id": user_id,
         "name": "Updated User",
         "email": "updated@example.com"
     }
@@ -138,7 +138,7 @@ async def test_create_node_if_not_exists_returns_existing_node(test_neo4j_dal: N
     
     # Assert - The node exists, but properties are not updated (due to MERGE behavior)
     assert result is not None
-    assert result["userId"] == user_id
+    assert result["user_id"] == user_id
     assert result["name"] == "Test User"  # Original name, not updated
     assert result["email"] == "test@example.com"  # Original email, not updated
 
@@ -150,7 +150,7 @@ async def test_create_node_with_empty_constraints_uses_properties(test_neo4j_dal
     user_id = str(uuid.uuid4())
     label = "User"
     properties = {
-        "userId": user_id,
+        "user_id": user_id,
         "name": "Test User",
         "email": "test@example.com"
     }
@@ -162,7 +162,7 @@ async def test_create_node_with_empty_constraints_uses_properties(test_neo4j_dal
     
     # Assert
     assert result is not None
-    assert result["userId"] == user_id
+    assert result["user_id"] == user_id
     assert result["name"] == "Test User"
     assert result["email"] == "test@example.com"
     
@@ -170,7 +170,7 @@ async def test_create_node_with_empty_constraints_uses_properties(test_neo4j_dal
     result2 = await test_neo4j_dal.create_node_if_not_exists(
         label, properties, None
     )
-    assert result2["userId"] == user_id
+    assert result2["user_id"] == user_id
 
 
 @pytest.mark.asyncio
@@ -197,16 +197,16 @@ async def test_create_relationship_if_not_exists_creates_new_relationship(
     project_id = str(uuid.uuid4())
     
     await test_neo4j_dal.create_node_if_not_exists(
-        "User", {"userId": user_id, "name": "Test User"}
+        "User", {"user_id": user_id, "name": "Test User"}
     )
     await test_neo4j_dal.create_node_if_not_exists(
-        "Project", {"projectId": project_id, "name": "Test Project"}
+        "Project", {"project_id": project_id, "name": "Test Project"}
     )
     
     # Act - Create relationship
     result = await test_neo4j_dal.create_relationship_if_not_exists(
-        "User", {"userId": user_id},
-        "Project", {"projectId": project_id},
+        "User", {"user_id": user_id},
+        "Project", {"project_id": project_id},
         "PARTICIPATED_IN",
         {"role": "Owner"}
     )
@@ -218,7 +218,7 @@ async def test_create_relationship_if_not_exists_creates_new_relationship(
     driver = test_neo4j_dal.driver # Access driver via property
     async with driver.session() as session:
         query = """
-        MATCH (u:User {userId: $user_id})-[r:PARTICIPATED_IN]->(p:Project {projectId: $project_id})
+        MATCH (u:User {user_id: $user_id})-[r:PARTICIPATED_IN]->(p:Project {project_id: $project_id})
         RETURN r.role as role
         """
         result = await session.run(query, {"user_id": user_id, "project_id": project_id})
@@ -237,24 +237,24 @@ async def test_create_relationship_if_not_exists_is_idempotent(
     project_id = str(uuid.uuid4())
     
     await test_neo4j_dal.create_node_if_not_exists(
-        "User", {"userId": user_id, "name": "Test User"}
+        "User", {"user_id": user_id, "name": "Test User"}
     )
     await test_neo4j_dal.create_node_if_not_exists(
-        "Project", {"projectId": project_id, "name": "Test Project"}
+        "Project", {"project_id": project_id, "name": "Test Project"}
     )
     
     # Create the relationship first time
     await test_neo4j_dal.create_relationship_if_not_exists(
-        "User", {"userId": user_id},
-        "Project", {"projectId": project_id},
+        "User", {"user_id": user_id},
+        "Project", {"project_id": project_id},
         "PARTICIPATED_IN",
         {"role": "Owner"}
     )
     
     # Act - Create the same relationship again
     result = await test_neo4j_dal.create_relationship_if_not_exists(
-        "User", {"userId": user_id},
-        "Project", {"projectId": project_id},
+        "User", {"user_id": user_id},
+        "Project", {"project_id": project_id},
         "PARTICIPATED_IN",
         {"role": "Contributor"}  # Different property
     )
@@ -266,7 +266,7 @@ async def test_create_relationship_if_not_exists_is_idempotent(
     driver = test_neo4j_dal.driver # Access driver via property
     async with driver.session() as session:
         query = """
-        MATCH (u:User {userId: $user_id})-[r:PARTICIPATED_IN]->(p:Project {projectId: $project_id})
+        MATCH (u:User {user_id: $user_id})-[r:PARTICIPATED_IN]->(p:Project {project_id: $project_id})
         RETURN r.role as role
         """
         result = await session.run(query, {"user_id": user_id, "project_id": project_id})
@@ -286,8 +286,8 @@ async def test_create_relationship_with_missing_nodes_creates_no_relationship(
     
     # Act - Try to create relationship
     result = await test_neo4j_dal.create_relationship_if_not_exists(
-        "User", {"userId": user_id},
-        "Project", {"projectId": project_id},
+        "User", {"user_id": user_id},
+        "Project", {"project_id": project_id},
         "PARTICIPATED_IN"
     )
     
@@ -306,24 +306,24 @@ async def test_get_session_participants_returns_users(
     user2_id = str(uuid.uuid4())
     
     await test_neo4j_dal.create_node_if_not_exists(
-        "Session", {"sessionId": session_id, "name": "Test Session"}
+        "Session", {"session_id": session_id, "name": "Test Session"}
     )
     await test_neo4j_dal.create_node_if_not_exists(
-        "User", {"userId": user1_id, "name": "User 1"}
+        "User", {"user_id": user1_id, "name": "User 1"}
     )
     await test_neo4j_dal.create_node_if_not_exists(
-        "User", {"userId": user2_id, "name": "User 2"}
+        "User", {"user_id": user2_id, "name": "User 2"}
     )
     
     # Create relationships
     await test_neo4j_dal.create_relationship_if_not_exists(
-        "User", {"userId": user1_id},
-        "Session", {"sessionId": session_id},
+        "User", {"user_id": user1_id},
+        "Session", {"session_id": session_id},
         "PARTICIPATED_IN"
     )
     await test_neo4j_dal.create_relationship_if_not_exists(
-        "User", {"userId": user2_id},
-        "Session", {"sessionId": session_id},
+        "User", {"user_id": user2_id},
+        "Session", {"session_id": session_id},
         "PARTICIPATED_IN"
     )
     
@@ -332,7 +332,7 @@ async def test_get_session_participants_returns_users(
     
     # Assert
     assert len(participants) == 2
-    participant_ids = [p["userId"] for p in participants]
+    participant_ids = [p["user_id"] for p in participants]
     assert user1_id in participant_ids
     assert user2_id in participant_ids
 
@@ -368,56 +368,56 @@ async def test_get_project_context_returns_complete_context(
     
     # Create nodes
     await test_neo4j_dal.create_node_if_not_exists(
-        "Project", {"projectId": project_id, "name": "Test Project"}
+        "Project", {"project_id": project_id, "name": "Test Project"}
     )
     await test_neo4j_dal.create_node_if_not_exists(
-        "Session", {"sessionId": session1_id, "name": "Session 1"}
+        "Session", {"session_id": session1_id, "name": "Session 1"}
     )
     await test_neo4j_dal.create_node_if_not_exists(
-        "Session", {"sessionId": session2_id, "name": "Session 2"}
+        "Session", {"session_id": session2_id, "name": "Session 2"}
     )
     await test_neo4j_dal.create_node_if_not_exists(
-        "Document", {"docId": doc1_id, "name": "Document 1"}
+        "Document", {"doc_id": doc1_id, "name": "Document 1"}
     )
     await test_neo4j_dal.create_node_if_not_exists(
-        "Document", {"docId": doc2_id, "name": "Document 2"}
+        "Document", {"doc_id": doc2_id, "name": "Document 2"}
     )
     await test_neo4j_dal.create_node_if_not_exists(
-        "User", {"userId": user1_id, "name": "User 1"}
+        "User", {"user_id": user1_id, "name": "User 1"}
     )
     await test_neo4j_dal.create_node_if_not_exists(
-        "User", {"userId": user2_id, "name": "User 2"}
+        "User", {"user_id": user2_id, "name": "User 2"}
     )
     
     # Create relationships
     await test_neo4j_dal.create_relationship_if_not_exists(
-        "Session", {"sessionId": session1_id},
-        "Project", {"projectId": project_id},
+        "Session", {"session_id": session1_id},
+        "Project", {"project_id": project_id},
         "PART_OF"
     )
     await test_neo4j_dal.create_relationship_if_not_exists(
-        "Session", {"sessionId": session2_id},
-        "Project", {"projectId": project_id},
+        "Session", {"session_id": session2_id},
+        "Project", {"project_id": project_id},
         "PART_OF"
     )
     await test_neo4j_dal.create_relationship_if_not_exists(
-        "Document", {"docId": doc1_id},
-        "Project", {"projectId": project_id},
+        "Document", {"doc_id": doc1_id},
+        "Project", {"project_id": project_id},
         "PART_OF"
     )
     await test_neo4j_dal.create_relationship_if_not_exists(
-        "Document", {"docId": doc2_id},
-        "Project", {"projectId": project_id},
+        "Document", {"doc_id": doc2_id},
+        "Project", {"project_id": project_id},
         "PART_OF"
     )
     await test_neo4j_dal.create_relationship_if_not_exists(
-        "User", {"userId": user1_id},
-        "Session", {"sessionId": session1_id},
+        "User", {"user_id": user1_id},
+        "Session", {"session_id": session1_id},
         "PARTICIPATED_IN"
     )
     await test_neo4j_dal.create_relationship_if_not_exists(
-        "User", {"userId": user2_id},
-        "Session", {"sessionId": session2_id},
+        "User", {"user_id": user2_id},
+        "Session", {"session_id": session2_id},
         "PARTICIPATED_IN"
     )
     
@@ -429,14 +429,401 @@ async def test_get_project_context_returns_complete_context(
     assert len(context["documents"]) == 2
     assert len(context["users"]) == 2
     
-    session_ids = [s["sessionId"] for s in context["sessions"]]
+    session_ids = [s["session_id"] for s in context["sessions"]]
     assert session1_id in session_ids
     assert session2_id in session_ids
     
-    doc_ids = [d["docId"] for d in context["documents"]]
+    doc_ids = [d["doc_id"] for d in context["documents"]]
     assert doc1_id in doc_ids
     assert doc2_id in doc_ids
     
-    user_ids = [u["userId"] for u in context["users"]]
+    user_ids = [u["user_id"] for u in context["users"]]
     assert user1_id in user_ids
-    assert user2_id in user_ids 
+    assert user2_id in user_ids
+
+
+@pytest.mark.asyncio
+async def test_get_related_content_returns_connected_content(
+    test_neo4j_dal: Neo4jDAL, clean_test_database
+):
+    """Test retrieving content related to a specific chunk through relationships."""
+    # Arrange - Create content nodes and relationships
+    chunk_id = str(uuid.uuid4())
+    related_chunk_id = str(uuid.uuid4())
+    topic_id = str(uuid.uuid4())
+    
+    # Create content nodes
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Content", {
+            "chunk_id": chunk_id,
+            "text_content": "Source content",
+            "user_id": "user-1",
+            "is_private": False
+        }
+    )
+    
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Content", {
+            "chunk_id": related_chunk_id,
+            "text_content": "Related content",
+            "user_id": "user-1",
+            "is_private": False
+        }
+    )
+    
+    # Create a topic node
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Topic", {
+            "name": "Test Topic",
+            "topic_id": topic_id
+        }
+    )
+    
+    # Create relationships between nodes
+    await test_neo4j_dal.create_relationship_if_not_exists(
+        "Content", {"chunk_id": chunk_id},
+        "Topic", {"topic_id": topic_id},
+        "MENTIONS"
+    )
+    
+    await test_neo4j_dal.create_relationship_if_not_exists(
+        "Content", {"chunk_id": related_chunk_id},
+        "Topic", {"topic_id": topic_id},
+        "MENTIONS"
+    )
+    
+    # Act - Retrieve related content
+    results = await test_neo4j_dal.get_related_content(
+        chunk_id=chunk_id,
+        relationship_types=["MENTIONS"],
+        limit=10,
+        include_private=False,
+        max_depth=2
+    )
+    
+    # Assert
+    assert len(results) >= 1
+    
+    # Find the related chunk in the results
+    related_content = next((r for r in results if r.get("chunk_id") == related_chunk_id), None)
+    assert related_content is not None
+    assert related_content["text_content"] == "Related content"
+    
+    # Check for relationship data
+    assert "outgoing_relationships" in related_content
+    assert "incoming_relationships" in related_content
+
+
+@pytest.mark.asyncio
+async def test_get_related_content_respects_privacy_setting(
+    test_neo4j_dal: Neo4jDAL, clean_test_database
+):
+    """Test that get_related_content respects the include_private flag."""
+    # Arrange - Create content nodes with different privacy settings
+    chunk_id = str(uuid.uuid4())
+    public_chunk_id = str(uuid.uuid4())
+    private_chunk_id = str(uuid.uuid4())
+    topic_id = str(uuid.uuid4())
+    
+    # Create content nodes
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Content", {
+            "chunk_id": chunk_id,
+            "text_content": "Source content",
+            "user_id": "user-1",
+            "is_private": False
+        }
+    )
+    
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Content", {
+            "chunk_id": public_chunk_id,
+            "text_content": "Public related content",
+            "user_id": "user-1",
+            "is_private": False
+        }
+    )
+    
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Content", {
+            "chunk_id": private_chunk_id,
+            "text_content": "Private related content",
+            "user_id": "user-1",
+            "is_private": True
+        }
+    )
+    
+    # Create a topic node
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Topic", {
+            "name": "Test Topic",
+            "topic_id": topic_id
+        }
+    )
+    
+    # Create relationships between nodes and topic
+    for content_id in [chunk_id, public_chunk_id, private_chunk_id]:
+        await test_neo4j_dal.create_relationship_if_not_exists(
+            "Content", {"chunk_id": content_id},
+            "Topic", {"topic_id": topic_id},
+            "MENTIONS"
+        )
+    
+    # Act - Retrieve related content excluding private content
+    public_results = await test_neo4j_dal.get_related_content(
+        chunk_id=chunk_id,
+        include_private=False
+    )
+    
+    # Act - Retrieve related content including private content
+    all_results = await test_neo4j_dal.get_related_content(
+        chunk_id=chunk_id,
+        include_private=True
+    )
+    
+    # Assert - Public results should only include public content
+    public_chunk_ids = [r.get("chunk_id") for r in public_results]
+    assert public_chunk_id in public_chunk_ids
+    assert private_chunk_id not in public_chunk_ids
+    
+    # Assert - All results should include both public and private content
+    all_chunk_ids = [r.get("chunk_id") for r in all_results]
+    assert public_chunk_id in all_chunk_ids
+    assert private_chunk_id in all_chunk_ids
+
+
+@pytest.mark.asyncio
+async def test_get_related_content_with_max_depth(
+    test_neo4j_dal: Neo4jDAL, clean_test_database
+):
+    """Test that get_related_content respects the max_depth parameter."""
+    # Arrange - Create a chain of content nodes
+    chunk_ids = [str(uuid.uuid4()) for _ in range(4)]  # Create 4 nodes in a chain
+    
+    # Create content nodes
+    for i, chunk_id in enumerate(chunk_ids):
+        await test_neo4j_dal.create_node_if_not_exists(
+            "Content", {
+                "chunk_id": chunk_id,
+                "text_content": f"Content {i}",
+                "user_id": "user-1",
+                "is_private": False
+            }
+        )
+    
+    # Create direct relationships in a chain: 0->1->2->3
+    for i in range(len(chunk_ids) - 1):
+        await test_neo4j_dal.create_relationship_if_not_exists(
+            "Content", {"chunk_id": chunk_ids[i]},
+            "Content", {"chunk_id": chunk_ids[i+1]},
+            "RELATED_TO"
+        )
+    
+    # Act - Retrieve with depth 1 (should only get node 1)
+    depth1_results = await test_neo4j_dal.get_related_content(
+        chunk_id=chunk_ids[0],
+        max_depth=1
+    )
+    
+    # Act - Retrieve with depth 2 (should get nodes 1 and 2)
+    depth2_results = await test_neo4j_dal.get_related_content(
+        chunk_id=chunk_ids[0],
+        max_depth=2
+    )
+    
+    # Assert - Depth 1 should only include the directly connected node
+    depth1_ids = [r.get("chunk_id") for r in depth1_results]
+    assert chunk_ids[1] in depth1_ids
+    assert chunk_ids[2] not in depth1_ids
+    assert chunk_ids[3] not in depth1_ids
+    
+    # Assert - Depth 2 should include nodes at distance 1 and 2
+    depth2_ids = [r.get("chunk_id") for r in depth2_results]
+    assert chunk_ids[1] in depth2_ids
+    assert chunk_ids[2] in depth2_ids
+    assert chunk_ids[3] not in depth2_ids
+
+
+@pytest.mark.asyncio
+async def test_get_content_by_topic_returns_related_content(
+    test_neo4j_dal: Neo4jDAL, clean_test_database
+):
+    """Test retrieving content related to a specific topic."""
+    # Arrange - Create topic and content nodes
+    topic_name = "Test Topic"
+    user_id = "user-1"
+    project_id = "project-1"
+    
+    # Create content chunks that mention the topic
+    content1_id = str(uuid.uuid4())
+    content2_id = str(uuid.uuid4())
+    
+    # Create a topic node
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Topic", {
+            "name": topic_name,
+            "description": "A test topic"
+        }
+    )
+    
+    # Create content nodes
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Content", {
+            "chunk_id": content1_id,
+            "text_content": "Content mentioning test topic",
+            "user_id": user_id,
+            "project_id": project_id,
+            "is_private": False
+        }
+    )
+    
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Content", {
+            "chunk_id": content2_id,
+            "text_content": "Another content about test topic",
+            "user_id": user_id,
+            "project_id": project_id,
+            "is_private": True
+        }
+    )
+    
+    # Create relationships - both content chunks mention the topic
+    await test_neo4j_dal.create_relationship_if_not_exists(
+        "Content", {"chunk_id": content1_id},
+        "Topic", {"name": topic_name},
+        "MENTIONS"
+    )
+    
+    await test_neo4j_dal.create_relationship_if_not_exists(
+        "Content", {"chunk_id": content2_id},
+        "Topic", {"name": topic_name},
+        "MENTIONS"
+    )
+    
+    # Act - Retrieve content by topic
+    results = await test_neo4j_dal.get_content_by_topic(
+        topic_name=topic_name,
+        user_id=user_id,
+        project_id=project_id,
+        include_private=False
+    )
+    
+    # Assert
+    assert len(results) == 1  # Only the public content
+    assert results[0]["chunk_id"] == content1_id
+    assert "topic" in results[0]
+    assert results[0]["topic"]["name"] == topic_name
+    
+    # Act - Retrieve including private content
+    all_results = await test_neo4j_dal.get_content_by_topic(
+        topic_name=topic_name,
+        user_id=user_id,
+        project_id=project_id,
+        include_private=True
+    )
+    
+    # Assert
+    assert len(all_results) == 2  # Both public and private content
+    result_ids = [r["chunk_id"] for r in all_results]
+    assert content1_id in result_ids
+    assert content2_id in result_ids
+
+
+@pytest.mark.asyncio
+async def test_get_content_by_topic_with_filters(
+    test_neo4j_dal: Neo4jDAL, clean_test_database
+):
+    """Test get_content_by_topic with various filters."""
+    # Arrange - Create topic and content nodes with different metadata
+    topic_name = "Filter Topic"
+    
+    # Create a topic node
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Topic", {
+            "name": topic_name
+        }
+    )
+    
+    # Create content nodes with different metadata
+    content_data = [
+        {
+            "chunk_id": str(uuid.uuid4()),
+            "text_content": "Content for user 1, project 1, session 1",
+            "user_id": "user-1",
+            "project_id": "project-1",
+            "session_id": "session-1",
+            "is_private": False
+        },
+        {
+            "chunk_id": str(uuid.uuid4()),
+            "text_content": "Content for user 1, project 1, session 2",
+            "user_id": "user-1",
+            "project_id": "project-1",
+            "session_id": "session-2",
+            "is_private": False
+        },
+        {
+            "chunk_id": str(uuid.uuid4()),
+            "text_content": "Content for user 2, project 1",
+            "user_id": "user-2",
+            "project_id": "project-1",
+            "is_private": False
+        },
+        {
+            "chunk_id": str(uuid.uuid4()),
+            "text_content": "Content for user 1, project 2",
+            "user_id": "user-1",
+            "project_id": "project-2",
+            "is_private": False
+        }
+    ]
+    
+    # Create content nodes and relationships
+    for content in content_data:
+        await test_neo4j_dal.create_node_if_not_exists("Content", content)
+        await test_neo4j_dal.create_relationship_if_not_exists(
+            "Content", {"chunk_id": content["chunk_id"]},
+            "Topic", {"name": topic_name},
+            "MENTIONS"
+        )
+    
+    # Act 1 - Filter by user_id
+    user_results = await test_neo4j_dal.get_content_by_topic(
+        topic_name=topic_name,
+        user_id="user-1"
+    )
+    
+    # Act 2 - Filter by project_id
+    project_results = await test_neo4j_dal.get_content_by_topic(
+        topic_name=topic_name,
+        project_id="project-1"
+    )
+    
+    # Act 3 - Filter by session_id
+    session_results = await test_neo4j_dal.get_content_by_topic(
+        topic_name=topic_name,
+        session_id="session-1"
+    )
+    
+    # Act 4 - Combined filters
+    combined_results = await test_neo4j_dal.get_content_by_topic(
+        topic_name=topic_name,
+        user_id="user-1",
+        project_id="project-1"
+    )
+    
+    # Assert
+    assert len(user_results) == 3  # All content for user-1
+    assert len(project_results) == 3  # All content for project-1
+    assert len(session_results) == 1  # All content for session-1
+    assert len(combined_results) == 2  # Content for user-1 AND project-1
+
+
+async def close(self):
+    """Close the Neo4j driver and release resources."""
+    if self._driver:
+        try:
+            await self._driver.close()
+            logger.info("Neo4j driver closed successfully")
+        except Exception as e:
+            logger.error(f"Error closing Neo4j driver: {e}") 

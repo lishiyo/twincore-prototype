@@ -151,4 +151,206 @@ class RetrievalService:
         )
         
         logger.info(f"Retrieved {len(search_results)} private memory chunks for user {user_id}")
-        return search_results 
+        return search_results
+
+    async def retrieve_enriched_context(
+        self,
+        query_text: str,
+        limit: int = 10,
+        user_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        source_type: Optional[str] = None,
+        include_private: bool = False,
+        exclude_twin_interactions: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """Retrieve context with graph enrichment from Neo4j.
+        
+        This method performs vector search first, then enriches results with
+        graph relationship data from Neo4j for more contextually relevant information.
+        
+        Args:
+            query_text: The text query to search for
+            limit: Maximum number of results to return
+            user_id: Optional filter by user ID
+            project_id: Optional filter by project ID
+            session_id: Optional filter by session ID
+            source_type: Optional filter by source type
+            include_private: Whether to include private content
+            exclude_twin_interactions: Whether to exclude twin interactions
+        
+        Returns:
+            List of content chunks with relevance scores, metadata, and graph relationship enrichments
+        """
+        # First, perform standard vector search
+        search_results = await self.retrieve_context(
+            query_text=query_text,
+            limit=limit,
+            user_id=user_id,
+            project_id=project_id,
+            session_id=session_id,
+            source_type=source_type,
+            include_private=include_private,
+            exclude_twin_interactions=exclude_twin_interactions,
+        )
+        
+        if not search_results:
+            return []
+        
+        # Extract IDs for enrichment
+        chunk_ids = [result["chunk_id"] for result in search_results]
+        
+        # Enrich with project context if project_id is provided
+        if project_id:
+            try:
+                project_context = await self._neo4j_dal.get_project_context(project_id)
+                
+                # Add project context to all results
+                for result in search_results:
+                    result["project_context"] = {
+                        "session_count": len(project_context.get("sessions", [])),
+                        "document_count": len(project_context.get("documents", [])),
+                        "user_count": len(project_context.get("users", []))
+                    }
+            except Exception as e:
+                logger.warning(f"Error enriching results with project context: {e}")
+        
+        # Get session participants if session_id is provided
+        if session_id:
+            try:
+                participants = await self._neo4j_dal.get_session_participants(session_id)
+                
+                # Add participants to all results
+                for result in search_results:
+                    result["session_participants"] = [
+                        {"user_id": p.get("user_id"), "name": p.get("name")}
+                        for p in participants
+                    ]
+            except Exception as e:
+                logger.warning(f"Error enriching results with session participants: {e}")
+        
+        logger.info(f"Retrieved and enriched {len(search_results)} context chunks for query: {query_text}")
+        return search_results
+        
+    async def retrieve_related_content(
+        self,
+        chunk_id: str,
+        relationship_types: Optional[List[str]] = None,
+        limit: int = 10,
+        include_private: bool = False,
+        max_depth: int = 2,
+    ) -> List[Dict[str, Any]]:
+        """Retrieve content related to a specific chunk through graph relationships.
+        
+        This method uses Neo4j graph traversal to find content related to the 
+        specified chunk through relationships, without relying on vector similarity.
+        
+        Args:
+            chunk_id: The ID of the content chunk to find related content for
+            relationship_types: Optional list of relationship types to traverse
+            limit: Maximum number of results to return
+            include_private: Whether to include private content
+            max_depth: Maximum relationship traversal depth
+        
+        Returns:
+            List of related content with relationship information
+        """
+        logger.info(f"Retrieving content related to chunk_id={chunk_id} (max_depth={max_depth})")
+        
+        # Use the Neo4jDAL implementation
+        try:
+            related_content = await self._neo4j_dal.get_related_content(
+                chunk_id=chunk_id,
+                relationship_types=relationship_types,
+                limit=limit,
+                include_private=include_private,
+                max_depth=max_depth
+            )
+            
+            logger.info(f"Retrieved {len(related_content)} related content items")
+            return related_content
+        except Exception as e:
+            logger.error(f"Error retrieving related content: {e}")
+            return []
+    
+    async def retrieve_by_topic(
+        self,
+        topic_name: str,
+        limit: int = 10,
+        user_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        include_private: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """Retrieve content related to a specific topic using graph relationships.
+        
+        This method uses Neo4j to find content related to the specified topic,
+        using graph relationships rather than vector similarity.
+        
+        Args:
+            topic_name: The name of the topic to find related content for
+            limit: Maximum number of results to return
+            user_id: Optional filter by user ID
+            project_id: Optional filter by project ID
+            session_id: Optional filter by session ID
+            include_private: Whether to include private content
+        
+        Returns:
+            List of content related to the specified topic
+        """
+        logger.info(f"Retrieving content related to topic={topic_name}")
+        
+        try:
+            # Use the Neo4jDAL implementation
+            topic_content = await self._neo4j_dal.get_content_by_topic(
+                topic_name=topic_name,
+                limit=limit,
+                user_id=user_id,
+                project_id=project_id,
+                session_id=session_id,
+                include_private=include_private
+            )
+            
+            # If we found results through graph relationships, return them
+            if topic_content and len(topic_content) > 0:
+                logger.info(f"Retrieved {len(topic_content)} content chunks for topic: {topic_name} (via graph)")
+                return topic_content
+            
+            # Fall back to vector search if no graph results found
+            logger.info(f"No graph results found for topic: {topic_name}, falling back to vector search")
+            query_embedding = await self._embedding_service.get_embedding(topic_name)
+            
+            search_results = await self._qdrant_dal.search_vectors(
+                query_vector=query_embedding,
+                limit=limit,
+                user_id=user_id,
+                project_id=project_id,
+                session_id=session_id,
+                include_private=include_private,
+            )
+            
+            logger.info(f"Retrieved {len(search_results)} content chunks for topic: {topic_name} (via vector search)")
+            return search_results
+            
+        except Exception as e:
+            logger.error(f"Error retrieving content by topic: {e}")
+            
+            # Fall back to vector search on error
+            try:
+                logger.info(f"Error in graph retrieval, falling back to vector search for topic: {topic_name}")
+                query_embedding = await self._embedding_service.get_embedding(topic_name)
+                
+                search_results = await self._qdrant_dal.search_vectors(
+                    query_vector=query_embedding,
+                    limit=limit,
+                    user_id=user_id,
+                    project_id=project_id,
+                    session_id=session_id,
+                    include_private=include_private,
+                )
+                
+                logger.info(f"Retrieved {len(search_results)} content chunks for topic: {topic_name} (via vector search)")
+                return search_results
+            except Exception as e2:
+                logger.error(f"Error in fallback vector search: {e2}")
+                return [] 

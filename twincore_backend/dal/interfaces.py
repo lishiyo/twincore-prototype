@@ -15,9 +15,14 @@ class IQdrantDAL(ABC):
     """Interface for Qdrant vector database operations."""
 
     @abstractmethod
+    async def delete_all_vectors(self) -> Dict[str, Any]:
+        """Delete all vectors from the collection."""
+        pass
+
+    @abstractmethod
     async def upsert_vector(
         self,
-        chunk_id: str,
+        chunk_id: Union[int, str],
         vector: np.ndarray,
         text_content: str,
         source_type: str,
@@ -31,26 +36,7 @@ class IQdrantDAL(ABC):
         is_private: bool = False,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> bool:
-        """Insert or update a vector in the Qdrant collection.
-        
-        Args:
-            chunk_id: Unique identifier for the text chunk
-            vector: Embedding vector for the text
-            text_content: Original text content
-            source_type: Type of source (e.g., 'message', 'document')
-            user_id: ID of the user who created/owns the content
-            project_id: Optional project ID the content belongs to
-            session_id: Optional session ID the content belongs to
-            doc_id: Optional document ID for document chunks
-            message_id: Optional message ID for message chunks
-            timestamp: Optional timestamp of content creation
-            is_twin_interaction: Whether this is part of a twin interaction
-            is_private: Whether this content is private to the user
-            metadata: Optional additional metadata
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
+        """Insert or update a vector in the collection."""
         pass
 
     @abstractmethod
@@ -67,23 +53,7 @@ class IQdrantDAL(ABC):
         timestamp_start: Optional[str] = None,
         timestamp_end: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        """Search for similar vectors in the Qdrant collection.
-        
-        Args:
-            query_vector: Query embedding vector
-            limit: Maximum number of results to return
-            user_id: Filter by user ID
-            project_id: Filter by project ID
-            session_id: Filter by session ID
-            source_type: Filter by source type
-            include_private: Whether to include private content
-            exclude_twin_interactions: Whether to exclude twin interactions
-            timestamp_start: Filter by start timestamp
-            timestamp_end: Filter by end timestamp
-        
-        Returns:
-            List of search results with scores and payload
-        """
+        """Search for similar vectors in the collection."""
         pass
 
     @abstractmethod
@@ -96,24 +66,17 @@ class IQdrantDAL(ABC):
         doc_id: Optional[str] = None,
         message_id: Optional[str] = None,
     ) -> int:
-        """Delete vectors from the Qdrant collection.
-        
-        Args:
-            chunk_ids: List of chunk IDs to delete
-            user_id: Filter by user ID
-            project_id: Filter by project ID 
-            session_id: Filter by session ID
-            doc_id: Filter by document ID
-            message_id: Filter by message ID
-            
-        Returns:
-            Number of vectors deleted
-        """
+        """Delete vectors from the collection."""
         pass
 
 
 class INeo4jDAL(ABC):
     """Interface for Neo4j graph database operations."""
+
+    @abstractmethod
+    async def delete_all_data(self) -> Dict[str, Any]:
+        """Delete all nodes and relationships from the database."""
+        pass
 
     @abstractmethod
     async def create_node_if_not_exists(
@@ -185,6 +148,31 @@ class INeo4jDAL(ABC):
         Returns:
             Dictionary with lists of sessions, documents, and users
         """
+        pass
+
+    @abstractmethod
+    async def get_related_content(
+        self,
+        chunk_id: str,
+        relationship_types: Optional[List[str]] = None,
+        limit: int = 10,
+        include_private: bool = False,
+        max_depth: int = 2,
+    ) -> List[Dict[str, Any]]:
+        """Get content related to a specific chunk through graph relationships."""
+        pass
+
+    @abstractmethod
+    async def get_content_by_topic(
+        self,
+        topic_name: str,
+        limit: int = 10,
+        user_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        include_private: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """Get content related to a specific topic using graph relationships."""
         pass
 
 

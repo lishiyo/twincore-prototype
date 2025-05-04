@@ -256,7 +256,7 @@ class Neo4jDAL(INeo4jDAL):
         """Get the participants of a session (async)."""
         try:
             driver = self.driver # Use the property to get the driver
-            # Use session_id as per our schema
+            # Use session_id (snake_case) as per our schema
             query = """
             MATCH (u:User)-[:PARTICIPATED_IN]->(s:Session {session_id: $session_id})
             RETURN u
@@ -286,19 +286,19 @@ class Neo4jDAL(INeo4jDAL):
         try:
             driver = self.driver # Use the property to get the driver
             
-            # Use project_id as per our schema
+            # Use project_id (snake_case) as per our schema
             sessions_query = """
             MATCH (s:Session)-[:PART_OF]->(p:Project {project_id: $project_id})
             RETURN s
             """
             
-            # Use project_id as per our schema
+            # Use project_id (snake_case) as per our schema
             documents_query = """
             MATCH (d:Document)-[:PART_OF]->(p:Project {project_id: $project_id})
             RETURN d
             """
             
-            # Use project_id as per our schema
+            # Use project_id (snake_case) as per our schema
             users_query = """
             MATCH (u:User)-[:PARTICIPATED_IN]->(s:Session)-[:PART_OF]->(p:Project {project_id: $project_id})
             RETURN DISTINCT u
@@ -342,6 +342,172 @@ class Neo4jDAL(INeo4jDAL):
         except Exception as e:
             logger.error(f"Unexpected error getting project context: {str(e)}")
             raise 
+            
+    async def get_related_content(
+        self,
+        chunk_id: str,
+        relationship_types: Optional[List[str]] = None,
+        limit: int = 10,
+        include_private: bool = False,
+        max_depth: int = 2,
+    ) -> List[Dict[str, Any]]:
+        """Get content related to a specific chunk through graph relationships.
+        
+        This method traverses the graph to find content related to the specified
+        chunk through various relationships, up to the specified depth.
+        
+        Args:
+            chunk_id: The ID of the content chunk to find related content for
+            relationship_types: Optional list of relationship types to traverse
+            limit: Maximum number of results to return
+            include_private: Whether to include private content
+            max_depth: Maximum relationship traversal depth
+            
+        Returns:
+            List of related content with relationship information
+        """
+        try:
+            driver = self.driver
+            
+            # Build relationship filter based on provided types or use all relationships
+            if relationship_types and len(relationship_types) > 0:
+                # Join relationship types with the OR operator and place the variable length pattern inside the brackets
+                rel_types = "|".join([f":{rel_type}" for rel_type in relationship_types])
+                rel_filter = f"[{rel_types}*1..{max_depth}]"  # Asterisk INSIDE the brackets
+            else:
+                # For any relationship type, still keep the asterisk inside the brackets
+                rel_filter = f"[*1..{max_depth}]"  # Asterisk INSIDE the brackets
+            
+            # Build privacy filter
+            privacy_filter = ""
+            if not include_private:
+                privacy_filter = "WHERE NOT c2.is_private"
+            
+            # Build the Cypher query for variable depth traversal
+            # This finds content nodes connected to our starting node through relationships
+            query = f"""
+            MATCH (c1:Content {{chunk_id: $chunk_id}})
+            MATCH (c1)-{rel_filter}-(c2:Content)
+            {privacy_filter}
+            RETURN c2, 
+                   [(c2)-[r]->(n) | {{type: type(r), target_id: n.chunk_id, target_type: labels(n)[0]}}] as outgoing_rels,
+                   [(n)-[r]->(c2) | {{type: type(r), source_id: n.chunk_id, source_type: labels(n)[0]}}] as incoming_rels
+            LIMIT $limit
+            """
+            
+            related_content = []
+            
+            async with driver.session() as session:
+                result = await session.run(
+                    query, 
+                    {
+                        "chunk_id": chunk_id,
+                        "limit": limit
+                    }
+                )
+                
+                async for record in result:
+                    content_node = record["c2"]
+                    outgoing_rels = record["outgoing_rels"]
+                    incoming_rels = record["incoming_rels"]
+                    
+                    content_data = dict(content_node.items())
+                    content_data["outgoing_relationships"] = outgoing_rels
+                    content_data["incoming_relationships"] = incoming_rels
+                    
+                    related_content.append(content_data)
+            
+            return related_content
+                
+        except (ServiceUnavailable, ClientError, DatabaseError) as e:
+            logger.error(f"Neo4j error getting related content: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error getting related content: {str(e)}")
+            raise
+            
+    async def get_content_by_topic(
+        self,
+        topic_name: str,
+        limit: int = 10,
+        user_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        include_private: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """Get content related to a specific topic using graph relationships.
+        
+        This method finds content that mentions or is related to the specified topic.
+        
+        Args:
+            topic_name: The name of the topic to find related content for
+            limit: Maximum number of results to return
+            user_id: Optional filter by user ID
+            project_id: Optional filter by project ID
+            session_id: Optional filter by session ID
+            include_private: Whether to include private content
+            
+        Returns:
+            List of content related to the specified topic
+        """
+        try:
+            driver = self.driver
+            
+            # Build filter conditions
+            filters = []
+            params = {"topic_name": topic_name, "limit": limit}
+            
+            if not include_private:
+                filters.append("NOT c.is_private")
+                
+            if user_id:
+                filters.append("c.user_id = $user_id")
+                params["user_id"] = user_id
+                
+            if project_id:
+                filters.append("c.project_id = $project_id")
+                params["project_id"] = project_id
+                
+            if session_id:
+                filters.append("c.session_id = $session_id")
+                params["session_id"] = session_id
+            
+            # Combine filters
+            filter_clause = " AND ".join(filters)
+            if filter_clause:
+                filter_clause = f"WHERE {filter_clause}"
+            
+            # Build the Cypher query
+            # This finds content nodes related to the topic node
+            query = f"""
+            MATCH (t:Topic {{name: $topic_name}})<-[:MENTIONS]-(c:Content)
+            {filter_clause}
+            RETURN c, t
+            LIMIT $limit
+            """
+            
+            topic_related_content = []
+            
+            async with driver.session() as session:
+                result = await session.run(query, params)
+                
+                async for record in result:
+                    content_node = record["c"]
+                    topic_node = record["t"]
+                    
+                    content_data = dict(content_node.items())
+                    content_data["topic"] = dict(topic_node.items())
+                    
+                    topic_related_content.append(content_data)
+            
+            return topic_related_content
+                
+        except (ServiceUnavailable, ClientError, DatabaseError) as e:
+            logger.error(f"Neo4j error getting content by topic: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error getting content by topic: {str(e)}")
+            raise
 
     async def close(self):
         """Close the Neo4j driver and release resources."""
