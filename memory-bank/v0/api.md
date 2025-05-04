@@ -160,8 +160,8 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 
 ### 3.1 Retrieve Context
 
-*   **Endpoint:** `GET /retrieve/context`
-*   **Description:** Retrieves relevant text chunks based on a semantic query within a specified user and scope (project/session). Can optionally enrich results with related graph context.
+*   **Endpoint:** `GET /v1/retrieve/context`
+*   **Description:** Retrieves relevant text chunks based on a semantic query within a specified user and scope (project/session). **By default, this excludes content generated during direct user-twin interactions (i.e., `is_twin_interaction: true`).** Can optionally enrich results with related graph context.
 *   **Query Parameters:**
     *   `query_text`: `string` - REQUIRED: The natural language query for semantic search.
     *   `session_id`: `string (uuid), optional` - Scope: Filter by session.
@@ -199,12 +199,15 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 
 ### 3.2 Retrieve Preferences
 
-*   **Endpoint:** `GET /retrieve/preferences`
-*   **Description:** Retrieves known preferences for a user, potentially filtered by project or topic. Combines explicit statements, inferred preferences, and relevant chat history.
+*   **Endpoint:** `GET /v1/retrieve/preferences`
+*   **Description:** Retrieves known preferences for a user, potentially filtered by project or topic. Combines explicit statements, inferred preferences, and relevant chat history. **It specifically excludes content generated during direct user-twin interactions (i.e., `is_twin_interaction: true`) from the vector search component to focus on the user's original statements.**
 *   **Query Parameters:**
     *   `user_id`: `string (uuid)` - REQUIRED: The user whose preferences are being queried.
+    *   `decision_topic`: `string` - REQUIRED: The topic to find preferences for.
     *   `project_id`: `string (uuid), optional` - Scope: Filter preferences relevant to a specific project.
-    *   `topic`: `string, optional` - Filter preferences related to a specific topic (requires topic extraction/tagging).
+    *   `session_id`: `string (uuid), optional` - Scope: Filter preferences relevant to a specific session.
+    *   `limit`: `integer, optional (default: 5)` - Maximum number of preference statements to return.
+    *   `score_threshold`: `float, optional (default: 0.6)` - Minimum score for vector search results to be considered.
 *   **Responses:**
     *   `200 OK`: Successfully retrieved preference information.
       ```json
@@ -349,8 +352,8 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 
 ### 3.6 Retrieve Private Memory
 
-*   **Endpoint:** `POST /retrieve/private_memory`
-*   **Description:** Retrieves a user's private memory based on semantic search. It also ingests the query itself as a twin interaction. Can optionally enrich results with related graph context.
+*   **Endpoint:** `POST /v1/retrieve/private_memory`
+*   **Description:** Retrieves a user's private memory based on semantic search. It also ingests the query itself as a twin interaction (marked with `is_twin_interaction: true`). **The retrieval part typically searches only the user's source content (`is_twin_interaction: false`), excluding previous twin interactions unless specifically designed otherwise.** Can optionally enrich results with related graph context.
 *   **Request Body:**
     ```json
     {
@@ -421,8 +424,8 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 
 ### 3.8 Retrieve Timeline
 
-*   **Endpoint:** `GET /retrieve/timeline`
-*   **Description:** Retrieves a chronologically sorted list of content chunks (messages, document chunks) within a specified context.
+*   **Endpoint:** `GET /v1/retrieve/timeline`
+*   **Description:** Retrieves a chronologically sorted list of content chunks (messages, document chunks) within a specified context. **Filtering by `is_twin_interaction` is possible via the underlying DAL method but not directly exposed as a parameter in this endpoint by default.**
 *   **Query Parameters:**
     *   `user_id`: `string (uuid), optional` - Filter by user.
     *   `project_id`: `string (uuid), optional` - Filter by project.

@@ -2,6 +2,34 @@
 
 **IMPORTANT**: Put your changes at the top!
 
+## Sun May  4 14:05:24 PDT 2025 - Fixed E2E Tests for Preference Endpoint
+
+### Changes since last update
+- Successfully completed Phase 7: Preference Endpoint.
+- Debugged and fixed E2E tests for the `/v1/retrieve/preferences` endpoint (`tests/e2e/test_preference_endpoint.py`). Key fixes included:
+  - Correcting expected HTTP status codes in tests (202 Accepted vs 200 OK for async ingestion).
+  - Aligning the document ingestion payload in tests with the correct Pydantic model (`DocumentIngest`) used by the router.
+  - Adding an `asyncio.sleep` in the setup fixture to mitigate timing issues between async ingestion and subsequent retrieval.
+  - Ensuring the `use_test_databases` fixture correctly overrides dependencies for both ingestion and retrieval routers, preventing data mismatch between test setup and execution.
+  - Adding a `score_threshold` parameter to the Qdrant DAL (`search_user_preferences`) and Preference Service (`query_user_preference`) to filter out low-confidence vector search results.
+  - Manually filtering Qdrant results in the DAL based on the threshold as the client parameter alone was insufficient.
+  - Passing the `score_threshold` parameter from the API endpoint down to the service/DAL.
+- All E2E tests for the preference endpoint are now passing, including the `test_retrieve_preferences_with_no_results` scenario.
+
+### Errors & Learnings
+- E2E testing requires careful attention to API contracts (status codes, request/response models).
+- Dependency overrides in fixtures must cover all relevant components involved in the test flow (e.g., both ingestion and retrieval services if data is set up via API calls).
+- Asynchronous operations in E2E tests can introduce timing issues requiring delays (`asyncio.sleep`) or more robust synchronization mechanisms.
+- Semantic search thresholding is crucial for relevance; relying solely on the database client's threshold parameter might not be enough, requiring manual filtering in the DAL.
+- Consistent logging during debugging helps pinpoint issues across different layers (API, Service, DAL).
+
+### Next Steps
+- Move to Phase 8: Twin Interaction Endpoints
+  - Task 8.1: Implement Twin Detection Service
+  - Task 8.2: Implement Twin Response API Endpoint
+  - Task 8.3: Create End-to-End Tests for Twin Interactions
+- Continue investigating the document ingestion E2E test failure (`test_document_ingestion_end_to_end`).
+
 ## Sun May  4 01:28:26 PDT 2025 - Completed Phase 7: Preference Endpoint
 
 ### Changes since last update

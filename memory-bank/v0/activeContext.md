@@ -1,7 +1,7 @@
-# TwinCore Active Context - Sun May  4 01:28:26 PDT 2025
+# TwinCore Active Context - Sun May  4 14:05:24 PDT 2025
 
 ## Current Work Focus
-- Completed Phase 7: Preference Endpoint
+- **Completed Phase 7: Preference Endpoint** (including debugging and fixing E2E tests)
 - Moving to Phase 8: Twin Interaction Endpoints
 - Still need to investigate the E2E test failure for document ingestion (`test_document_ingestion_end_to_end`)
 
@@ -52,9 +52,9 @@
 - **Phase 7 Complete:** Preference retrieval endpoints implemented and tested:
     - `PreferenceService` with multi-strategy `query_user_preference` method
     - Extended DAL interfaces with `search_user_preferences` and `get_user_preference_statements`
-    - Added `/v1/retrieve/preferences` endpoint with proper request/response models
-    - Comprehensive unit, integration, and E2E tests for all preference components
-    - Successfully implemented fallback strategies for preference retrieval (explicit preferences, topic-based, vector similarity)
+    - Added `/v1/retrieve/preferences` endpoint with proper request/response models and `score_threshold` parameter
+    - Comprehensive unit, integration, and E2E tests for all preference components, now passing after debugging
+    - Successfully implemented fallback strategies for preference retrieval (explicit preferences, topic-based, vector similarity with thresholding)
 
 ### What's Broken
 - **`test_document_ingestion_end_to_end`:** Still failing with `AssertionError: No document chunks found in Qdrant`. Investigation ongoing.
@@ -75,10 +75,10 @@
 - Standardized API path convention to use `/v1` prefix for all endpoints
 - Standardized on snake_case for all database property names
 - Using `xdist_group` markers and careful fixture design to manage E2E test isolation for shared resources (Qdrant, Neo4j)
-- Implementing reusable test fixtures to ensure proper database connections in E2E tests
+- Implementing reusable test fixtures (`use_test_databases`) to ensure proper database connections in E2E tests, overriding dependencies for all relevant routers.
 - Created new design for advanced retrieval strategies combining Qdrant and Neo4j for better results
 - Defined future expansions for retrieval endpoints to be implemented in Phase 11
-- Implemented preference retrieval with multiple fallback strategies to ensure useful results even with sparse knowledge graphs (important before Phase 9's knowledge extraction implementation)
+- Implemented preference retrieval with multiple fallback strategies and score thresholding to ensure useful and relevant results even with sparse knowledge graphs.
 
 ## Tech Stack
 - Backend: FastAPI (Python)
@@ -89,7 +89,7 @@
 - Testing: pytest, httpx, pytest-asyncio, pytest-mock, pytest-cov, Schemathesis
 - Configuration: pydantic-settings with environment variables
 - Qdrant Client: 1.7.0
-- Text Processing: LangChain text splitters (SemanticChunker)
+- Text Processing: LangChain text splitters (SemanticChunker) - *Note: Currently basic split in DocumentConnector, LangChain planned for refinement*
 
 ## Learnings and Insights
 - Global singleton instances that depend on event loops cause conflicts in sequential test runs
@@ -106,14 +106,18 @@
 - Clear initialization and cleanup mechanisms are essential for reliable tests
 - Following the architecture defined in systemPatterns.md leads to cleaner code organization
 - Connectors provide a clean way to handle specific data sources while maintaining separation of concerns
-- E2E tests using shared resources (like databases) need careful isolation management (e.g., `xdist_group`, explicit setup/teardown fixtures)
+- E2E tests using shared resources (like databases) need careful isolation management (`xdist_group`, explicit setup/teardown fixtures, comprehensive dependency overrides).
 - Relying on resources created/cleaned up by other tests is brittle; each test/test class should manage its own dependencies
 - Correctly configuring async test clients (`httpx.AsyncClient` with `ASGITransport`) is crucial for FastAPI testing
-- When testing API endpoints, database connections must be consistent between the test setup and the endpoint execution
+- When testing API endpoints, database connections must be consistent between the test setup and the endpoint execution.
 - Proper handling of list parameters in API endpoints requires careful type checking and conversion
 - Combining Qdrant (vector search) and Neo4j (graph relationships) can provide more contextually relevant search results
 - Cypher query syntax requires careful handling of WITH clauses and relationship traversal paths
-- Multi-strategy retrieval approaches (combining explicit relationships, topic-based connections, and vector search) provide robust results even with incomplete knowledge graphs
+- Multi-strategy retrieval approaches (combining explicit relationships, topic-based connections, and vector search) provide robust results.
+- Semantic search requires careful thresholding (`score_threshold`) to filter irrelevant results, and relying solely on client parameters may not be sufficient.
+- Debugging E2E tests often requires examining logs across multiple layers (test fixtures, API routers, services, DALs).
+- Verifying API contracts (status codes, request models) against implementation is crucial during testing.
+- Asynchronous operations can introduce timing issues in tests, requiring delays or better synchronization.
 
 ## Next Steps
 - Investigate and fix the `AssertionError` in `test_document_ingestion_end_to_end`

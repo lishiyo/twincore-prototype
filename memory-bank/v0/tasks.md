@@ -202,25 +202,26 @@ This document outlines the development tasks for building the TwinCore backend p
 
 ## Phase 7: Preference Endpoint (`/v1/retrieve/user_preference`)
 
-- [ ] **Task 7.1: Preference Service & DAL Methods** (D: 3.3, 3.4, Phase 4)
-    - [ ] Steps:
-        - [ ] Define & Implement necessary DAL methods for finding user statements/messages related to a topic (querying past statements/data) in `dal/qdrant_dal.py` and `dal/neo4j_dal.py`. *Note: Relies on existing data/embeddings for prototype; explicit Preference nodes are phase 9.* 
-        - [ ] Create `services/preference_service.py`. Implement `PreferenceService` taking DAL dependencies.
-        - [ ] Implement `query_user_preference(data)` logic in `PreferenceService`.
-        - [ ] [TDD Steps]:
-            - [ ] [DAL Int] Test preference retrieval queries against test DBs with seeded relevant data.
-            - [ ] [Service Int] Implement `PreferenceService`, mock DALs, test logic for interpreting/returning preferences.
+- [x] **Task 7.1: Preference Service & DAL Methods** (D: 3.3, 3.4, Phase 4)
+    - [x] Steps:
+        - [x] Define & Implement necessary DAL methods for finding user statements/messages related to a topic (querying past statements/data) in `dal/qdrant_dal.py` and `dal/neo4j_dal.py`. *Note: Relies on existing data/embeddings for prototype; explicit Preference nodes are phase 9.* 
+        - [x] Create `services/preference_service.py`. Implement `PreferenceService` taking DAL dependencies.
+        - [x] Implement `query_user_preference(data)` logic in `PreferenceService`.
+        - [x] [TDD Steps]:
+            - [x] [DAL Int] Test preference retrieval queries against test DBs with seeded relevant data.
+            - [x] [Service Int] Implement `PreferenceService`, mock DALs, test logic for interpreting/returning preferences.
 
-- [ ] **Task 7.2: Preference API Endpoint** (D: 2.1, 7.1)
-    - [ ] Steps:
-        - [ ] Define the API endpoint structure for preference retrieval (using Pydantic models) in a relevant router (e.g., `retrieve_router.py` or a new `query_router.py`). Ensure it aligns with the final API spec (`GET /v1/retrieve/preferences`). Inject the service. Register router.
-        - [ ] [TDD Steps]:
-            - [ ] [API/Contract] Test endpoint schema/status.
+- [x] **Task 7.2: Preference API Endpoint** (D: 2.1, 7.1)
+    - [x] Steps:
+        - [x] Define the API endpoint structure for preference retrieval (using Pydantic models) in a relevant router (e.g., `retrieve_router.py` or a new `query_router.py`). Ensure it aligns with the final API spec (`GET /v1/retrieve/preferences`). Inject the service. Register router.
+        - [x] [TDD Steps]:
+            - [x] [API/Contract] Test endpoint schema/status.
 
-- [ ] **Task 7.3: Preference End-to-End Test** (D: 7.2, Phase 4)
-    - [ ] Steps:
-        - [ ] [E2E] Write E2E test simulating Canvas Agent call. Call endpoint, verify relevant past statements/data are returned based on seeded mock data.
-        - [ ] Ingest real data, call endpoint, verify responses look correct.
+- [x] **Task 7.3: Preference End-to-End Test** (D: 7.2, Phase 4)
+    - [x] Steps:
+        - [x] [E2E] Write E2E test simulating Canvas Agent call. Call endpoint, verify relevant past statements/data are returned based on seeded mock data.
+        - [x] Ingest real data, call endpoint, verify responses look correct.
+        - [x] Debug and fix E2E test failures related to status codes, request payloads, fixture overrides, async timing, and vector search thresholds.
 
 ---
 

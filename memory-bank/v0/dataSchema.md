@@ -144,3 +144,25 @@ Models relationships essential for context, authorship, and preference tracking 
     *   Services may query Neo4j first for context IDs (e.g., session participants).
     *   Services query Qdrant using semantic vectors and filters derived from API parameters and potentially Neo4j results (`user_id`, `session_id`, `project_id`, `is_private`, `is_twin_interaction`).
     *   Results from Qdrant (text + metadata) are returned.
+
+## Clarification: `is_twin_interaction` Flag
+
+The `is_twin_interaction` boolean flag in the Qdrant payload serves a critical role in distinguishing the origin and nature of the text content:
+
+*   **`is_twin_interaction: False` (or null/absent):** Represents **Source Content**. This is the raw material ingested from external user activities, such as messages sent in a chat application, uploaded documents, calendar entries, transcripts, etc. It forms the basis of the twin's knowledge.
+
+*   **`is_twin_interaction: True`:** Represents **Interaction Content**. This data is generated *specifically* during a direct interaction loop between a user and their digital twin. This typically includes:
+    *   The user's query or prompt directed *to* the twin (e.g., when calling `/v1/retrieve/private_memory`).
+    *   *(Future)* The twin's generated response back to the user.
+
+**Usage Pattern:**
+
+1.  **Setting the Flag:**
+    *   Standard ingestion endpoints (`/v1/ingest/message`, `/v1/ingest/document`) typically result in chunks with `is_twin_interaction: False`.
+    *   Endpoints simulating a direct user-twin interaction (like `/v1/retrieve/private_memory`, which ingests the user's query) should set `is_twin_interaction: True` for the ingested query chunk.
+2.  **Filtering during Retrieval:**
+    *   General context retrieval (e.g., `/v1/retrieve/context`) usually aims to find relevant *Source Content* and should filter *out* records where `is_twin_interaction: True` (using the `exclude_twin_interactions` filter in the DAL).
+    *   Preference retrieval (`/v1/retrieve/preferences`) explicitly filters *out* twin interactions in the vector search component (`QdrantDAL.search_user_preferences`) to focus on the user's original statements.
+    *   Private memory retrieval (`/v1/retrieve/private_memory`) might *include* `is_twin_interaction: True` records if the goal is to show the history of interactions, or filter them depending on the exact use case (e.g., only show source material relevant to the query).
+
+This distinction allows retrieval endpoints to fetch the appropriate type of information based on the user's intent.
