@@ -344,9 +344,30 @@ This document outlines the development tasks for building the TwinCore backend p
 
 ---
 
-## Phase 9: Knowledge Extraction
+## Phase 9: Knowledge Extraction & Deduplication
 
-*Note: This phase focuses on enriching the knowledge graph by extracting entities (Topics, Preferences, etc.) and relationships directly from text content using an LLM. It builds upon the foundation laid in Phases 1-8.*
+*Note: This phase focuses on enriching the knowledge graph by extracting entities (Topics, Preferences, etc.) and relationships directly from text content using an LLM, and ensuring content uniqueness.*
+
+- [ ] **Task 9.0: Implement Content Deduplication** (D: Phase 1-7)
+    - **Goal:** Prevent storing duplicate content chunks (identical text from the same user via the same source type) in Qdrant and Neo4j.
+    - **Strategy:** Generate a deterministic `chunk_id` based on a hash (e.g., SHA-256) of the `user_id`, `source_type`, and the `text_content`. Use this deterministic ID as the point ID in Qdrant and the `chunk_id` property for `:Chunk` nodes in Neo4j. Qdrant's `upsert` and Neo4j's `MERGE` operations will handle the actual deduplication automatically based on this consistent ID.
+    - [ ] Steps:
+        - [ ] **Sub-task 9.0.1: Implement Deterministic ID Generation**
+            - [ ] Create a utility function (e.g., `generate_deterministic_chunk_id(user_id, source_type, text_content)`) potentially in `core/utils.py`.
+            - [ ] [TDD - Unit] Write unit tests for this function to ensure it produces consistent output for the same input and different output for different inputs.
+        - [ ] **Sub-task 9.0.2: Update `IngestionService`**
+            - [ ] Modify `IngestionService.ingest_chunk` to call the deterministic ID generation function.
+            - [ ] Ensure this generated ID is used when calling `_prepare_qdrant_point` (as the point ID) and `_update_neo4j_graph` (as the `chunk_id` parameter).
+            - [ ] [TDD - Service Int] Update `IngestionService` tests to mock the ID generation and verify the correct ID is passed to DAL mocks.
+        - [ ] **Sub-task 9.0.3: Refactor Connectors**
+            - [ ] Modify `MessageConnector.ingest_message` to stop generating a random UUID for the chunk. It should pass the core data to `IngestionService.ingest_chunk`.
+            - [ ] Modify `DocumentConnector.ingest_document` (specifically the loop creating chunks) and `DocumentConnector.ingest_chunk` to stop generating random UUIDs for chunks. They should pass core data to `IngestionService.ingest_chunk`.
+            - [ ] [TDD - Service Int] Update Connector tests to verify they no longer generate random chunk IDs and correctly call `IngestionService`.
+        - [ ] **Sub-task 9.0.4: Verify Deduplication (Testing)**
+            - [ ] [TDD - E2E] Write specific E2E tests:
+                - Ingest the *exact same message text* from the *same user* via `POST /v1/ingest/message` twice. Verify only one Qdrant point and one Neo4j `:Chunk` node exist with the correct deterministic ID.
+                - Ingest the *exact same query text* from the *same user* via `POST /v1/users/{user_id}/private_memory` twice. Verify only one Qdrant point and one Neo4j `:Chunk` node exist for the *query itself* (source_type='query').
+                - Ingest a message via `/ingest/message`, then ingest the *same text* as a query via `/private_memory`. Verify *two* distinct points/nodes exist (because `source_type` differs: 'message' vs. 'query').
 
 - [ ] **Task 9.1: Knowledge Extraction Service** (D: 1.1)
     - [ ] Steps:
