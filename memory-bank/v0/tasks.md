@@ -294,52 +294,52 @@ This document outlines the development tasks for building the TwinCore backend p
 
 **Critical**: This Streamlit frontend MUST be completely encapsulated from our backend, because we are only using it for development (the real frontend will be a separate repo). Essentially, we will use this to simulate the calls that the real external client (Developer A in [separationStrategy](./separationStrategy.md)) would mamke.
 
-- [ ] **Task 8.1: Streamlit App Setup** (D: 1.1)
+- [x] **Task 8.1: Streamlit App Setup** (D: 1.1)
     - [x] Steps:
         - [x] Create new `twincore_frontend` folder, create `streamlit_app.py`.
         - [x] Add `streamlit`, `requests` to `requirements.txt`. Install.
         - [x] Basic app structure and title.
         - [x] Add README.md to explain how this frontend works, all its expected features and use case flows, and how to run it.
 
-- [ ] **Task 8.2: UI Layout & Components** (D: 8.1)
-    - [ ] Steps:
-        - [ ] Implement User Selector (`st.selectbox`).
-        - [ ] Implement Canvas Agent Simulation section:
-            - [ ] Inputs/Button for Shared Context (`GET /v1/retrieve/context`).
-            - [ ] Inputs/Button for User Context (`GET /v1/users/{user_id}/context`).
-            - [ ] Inputs/Button for User Preference (`GET /v1/users/{user_id}/preferences`).
-            - [ ] Inputs/Button for Group Context (`GET /v1/retrieve/group`).
-        - [ ] Implement Group Chat Simulation section:
-            - [ ] Text area/Button for sending group messages (`POST /v1/ingest/message`).
-        - [ ] Implement User <> Twin Interaction section (text area, button).
-        - [ ] Implement Document Upload Simulation section (text inputs, checkbox, button).
-        - [ ] Implement **Transcript Simulation Section:**
-            - [ ] Text input for `doc_id` (to represent the ongoing transcript).
-            - [ ] Text area for entering utterance chunks.
-            - [ ] Button like "Send Utterance Chunk".
-            - [ ] Button like "Finalize Transcript & Add URI" (requires input for URI).
-        - [ ] Implement Output Display area (`st.text_area` or `st.json`).
+- [x] **Task 8.2: UI Layout & Components** (D: 8.1)
+    - [x] Steps:
+        - [x] Implement User Selector (`st.selectbox`).
+        - [x] Implement Canvas Agent Simulation section:
+            - [x] Inputs/Button for Shared Context (`GET /v1/retrieve/context`).
+            - [x] Inputs/Button for User Context (`GET /v1/users/{user_id}/context`).
+            - [x] Inputs/Button for User Preference (`GET /v1/users/{user_id}/preferences`).
+            - [x] Inputs/Button for Group Context (`GET /v1/retrieve/group`).
+        - [x] Implement Group Chat Simulation section:
+            - [x] Text area/Button for sending group messages (`POST /v1/ingest/message`).
+        - [x] Implement User <> Twin Interaction section (text area, button).
+        - [x] Implement Document Upload Simulation section (text inputs, checkbox, button).
+        - [x] Implement **Transcript Simulation Section:**
+            - [x] Text input for `doc_id` (to represent the ongoing transcript).
+            - [x] Text area for entering utterance chunks.
+            - [x] Button like "Send Utterance Chunk".
+            - [x] Button like "Finalize Transcript & Add URI" (requires input for URI).
+        - [x] Implement Output Display area (`st.text_area` or `st.json`).
 
-- [ ] **Task 8.3: Backend API Integration** (D: 4.3, 5.1, 5.2, 6.2, 6.3, 7.2, 8.2)
-    - [ ] Steps:
-        - [ ] Add `requests` calls within button callbacks to hit the corresponding backend API endpoints:
-            - [ ] `GET /v1/retrieve/context` (Shared Context)
-            - [ ] `GET /v1/users/{user_id}/context` (User Context)
-            - [ ] `GET /v1/users/{user_id}/preferences` (User Preference)
-            - [ ] `GET /v1/retrieve/group` (Group Context)
-            - [ ] `POST /v1/ingest/message` (Group Message)
-            - [ ] `POST /v1/users/{user_id}/private_memory` (User/Twin Interaction, should ingest message and return user's private context)
-            - [ ] `POST /v1/ingest/document` (Document text Upload)
-        - [ ] Add `requests` call for "Send Utterance Chunk" button to hit `POST /v1/ingest/chunk` with `doc_id`, selected user, utterance text, session context.
-        - [ ] Add `requests` call for "Finalize Transcript" button to hit `POST /v1/documents/{doc_id}/metadata` with `doc_id`, `source_uri` input, etc.
-        - [ ] Pass appropriate data (selected user ID, text inputs, context IDs) to the API calls.
-        - [ ] Display API responses in the Output Display area.
+- [x] **Task 8.3: Backend API Integration** (D: 4.3, 5.1, 5.2, 6.2, 6.3, 7.2, 8.2)
+    - [x] Steps:
+        - [x] Add `requests` calls within button callbacks to hit the corresponding backend API endpoints:
+            - [x] `GET /v1/retrieve/context` (Shared Context)
+            - [x] `GET /v1/users/{user_id}/context` (User Context)
+            - [x] `GET /v1/users/{user_id}/preferences` (User Preference)
+            - [x] `GET /v1/retrieve/group` (Group Context)
+            - [x] `POST /v1/ingest/message` (Group Message)
+            - [x] `POST /v1/users/{user_id}/private_memory` (User/Twin Interaction, should ingest message and return user's private context)
+            - [x] `POST /v1/ingest/document` (Document text Upload)
+        - [x] Add `requests` call for "Send Utterance Chunk" button to hit `POST /v1/ingest/chunk` with `doc_id`, selected user, utterance text, session context.
+        - [x] Add `requests` call for "Finalize Transcript" button to hit `POST /v1/documents/{doc_id}/metadata` with `doc_id`, `source_uri` input, etc.
+        - [x] Pass appropriate data (selected user ID, text inputs, context IDs) to the API calls.
+        - [x] Display API responses in the Output Display area.
 
-- [ ] **Task 8.4: (Bonus) DB Stats Display** (D: 8.3, potentially new admin endpoints)
-    - [ ] Steps:
-        - [ ] (Optional) Create simple backend endpoints in `admin_router.py` to return counts from Qdrant/Neo4j (e.g., `/v1/stats/qdrant_count`, `/v1/stats/neo4j_nodes`). Test these endpoints.
-        - [ ] Add a "Show DB Stats" button to Streamlit UI.
-        - [ ] Call the stats endpoints and display results.
+- [x] **Task 8.4: (Bonus) DB Stats Display** (D: 8.3, potentially new admin endpoints)
+    - [x] Steps:
+        - [x] (Optional) Create simple backend endpoints in `admin_router.py` to return counts from Qdrant/Neo4j (e.g., `/v1/stats/qdrant_count`, `/v1/stats/neo4j_nodes`). Test these endpoints.
+        - [x] Add a "Show DB Stats" button to Streamlit UI.
+        - [x] Call the stats endpoints and display results.
 
 ---
 

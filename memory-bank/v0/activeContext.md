@@ -1,10 +1,10 @@
-# TwinCore Active Context - Mon May  6 10:42:17 PDT 2025
+# TwinCore Active Context - Sun May  4 23:59:46 PDT 2025
 
 ## Current Work Focus
+- **Preparing for Phase 9:**
+    - Planning Knowledge Extraction service implementation using LLM (Gemini).
 - **Investigating E2E Test Failure:**
     - Addressing the `AssertionError` in `test_document_ingestion_end_to_end`.
-- **Preparing for Phase 8:**
-    - Planning Streamlit verification UI implementation including transcript simulation.
 
 ## Project State
 ### What's Working
@@ -47,6 +47,12 @@
 - **User and Group Context Retrieval (Task 7.6) Complete:** Implemented `GET /v1/users/{user_id}/context` and `GET /v1/retrieve/group` endpoints with full testing.
 - **E2E Test Refactoring:** Seeding fixtures moved to `tests/e2e/fixtures/retrieval_fixtures.py`.
 - **Neo4j Preference Filtering Fixed:** Corrected `get_user_preference_statements` in Neo4j DAL to respect `include_twin_interactions` flag.
+- **Phase 8 Complete:** Implemented comprehensive Streamlit verification UI:
+  - **Task 8.1 Complete:** Created `twincore_frontend` folder with modular structure and requirements.
+  - **Task 8.2 Complete:** Implemented all UI components (Canvas Agent, Group Chat, Twin Interaction, Document Upload, Transcript).
+  - **Task 8.3 Complete:** Integrated with backend APIs through comprehensive `requests` calls.
+  - **Task 8.4 Complete:** Added DB Stats display with placeholder for future admin endpoints.
+  - Created modular structure with separate files for different UI components, keeping all files under 500 lines.
 
 ### What's Broken
 - **`test_document_ingestion_end_to_end`:** Still failing with `AssertionError: No document chunks found in Qdrant`. Investigation ongoing.
@@ -76,6 +82,10 @@
 - Organizing user-specific API endpoints in `user_router.py` while keeping general retrieval endpoints in `retrieve_router.py` for better API organization.
 - Centralizing E2E test data seeding logic into dedicated fixture files.
 - Grouping user-specific endpoints under `/v1/users/{user_id}/` path prefix for API consistency.
+- Created modular Streamlit UI with separate modules, following architecture guidelines for file size limits.
+- Implementing mock data constants for consistent user/project/session references in the frontend.
+- Creating utility functions for API calls to avoid code duplication across UI components.
+- Using Streamlit forms for structured data input in the verification UI.
 
 ## Tech Stack
 - Backend: FastAPI (Python)
@@ -87,6 +97,7 @@
 - Configuration: pydantic-settings with environment variables
 - Qdrant Client: 1.7.0
 - Text Processing: LangChain text splitters (SemanticChunker) - *Note: Currently basic split in DocumentConnector, LangChain planned for refinement*
+- Frontend Verification UI: Streamlit (only for development/verification, not production)
 
 ## Learnings and Insights
 - Global singleton instances that depend on event loops cause conflicts in sequential test runs
@@ -127,7 +138,16 @@
 - Path parameters provide a cleaner API structure than having IDs in the request body.
 - User-specific endpoint organization under `/v1/users/{user_id}/` improves API discoverability.
 - E2E tests should be organized by functional area rather than strictly by API structure.
+- Breaking down a large monolithic file (streamlit_app.py) into smaller modules improves maintainability and readability.
+- Properly organizing mock data helps simulate the frontend UX with realistic values.
+- API integration requires careful handling of error cases, especially for in-development endpoints.
+- Creating a utility function for API calls avoids code duplication across different UI components.
+- Streamlit's component-based approach works well for building quick verification UIs.
 
 ## Next Steps
 - Investigate and fix the `AssertionError` in `test_document_ingestion_end_to_end`.
-- Move to Phase 8: Verification UI (Streamlit), including transcript simulation.
+- Move to Phase 9: Knowledge Extraction, including:
+  - Design extraction schema/prompts for Topics, Preferences, Entities, etc.
+  - Create `services/knowledge_extraction_service.py` for LLM-based extraction
+  - Update Neo4j DAL with methods for saving extracted entities and relationships
+  - Integrate extraction into the Ingestion Service

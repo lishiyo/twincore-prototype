@@ -43,11 +43,11 @@ seed_col1, seed_col2 = st.sidebar.columns(2)
 
 with seed_col1:
     if st.button("🌱 Seed Data", key="sidebar_seed"):
-        make_api_call("POST", "/api/seed_data")
+        make_api_call("POST", "/admin/api/seed_data")
         
 with seed_col2:
     if st.button("🧹 Clear Data", key="sidebar_clear"):
-        make_api_call("DELETE", "/api/clear_data")
+        make_api_call("DELETE", "/admin/api/clear_data")
 
 st.sidebar.markdown("---")
 st.sidebar.info("Remember to seed data first if you've just started the backend!")

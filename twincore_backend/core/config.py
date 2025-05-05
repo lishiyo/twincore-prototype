@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     
     # Model settings for configuring environment variables
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=["../.env", ".env"],  # Try parent directory first, then current directory
         env_file_encoding="utf-8",
         extra="ignore"
     )
