@@ -295,10 +295,10 @@ This document outlines the development tasks for building the TwinCore backend p
 **Critical**: This Streamlit frontend MUST be completely encapsulated from our backend, because we are only using it for development (the real frontend will be a separate repo). Essentially, we will use this to simulate the calls that the real external client (Developer A in [separationStrategy](./separationStrategy.md)) would mamke.
 
 - [ ] **Task 8.1: Streamlit App Setup** (D: 1.1)
-    - [ ] Steps:
-        - [ ] Create new `twincore_frontend` folder, create `streamlit_app.py`.
-        - [ ] Add `streamlit`, `requests` to `requirements.txt`. Install.
-        - [ ] Basic app structure and title.
+    - [x] Steps:
+        - [x] Create new `twincore_frontend` folder, create `streamlit_app.py`.
+        - [x] Add `streamlit`, `requests` to `requirements.txt`. Install.
+        - [x] Basic app structure and title.
         - [x] Add README.md to explain how this frontend works, all its expected features and use case flows, and how to run it.
 
 - [ ] **Task 8.2: UI Layout & Components** (D: 8.1)

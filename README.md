@@ -89,22 +89,14 @@ Or use the "Seed Data" button in the Streamlit frontend.
 ### 3. Frontend Setup
 
 ```bash
-cd twincore_frontend
+# From the root directory of the project (shared between backend and frontend)
+source venv312/bin/activate
 
-# Create and activate a virtual environment (optional but recommended)
-python -m venv venv
+# Install the frontend requirements
+pip install -r twincore_frontend/requirements.txt
 
-# On Linux/Mac
-source venv/bin/activate
-
-# On Windows
-venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start the Streamlit app
-streamlit run streamlit_app.py
+# Run streamlit using the Streamlit installed in your active Python environment.
+python -m streamlit run twincore_frontend/streamlit_app.py
 ```
 
 The Streamlit app will be available at http://localhost:8501.
