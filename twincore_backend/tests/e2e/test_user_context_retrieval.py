@@ -13,6 +13,9 @@ from dal.neo4j_dal import Neo4jDAL
 from services.embedding_service import EmbeddingService
 from tests.e2e.test_utils import get_test_async_qdrant_client, get_test_neo4j_driver
 
+# Import the fixture from the shared file
+from .fixtures.retrieval_fixtures import seed_multi_user_context_data
+
 # Assuming relevant fixtures like async_client, use_test_databases, ensure_collection_exists 
 # are defined in twincore_backend/tests/conftest.py or twincore_backend/tests/e2e/conftest.py
 
@@ -20,74 +23,6 @@ from tests.e2e.test_utils import get_test_async_qdrant_client, get_test_neo4j_dr
 @pytest.mark.xdist_group("neo4j")
 @pytest.mark.xdist_group("qdrant")
 class TestUserContextRetrievalE2E:
-
-    @pytest_asyncio.fixture
-    async def seed_multi_user_context_data(self):
-        """Seed test data directly using DALs."""
-        user1_id = str(uuid.uuid4())
-        user2_id = str(uuid.uuid4())
-        project_id = str(uuid.uuid4())
-        session_id = str(uuid.uuid4())
-
-        qdrant_client = await get_test_async_qdrant_client()
-        neo4j_driver = await get_test_neo4j_driver()
-        qdrant_dal = QdrantDAL(client=qdrant_client)
-        neo4j_dal = Neo4jDAL(driver=neo4j_driver)
-        
-        # Local mock embedding service for seeding Qdrant
-        mock_embedding_service = AsyncMock(spec=EmbeddingService)
-        async def mock_get_embedding(text):
-            seed = sum(ord(c) for c in text) % 10000
-            np.random.seed(seed)
-            return np.random.randn(1536).astype(np.float32).tolist()
-        mock_embedding_service.get_embedding = mock_get_embedding
-
-        test_data = [
-            # User 1 Data
-            {"text": "User 1 private doc about project Alpha", "user_id": user1_id, "project_id": project_id, "session_id": session_id, "is_private": True, "source_type": "document", "is_twin_chat": False, "chunk_id": str(uuid.uuid4()), "timestamp": datetime.now().isoformat()},
-            {"text": "User 1 twin query about project Alpha timeline", "user_id": user1_id, "project_id": project_id, "session_id": session_id, "is_private": False, "source_type": "query", "is_twin_chat": True, "chunk_id": str(uuid.uuid4()), "timestamp": datetime.now().isoformat()},
-            {"text": "User 1 public message in session about project Alpha release", "user_id": user1_id, "project_id": project_id, "session_id": session_id, "is_private": False, "source_type": "message", "is_twin_chat": False, "chunk_id": str(uuid.uuid4()), "timestamp": datetime.now().isoformat()},
-            # User 2 Data
-            {"text": "User 2 public message about project Alpha features", "user_id": user2_id, "project_id": project_id, "session_id": session_id, "is_private": False, "source_type": "message", "is_twin_chat": False, "chunk_id": str(uuid.uuid4()), "timestamp": datetime.now().isoformat()},
-            {"text": "User 2 private message about project Alpha concerns", "user_id": user2_id, "project_id": project_id, "session_id": session_id, "is_private": True, "source_type": "message", "is_twin_chat": False, "chunk_id": str(uuid.uuid4()), "timestamp": datetime.now().isoformat()},
-        ]
-
-        for item in test_data:
-            # Create Neo4j Node
-            node_properties = item.copy()
-            node_properties["text_content"] = item["text"] # Align property name
-            del node_properties["text"] # Remove original key
-            
-            await neo4j_dal.create_node_if_not_exists(
-                label="Content", 
-                properties=node_properties, 
-                constraints={"chunk_id": item["chunk_id"]}
-            )
-            
-            # Create Qdrant Vector
-            vector = await mock_embedding_service.get_embedding(item["text"])
-            await qdrant_dal.upsert_vector(
-                chunk_id=item["chunk_id"],
-                vector=vector,
-                text_content=item["text"],
-                user_id=item["user_id"],
-                project_id=item.get("project_id"),
-                session_id=item.get("session_id"),
-                source_type=item["source_type"],
-                timestamp=item["timestamp"],
-                is_twin_interaction=item.get("is_twin_chat", False),
-                is_private=item.get("is_private", False)
-            )
-
-        # Allow time for indexing
-        await asyncio.sleep(2)
-
-        return {
-            "user1_id": user1_id,
-            "user2_id": user2_id,
-            "project_id": project_id,
-            "session_id": session_id
-        }
 
     @pytest.mark.asyncio
     async def test_user_context_retrieval(self, seed_multi_user_context_data, async_client, use_test_databases):
