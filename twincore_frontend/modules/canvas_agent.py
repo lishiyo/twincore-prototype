@@ -35,7 +35,7 @@ def render_canvas_agent_tab():
 
 def render_shared_context_section():
     """Render the Shared Context retrieval section."""
-    st.info("Simulates Canvas Agent retrieving context for a session or project.")
+    st.info("Simulates Canvas Agent retrieving context for a session or project. Includes only public content and group chat messages by default.")
     
     # Context scope selection (Session or Project)
     context_scope = st.radio("Context Scope", ["Session", "Project"], horizontal=True)
@@ -55,6 +55,7 @@ def render_shared_context_section():
     
     # Optional filters
     include_messages_to_twin = st.checkbox("Include Messages to Twin", value=False, key="shared_context_twin_msg")
+    include_graph = st.checkbox("Include Graph", value=False, help="Return graph relationships for results.", key="shared_context_graph")
     shared_context_max_results = st.slider("Max Results", min_value=1, max_value=20, value=5, key="shared_context_max")
     
     if st.button("Get Shared Context", key="get_shared_context"):
@@ -62,6 +63,7 @@ def render_shared_context_section():
         params = {
             "query_text": shared_context_query,
             "include_messages_to_twin": include_messages_to_twin,
+            "include_graph": include_graph,
             "max_results": shared_context_max_results
         }
         
@@ -75,7 +77,7 @@ def render_shared_context_section():
 
 def render_user_context_section():
     """Render the User Context retrieval section."""
-    st.info("Simulates Canvas Agent retrieving context specific to the selected user.")
+    st.info("Simulates Canvas Agent retrieving context specific to the selected user. Includes private content and user<>twin messages by default.")
     
     # User is already selected in the sidebar
     selected_user_name = st.session_state.get('selected_user_name', list(MOCK_USERS.keys())[0])
@@ -165,7 +167,7 @@ def render_user_preference_section():
 
 def render_group_context_section():
     """Render the Group Context retrieval section."""
-    st.info("Simulates Canvas Agent retrieving context across all participants in a group.")
+    st.info("Simulates Canvas Agent retrieving context across all participants in a group. Includes private content and user<>twin messages by default.")
     
     # Group scope selection (Session, Project, or Team)
     group_scope = st.radio("Group Scope", ["Session", "Project", "Team"], horizontal=True, key="group_scope")

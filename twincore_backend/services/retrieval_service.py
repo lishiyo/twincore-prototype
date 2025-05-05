@@ -203,6 +203,8 @@ class RetrievalService:
         
         # Extract IDs for enrichment
         chunk_ids = [result["chunk_id"] for result in search_results]
+
+        logger.info(f"Found {len(chunk_ids)} chunks to enrich with graph context")
         
         # Enrich with project context if project_id is provided
         if project_id:
