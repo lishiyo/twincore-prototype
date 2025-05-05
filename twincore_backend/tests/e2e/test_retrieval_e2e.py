@@ -10,23 +10,18 @@ import json
 import uuid
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
 import asyncio
 import logging
 from datetime import datetime
 from urllib.parse import urlencode
 
-from services.data_seeder_service import DataSeederService
 from services.ingestion_service import IngestionService
 from services.embedding_service import EmbeddingService
 from services.retrieval_service import RetrievalService
 from ingestion.connectors.message_connector import MessageConnector
 from dal.qdrant_dal import QdrantDAL
 from dal.neo4j_dal import Neo4jDAL
-from core.db_clients import get_async_qdrant_client, get_neo4j_driver
 from main import app
-from core.db_setup.qdrant_setup import setup_qdrant_collection
-from qdrant_client import models as qdrant_models
 
 logger = logging.getLogger(__name__)
 
@@ -37,83 +32,7 @@ class TestRetrievalE2E:
     """End-to-end tests for retrieval functionality."""
 
     @pytest_asyncio.fixture
-    async def ensure_collection_exists(self):
-        """
-        Fixture to ensure the Qdrant collection exists before tests.
-        """
-        from tests.e2e.test_utils import get_test_async_qdrant_client
-        
-        print("==== RETRIEVAL TEST: CREATING QDRANT COLLECTION BEFORE TEST ====")
-        
-        try:
-            # Get a fresh Qdrant client
-            qdrant_client = await get_test_async_qdrant_client()
-            
-            # Always attempt to delete the collection first to ensure a clean state
-            try:
-                await qdrant_client.delete_collection(collection_name="twin_memory")
-                print("RETRIEVAL TEST: Deleted existing twin_memory collection")
-            except Exception as e:
-                # Collection might not exist, ignore the error
-                print(f"RETRIEVAL TEST: Couldn't delete collection: {e}")
-            
-            # Wait a moment after deletion
-            await asyncio.sleep(1)
-            
-            # Create the collection with explicit vector parameters
-            print("RETRIEVAL TEST: Creating fresh twin_memory collection")
-            await qdrant_client.create_collection(
-                collection_name="twin_memory",
-                vectors_config=qdrant_models.VectorParams(
-                    size=1536,  # OpenAI embedding size
-                    distance=qdrant_models.Distance.COSINE
-                )
-            )
-            
-            # Verify the collection was created
-            collections = await qdrant_client.get_collections()
-            collection_names = [c.name for c in collections.collections]
-            print(f"RETRIEVAL TEST: Collections after setup: {collection_names}")
-            
-            if "twin_memory" not in collection_names:
-                raise RuntimeError("Failed to create twin_memory collection")
-            
-            # Create explicit index for metadata filtering
-            await qdrant_client.create_payload_index(
-                collection_name="twin_memory",
-                field_name="is_twin_interaction",
-                field_schema=qdrant_models.PayloadSchemaType.BOOL
-            )
-            
-            await qdrant_client.create_payload_index(
-                collection_name="twin_memory",
-                field_name="is_private",
-                field_schema=qdrant_models.PayloadSchemaType.BOOL
-            )
-            
-            # Explicitly check if the collection exists again to be sure
-            try:
-                info = await qdrant_client.get_collection(collection_name="twin_memory")
-                print(f"RETRIEVAL TEST: Collection twin_memory confirmed exists with {info.vectors_count} vectors")
-            except Exception as e:
-                print(f"RETRIEVAL TEST: Error checking collection: {e}")
-                raise RuntimeError(f"Collection verification failed: {e}")
-            
-            # Wait to ensure collection is ready
-            await asyncio.sleep(2)
-            print("RETRIEVAL TEST: Collection twin_memory is ready for test")
-            
-        except Exception as e:
-            print(f"RETRIEVAL TEST: Critical error in collection setup: {e}")
-            raise
-        
-        # Yield control back to the test
-        yield
-        
-        # No cleanup after - let the fixture system handle it
-
-    @pytest_asyncio.fixture
-    async def seed_test_data(self, ensure_collection_exists):
+    async def seed_test_data(self):
         """Seed test data for retrieval tests into the test databases.
         
         Returns a dict with the key IDs (user_id, project_id, session_id) for the test data.
@@ -166,7 +85,7 @@ class TestRetrievalE2E:
         }
 
     @pytest_asyncio.fixture
-    async def seed_private_test_data(self, ensure_collection_exists):
+    async def seed_private_test_data(self):
         """Seed private test data for retrieval tests into the test databases.
         
         Returns a dict with the key IDs (user_id, project_id) for the test data.
@@ -299,7 +218,7 @@ class TestRetrievalE2E:
             del app.dependency_overrides[original_get_retrieval_service_with_connector]
 
     @pytest.mark.asyncio
-    async def test_context_retrieval_e2e(self, seed_test_data, async_client, use_test_databases, ensure_collection_exists):
+    async def test_context_retrieval_e2e(self, seed_test_data, async_client, use_test_databases):
         """Test the complete context retrieval flow using the actual API endpoint."""
         # Extract the test data - this is created by the seed_test_data fixture
         # The fixture result is already awaited when injected by pytest_asyncio
@@ -352,7 +271,7 @@ class TestRetrievalE2E:
         assert found_relevant, "No relevant chunks found in search results"
 
     @pytest.mark.asyncio
-    async def test_private_memory_retrieval_e2e(self, seed_private_test_data, async_client, use_test_databases, ensure_collection_exists):
+    async def test_private_memory_retrieval_e2e(self, seed_private_test_data, async_client, use_test_databases):
         """Test the complete private memory retrieval flow using the actual API endpoint."""
         # Extract the test data
         # The fixture result is already awaited when injected by pytest_asyncio
@@ -392,7 +311,7 @@ class TestRetrievalE2E:
             assert chunk["user_id"] == user_id
 
     @pytest.mark.asyncio
-    async def test_query_ingestion_in_private_memory_e2e(self, seed_private_test_data, async_client, use_test_databases, ensure_collection_exists):
+    async def test_query_ingestion_in_private_memory_e2e(self, seed_private_test_data, async_client, use_test_databases):
         """Test that queries to private memory are properly ingested as twin interactions."""
         # Extract the test data
         # The fixture result is already awaited when injected by pytest_asyncio
@@ -474,7 +393,7 @@ class TestRetrievalE2E:
         assert found, f"The query text '{unique_query}' was not found in the database, suggesting it wasn't ingested"
 
     @pytest_asyncio.fixture
-    async def seed_related_content_data(self, ensure_collection_exists):
+    async def seed_related_content_data(self):
         """Seed test data with related content and relationships for testing related content retrieval.
         
         Returns key IDs for the test data.
@@ -695,7 +614,7 @@ class TestRetrievalE2E:
         }
 
     @pytest.mark.asyncio
-    async def test_related_content_retrieval_e2e(self, seed_related_content_data, async_client, use_test_databases, ensure_collection_exists):
+    async def test_related_content_retrieval_e2e(self, seed_related_content_data, async_client, use_test_databases):
         """Test the complete related content retrieval flow using graph traversal."""
         # Extract the test data
         source_chunk_id = seed_related_content_data["source_chunk_id"]
@@ -789,7 +708,7 @@ class TestRetrievalE2E:
                     assert any(rel["type"] == "RELATED_TO" for rel in relationships)
 
     @pytest_asyncio.fixture
-    async def seed_topic_data(self, ensure_collection_exists):
+    async def seed_topic_data(self):
         """Seed test data for topic retrieval tests.
         
         Creates content with topic relationships for testing the topic endpoint.
@@ -976,7 +895,7 @@ class TestRetrievalE2E:
         }
 
     @pytest_asyncio.fixture
-    async def seed_multi_user_private_data(self, ensure_collection_exists):
+    async def seed_multi_user_private_data(self):
         """Seed test data for multiple users with private and public content.
         
         Creates content for two users with mixed private/public permissions to test
@@ -1051,7 +970,7 @@ class TestRetrievalE2E:
         }
 
     @pytest.mark.asyncio
-    async def test_topic_retrieval_e2e(self, seed_topic_data, async_client, use_test_databases, ensure_collection_exists):
+    async def test_topic_retrieval_e2e(self, seed_topic_data, async_client, use_test_databases):
         """Test the topic retrieval endpoint to find content related to a specific topic."""
         # Extract the test data
         user_id = seed_topic_data["user_id"]
@@ -1134,7 +1053,7 @@ class TestRetrievalE2E:
                 assert topic_data["name"] == topic_name
 
     @pytest.mark.asyncio
-    async def test_cross_user_privacy_filtering_e2e(self, seed_multi_user_private_data, async_client, use_test_databases, ensure_collection_exists):
+    async def test_cross_user_privacy_filtering_e2e(self, seed_multi_user_private_data, async_client, use_test_databases):
         """Test that privacy filtering correctly works across different users."""
         # Extract the test data
         user1_id = seed_multi_user_private_data["user1_id"]
@@ -1228,7 +1147,7 @@ class TestRetrievalE2E:
         assert found_user2_public, "Public query should return User 2's public content"
 
     @pytest_asyncio.fixture
-    async def seed_twin_interaction_data(self, ensure_collection_exists):
+    async def seed_twin_interaction_data(self):
         """Seed test data with both regular messages and twin interactions for testing include_messages_to_twin parameter."""
         # Generate unique IDs for our test data
         user_id = str(uuid.uuid4())
@@ -1286,7 +1205,7 @@ class TestRetrievalE2E:
         }
 
     @pytest.mark.asyncio
-    async def test_context_retrieval_include_messages_to_twin(self, seed_twin_interaction_data, async_client, use_test_databases, ensure_collection_exists):
+    async def test_context_retrieval_include_messages_to_twin(self, seed_twin_interaction_data, async_client, use_test_databases):
         """Test context retrieval with the include_messages_to_twin parameter."""
         # Extract the test data
         user_id = seed_twin_interaction_data["user_id"]
@@ -1390,7 +1309,7 @@ class TestRetrievalE2E:
             assert "Twin interaction:" not in chunk["text"], "Twin interaction found in default behavior"
     
     @pytest.mark.asyncio
-    async def test_private_memory_include_messages_to_twin(self, seed_twin_interaction_data, async_client, use_test_databases, ensure_collection_exists):
+    async def test_private_memory_include_messages_to_twin(self, seed_twin_interaction_data, async_client, use_test_databases):
         """Test private memory retrieval with the include_messages_to_twin parameter."""
         # Extract the test data
         user_id = seed_twin_interaction_data["user_id"]

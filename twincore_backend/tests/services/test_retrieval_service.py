@@ -544,4 +544,67 @@ async def test_retrieve_by_topic_handles_all_errors(
     
     # Should return empty list when all attempts fail
     assert isinstance(results, list)
-    assert len(results) == 0 
+    assert len(results) == 0
+
+
+@pytest.mark.asyncio
+async def test_retrieve_user_context(
+    retrieval_service: RetrievalService, 
+    mock_qdrant_dal: MagicMock, 
+    mock_neo4j_dal: MagicMock,
+    mock_embedding_service: MagicMock,
+):
+    """Test retrieving context specific to a user."""
+    # Use hardcoded test values instead of fixtures
+    test_user_id = "user-test-123"
+    test_project_id = "project-test-123"
+    test_session_id = "session-test-123"
+    
+    mock_qdrant_dal.search_vectors.return_value = [{"chunk_id": "chunk1", "text": "user stuff"}]
+    mock_embedding_service.get_embedding.return_value = [0.1, 0.2, 0.3]
+    query = "find my things"
+    limit = 5
+    
+    # Test default flags (include_private=True, include_messages_to_twin=True)
+    await retrieval_service.retrieve_user_context(
+        user_id=test_user_id,
+        query_text=query,
+        project_id=test_project_id,
+        session_id=test_session_id,
+        limit=limit
+    )
+    
+    mock_embedding_service.get_embedding.assert_called_once_with(query)
+    mock_qdrant_dal.search_vectors.assert_called_once_with(
+        query_vector=[0.1, 0.2, 0.3],
+        limit=limit,
+        user_id=test_user_id, # Crucially, user_id is passed
+        project_id=test_project_id,
+        session_id=test_session_id,
+        include_private=True, # Default for this method
+        include_twin_interactions=True # Default for this method
+    )
+    mock_qdrant_dal.reset_mock()
+    mock_embedding_service.reset_mock()
+    
+    # Test with explicit flags set to False
+    await retrieval_service.retrieve_user_context(
+        user_id=test_user_id,
+        query_text=query,
+        project_id=test_project_id,
+        session_id=test_session_id,
+        limit=limit,
+        include_private=False,
+        include_messages_to_twin=False
+    )
+    
+    mock_embedding_service.get_embedding.assert_called_once_with(query)
+    mock_qdrant_dal.search_vectors.assert_called_once_with(
+        query_vector=[0.1, 0.2, 0.3],
+        limit=limit,
+        user_id=test_user_id,
+        project_id=test_project_id,
+        session_id=test_session_id,
+        include_private=False, # Explicitly False
+        include_twin_interactions=False # Explicitly False
+    ) 

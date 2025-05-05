@@ -1,11 +1,15 @@
-# TwinCore Active Context - Sun May  4 16:53:00 PDT 2025
+# TwinCore Active Context - Sun May  4 21:26:25 PDT 2025
 
 ## Current Work Focus
-- **Designing Transcript Strategy:** Defined approach for handling streaming transcript data, including data models (`dataSchema.md`), API endpoints (`api.md`), and connector logic (`transcript_strategy.md`).
-- **Implementing Transcript Strategy (Task 7.5):**
+- **Implementing User and Group Context Retrieval (Task 7.6):**
+    - **Sub-task 7.6.1 (Complete):** Implemented User Context endpoint (`GET /v1/users/{user_id}/context`) in `user_router.py` with tests.
+    - **Sub-task 7.6.2 (In Progress):** Working on Group Context endpoint (`GET /v1/retrieve/group`).
+- **Transcript Strategy (Task 7.5):**
     - **Sub-task 7.5.1 (Complete):** Updated Neo4j DAL (`neo4j_dal.py` and tests) to support document metadata updates (`source_uri`, etc.).
     - **Sub-task 7.5.2 (Complete):** Implemented chunk ingestion logic in `DocumentConnector` (`ingestion/connectors/document_connector.py` and tests), ensuring parent `Document` nodes are handled in Neo4j.
-- **Continuing Phase 7 (Task 7.5):** Moving to implement the API endpoints for chunk ingestion and metadata updates.
+    - **Sub-task 7.5.3 (Complete):** Implemented Chunk Ingestion API Endpoint (`/v1/ingest/chunk`).
+    - **Sub-task 7.5.4 (Complete):** Implemented Document Metadata Update API Endpoint (`/v1/documents/{doc_id}/metadata`).
+- **Plan Adjustment:** Decided to complete Task 7.6 (User and Group Context Retrieval) before moving to Phase 8.
 
 ## Project State
 ### What's Working
@@ -59,7 +63,8 @@
     - Successfully implemented fallback strategies for preference retrieval (explicit preferences, topic-based, vector similarity with thresholding)
 - **Twin Interaction Filtering (Task 7.4)**: Updated DAL and Service layers to correctly handle `include_twin_interactions` parameter, including fixing related tests.
 - **Transcript Ingestion Strategy Design:** Detailed plan documented in `transcript_strategy.md`.
-- **Core Transcript Ingestion Logic (Task 7.5.1, 7.5.2):** Neo4j DAL updated for metadata, and `DocumentConnector` updated with `ingest_chunk` logic and tests.
+- **Core Transcript Ingestion Logic (Task 7.5):** Implemented all subtasks including Neo4j DAL updates for metadata, `DocumentConnector` with `ingest_chunk` logic, and API endpoints for chunk ingestion and document metadata updates.
+- **User Context Retrieval (Task 7.6.1):** Implemented endpoint for retrieving context specific to a single user with proper privacy and twin interaction filtering.
 
 ### What's Broken
 - **`test_document_ingestion_end_to_end`:** Still failing with `AssertionError: No document chunks found in Qdrant`. Investigation ongoing.
@@ -86,6 +91,7 @@
 - Implemented preference retrieval with multiple fallback strategies and score thresholding to ensure useful and relevant results even with sparse knowledge graphs.
 - Refining twin interaction filtering logic (`include_twin_interactions`) across DAL, Services, and eventually APIs.
 - Adopted dedicated API endpoints (`/v1/ingest/chunk`, `/v1/documents/{doc_id}/metadata`) for transcript chunk ingestion and metadata updates for clarity.
+- Organizing user-specific API endpoints in `user_router.py` while keeping general retrieval endpoints in `retrieve_router.py` for better API organization.
 
 ## Tech Stack
 - Backend: FastAPI (Python)
@@ -129,10 +135,12 @@
 - E2E tests with state changes (like query ingestion) need assertions that verify behavior rather than exact state counts.
 - Neo4j `MERGE` requires care when properties might be null; use explicit constraints.
 - Separating metadata updates from content ingestion into distinct API endpoints improves clarity.
+- Maintaining a clean separation between user-specific endpoints and general retrieval endpoints improves API organization and usability.
 
 ## Next Steps
-- **Complete Task 7.5:**
-    - Implement Sub-task 7.5.3: Chunk Ingestion API Endpoint (`/v1/ingest/chunk`).
-    - Implement Sub-task 7.5.4: Document Metadata Update API Endpoint (`/v1/documents/{doc_id}/metadata`).
+- **Complete Task 7.6:**
+    - Implement Sub-task 7.6.2: Group Context Endpoint (`GET /v1/retrieve/group`).
+- **Complete Task 7.7:**
+    - Implement Sub-task 7.7.1: Refactor Preference Endpoint Path & Parameters.
 - **Move to Phase 8:** Verification UI (Streamlit), including transcript simulation.
 - Investigate and fix the `AssertionError` in `test_document_ingestion_end_to_end`.

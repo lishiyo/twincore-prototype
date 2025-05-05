@@ -361,4 +361,52 @@ class RetrievalService:
                 return search_results
             except Exception as e2:
                 logger.error(f"Error in fallback vector search: {e2}")
-                return [] 
+                return []
+
+    async def retrieve_user_context(
+        self,
+        user_id: str,
+        query_text: str,
+        limit: int = 10,
+        project_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        include_messages_to_twin: bool = True,
+        include_private: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """Retrieve context-relevant information specific to a user based on semantic search.
+
+        This searches across all user's relevant data (private docs, group messages, 
+        twin interactions, etc.), optionally filtered by project/session scope.
+        It is read-only and does not perform ingestion.
+
+        Args:
+            user_id: The ID of the user whose context is being queried (REQUIRED)
+            query_text: The text query to search for (REQUIRED)
+            limit: Maximum number of results to return
+            project_id: Optional filter by project ID
+            session_id: Optional filter by session ID
+            include_messages_to_twin: Whether to include messages to twin interactions (default True)
+            include_private: Whether to include the user's private documents (default True)
+
+        Returns:
+            List of content chunks with relevance scores and metadata
+        """
+        logger.info(f"Retrieving context for user_id={user_id} with query: {query_text}")
+
+        # Get embedding for the query text
+        query_embedding = await self._embedding_service.get_embedding(query_text)
+
+        # Search vectors in Qdrant with user_id as a required filter
+        # and appropriate flags for private content and twin interactions
+        search_results = await self._qdrant_dal.search_vectors(
+            query_vector=query_embedding,
+            limit=limit,
+            user_id=user_id,  # Required filter for user-specific context
+            project_id=project_id,
+            session_id=session_id,
+            include_private=include_private,
+            include_twin_interactions=include_messages_to_twin,
+        )
+
+        logger.info(f"Retrieved {len(search_results)} context chunks for user {user_id}")
+        return search_results 

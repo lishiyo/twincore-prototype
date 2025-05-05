@@ -29,9 +29,88 @@ from core.db_clients import get_async_qdrant_client, get_neo4j_driver
 from .test_utils import setup_test_databases, clear_test_databases, get_test_neo4j_driver, get_test_async_qdrant_client
 import logging
 
+# Import Qdrant models for collection creation
+from qdrant_client import models as qdrant_models
+
 logger = logging.getLogger(__name__)
 
 # For E2E tests, we want to use the real dependencies and test databases
+
+@pytest_asyncio.fixture(scope="class", autouse=True)
+async def ensure_collection_exists():
+    """
+    Fixture to ensure the Qdrant collection exists before tests.
+    Runs automatically for all tests in this directory at the class level.
+    """
+    logger.info("==== E2E CONTEST: ENSURING QDRANT COLLECTION ====")
+    
+    try:
+        # Get a fresh Qdrant client
+        qdrant_client = await get_test_async_qdrant_client()
+        
+        # Always attempt to delete the collection first to ensure a clean state
+        try:
+            await qdrant_client.delete_collection(collection_name="twin_memory")
+            logger.info("E2E CONTEST: Deleted existing twin_memory collection")
+        except Exception as e:
+            # Collection might not exist, ignore the error
+            logger.info(f"E2E CONTEST: Couldn't delete collection: {e}")
+        
+        # Wait a moment after deletion
+        await asyncio.sleep(1)
+        
+        # Create the collection with explicit vector parameters
+        logger.info("E2E CONTEST: Creating fresh twin_memory collection")
+        await qdrant_client.create_collection(
+            collection_name="twin_memory",
+            vectors_config=qdrant_models.VectorParams(
+                size=1536,  # OpenAI embedding size
+                distance=qdrant_models.Distance.COSINE
+            )
+        )
+        
+        # Verify the collection was created
+        collections = await qdrant_client.get_collections()
+        collection_names = [c.name for c in collections.collections]
+        logger.info(f"E2E CONTEST: Collections after setup: {collection_names}")
+        
+        if "twin_memory" not in collection_names:
+            raise RuntimeError("Failed to create twin_memory collection")
+        
+        # Create explicit index for metadata filtering
+        await qdrant_client.create_payload_index(
+            collection_name="twin_memory",
+            field_name="is_twin_interaction",
+            field_schema=qdrant_models.PayloadSchemaType.BOOL
+        )
+        
+        await qdrant_client.create_payload_index(
+            collection_name="twin_memory",
+            field_name="is_private",
+            field_schema=qdrant_models.PayloadSchemaType.BOOL
+        )
+        
+        # Explicitly check if the collection exists again to be sure
+        try:
+            info = await qdrant_client.get_collection(collection_name="twin_memory")
+            logger.info(f"E2E CONTEST: Collection twin_memory confirmed exists with {info.vectors_count} vectors")
+        except Exception as e:
+            logger.error(f"E2E CONTEST: Error checking collection: {e}")
+            raise RuntimeError(f"Collection verification failed: {e}")
+        
+        # Wait to ensure collection is ready
+        await asyncio.sleep(2)
+        logger.info("E2E CONTEST: Collection twin_memory is ready for test")
+        
+    except Exception as e:
+        logger.error(f"E2E CONTEST: Critical error in collection setup: {e}")
+        raise
+    
+    # Yield control back to the test
+    yield
+    
+    # Optional: Add cleanup if needed, though clear_test_data might handle it
+    logger.info("==== E2E CONTEST: COLLECTION FIXTURE TEARDOWN (if needed) ====")
 
 @pytest_asyncio.fixture
 async def initialized_app():

@@ -14,6 +14,7 @@ from ingestion.processors.text_chunker import TextChunker
 from services.data_seeder_service import DataSeederService
 from services.data_management_service import DataManagementService
 from api.routers import admin_router, ingest_router, retrieve_router, document_router
+from api.routers import user_router
 
 app = FastAPI(
     title="TwinCore API",
@@ -183,6 +184,7 @@ app.include_router(admin_router.router)
 app.include_router(ingest_router.router)
 app.include_router(retrieve_router.router)
 app.include_router(document_router.router)
+app.include_router(user_router.router)
 
 # Set up application-level dependency overrides
 app.dependency_overrides[admin_router.get_data_seeder_service] = get_data_seeder_service
@@ -192,6 +194,7 @@ app.dependency_overrides[ingest_router.get_document_connector] = get_document_co
 app.dependency_overrides[retrieve_router.get_retrieval_service] = get_retrieval_service
 app.dependency_overrides[retrieve_router.get_retrieval_service_with_message_connector] = get_retrieval_service_with_message_connector
 app.dependency_overrides[document_router.get_data_management_service] = get_data_management_service
+app.dependency_overrides[user_router.get_retrieval_service] = get_retrieval_service
 
 @app.get("/")
 async def root():

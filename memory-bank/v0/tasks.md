@@ -258,12 +258,12 @@ This document outlines the development tasks for building the TwinCore backend p
 
 - [ ] **Task 7.6: Implement User and Group Context Retrieval** (D: 2.1, 6.1)
     - [ ] Steps:
-        - [ ] **Sub-task 7.6.1: Implement User Context Endpoint (`GET /v1/users/{user_id}/context`)**
-            - [ ] Implement service logic in `RetrievalService` to fetch all relevant context for a single user, respecting scope and `include_messages_to_twin` (default True) and `include_private` (default True).
-            - [ ] Define API endpoint in a relevant router (e.g., `user_router.py`), see [api.md](./api.md) for spec.
-            - [ ] Write API/Contract tests.
-            - [ ] Write Service Integration tests.
-            - [ ] Write E2E tests verifying comprehensive user context retrieval.
+        - [x] **Sub-task 7.6.1: Implement User Context Endpoint (`GET /v1/users/{user_id}/context`)**
+            - [x] Implement service logic in `RetrievalService` to fetch all relevant context for a single user, respecting scope and `include_messages_to_twin` (default True) and `include_private` (default True).
+            - [x] Define API endpoint in a relevant router (e.g., `user_router.py`), see [api.md](./api.md) for spec.
+            - [x] Write API/Contract tests.
+            - [x] Write Service Integration tests.
+            - [x] Write E2E tests verifying comprehensive user context retrieval.
         - [ ] **Sub-task 7.6.2: Implement Group Context Endpoint (`GET /v1/retrieve/group`)**
             - [ ] Implement service logic in `RetrievalService` to fetch context for multiple users based on group scope (session, project, team), respecting filters and grouping results.
             - [ ] Define API endpoint in `retrieve_router.py`,  see [api.md](./api.md) for spec.
