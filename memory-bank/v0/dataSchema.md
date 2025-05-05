@@ -4,7 +4,7 @@ For the full project, we would be using Postgres, Qdrant, and Neo4j. For the pro
 
 *   **Postgres (Mocked/External):** Source of truth for core entity IDs (Users, Projects, Sessions) and potentially basic metadata (names, emails). Assume these IDs are provided to the TwinCore service.
 *   **Qdrant:** Handles efficient semantic search over unstructured text data (messages, document chunks). Stores text embeddings and rich metadata payload linking back to other entities.
-*   **Neo4j:** Models and queries the relationships between entities (who participated where, who uploaded what, who said what, stated preferences).
+*   **Neo4j:** Models and queries the relationships between entities (who participated where, who uploaded what, who said what, stated preferences, derived actions/decisions, etc.).
 
 ## Qdrant Schema
 
@@ -16,9 +16,9 @@ For the full project, we would be using Postgres, Qdrant, and Neo4j. For the pro
 
 ```json
 {
-  "chunk_id": "uuid", // Unique ID for this specific text chunk/embedding
+  "chunk_id": "uuid", // Unique ID for this specific text chunk/embedding (links to Neo4j Chunk node)
   "text_content": "string", // The actual text chunk corresponding to the vector
-  "source_type": "string", // Enum: 'message', 'document_chunk', 'transcript_snippet', 'preference_statement', 'twin_chat_query' etc.
+  "source_type": "string", // Enum: 'message', 'document_chunk', 'transcript_snippet', 'preference_statement', 'twin_chat_query', 'agent_log', 'diagram_element', 'plan_step', etc.
   "timestamp": "datetime", // ISO 8601 string. Timestamp of the original event/creation
 
   // --- Foreign Keys (UUIDs linking to Neo4j/Postgres) ---
@@ -28,8 +28,13 @@ For the full project, we would be using Postgres, Qdrant, and Neo4j. For the pro
   "doc_id": "uuid | null", // Source document ID, if applicable. **For transcript_snippet, this MUST be the consistent ID of the parent transcript Document.**
   "message_id": "uuid | null", // Source message ID, if applicable
   // --- IDs for future use (keep nullable for prototype) ---
-  "preference_id": "uuid | null", // If this chunk is an explicit preference statement
-  "vote_id": "uuid | null", // If this chunk is rationale for a specific vote
+  "derived_decision_id": "uuid | null", // If this chunk led to a decision
+  "derived_action_id": "uuid | null",   // If this chunk led to an action item
+  "derived_blocker_id": "uuid | null",  // If this chunk identified a blocker
+  "derived_risk_id": "uuid | null",     // If this chunk identified a risk
+  "preference_id": "uuid | null",     // If this chunk is an explicit preference statement
+  "vote_id": "uuid | null",           // If this chunk is rationale for a specific vote
+  "agent_action_id": "uuid | null",   // If this chunk is a log from an agent action
   "team_id": "uuid | null",
   "org_id": "uuid | null",
 
@@ -37,14 +42,16 @@ For the full project, we would be using Postgres, Qdrant, and Neo4j. For the pro
   "is_twin_interaction": "boolean | null", // TRUE if this text is part of a user<>twin chat or agent<>twin query
   "is_private": "boolean | null", // TRUE if this content (e.g., document chunk) is private to the user_id
 
-  // --- Optional Extracted/Inferred Metadata (Future) ---
+  // --- Optional Extracted/Inferred Metadata (Populated by Knowledge Service) ---
   "topic_ids": ["uuid", ...], // List of Topic UUIDs mentioned/relevant (from NLP/Graph)
   "sentiment_score": "float | null",
-  "is_action_item": "boolean | null",
-  "is_decision": "boolean | null",
-  "is_blocker": "boolean | null"
+  "is_action_item": "boolean | null", // Flag if NLP identified this chunk as potentially representing an action
+  "is_decision": "boolean | null",    // Flag if NLP identified this chunk as potentially representing a decision
+  "is_blocker": "boolean | null",     // Flag if NLP identified this chunk as potentially representing a blocker
+  "is_risk": "boolean | null",        // Flag if NLP identified this chunk as potentially representing a risk
 }
 ```
+*Note: The `derived_*_id` fields in Qdrant are optional denormalizations for quick filtering. The primary relationship source is Neo4j.*
 
 **How it's used (Example - Private Memory):**
 
@@ -55,96 +62,140 @@ For the full project, we would be using Postgres, Qdrant, and Neo4j. For the pro
 5.  Filters the Qdrant query: `must` condition `user_id == Alice_ID`. Optionally filter further by `project_id`/`session_id` if provided in the API call. Could potentially filter out `is_twin_interaction=true` results if only showing source material.
 6.  Retrieves matching chunks, including the one from Alice's personal doc: `"Idea: Use stable diffusion for generating unique cover art styles based on genre."`.
 
-## Neo4j Schema (Prototype Focus)
+## Neo4j Schema (Expanded Prototype)
 
-Models relationships essential for context, authorship, and preference tracking in the prototype.
+Models relationships essential for context, authorship, preferences, and derived knowledge/actions.
 
-**Core Node Labels for Prototype:**
+**Core Node Labels (Additions/Updates Marked):**
 
 *   `User`
-    *   Properties: `user_id` (UUID, primary key), `name` (from mock)
-*   `Organization`
+    *   Properties: `user_id` (UUID, primary key), `name` (string)
+*   `Organization` *(Future)*
     *   Properties: `org_id` (UUID, primary key), `name`, `created_at`
-*   `Team`
--    *   Properties: `team_id` (UUID, primary key), `name`, `created_at`
+*   `Team` *(Future)*
+    *   Properties: `team_id` (UUID, primary key), `name`, `created_at`
 *   `Project`
-    *   Properties: `project_id` (UUID, primary key), `name` (e.g., "Book Generator Agent")
+    *   Properties: `project_id` (UUID, primary key), `name` (string)
 *   `Session`
-    *   Properties: `session_id` (UUID, primary key), `timestamp` (approx. start time)
-*   `Document`
-    *   Properties: `document_id` (UUID, primary key), `name`, `source_type`, `is_private` (boolean, mirrors Qdrant flag), `source_uri` (string, nullable, URI to raw file if applicable)
+    *   Properties: `session_id` (UUID, primary key), `timestamp` (datetime, approx. start time)
+*   `Document` *(Base label for structured/unstructured docs)*
+    *   Properties: `document_id` (UUID, primary key), `name` (string), `source_type` (string), `is_private` (boolean), `source_uri` (string, nullable)
+*   `Diagram:Document` *(NEW - Subtype via multi-label)*
+    *   Properties: Inherits `Document`, adds `diagram_type` (string, e.g., 'flowchart', 'mindmap')
+*   `Plan:Document` *(NEW - Subtype via multi-label)*
+    *   Properties: Inherits `Document`, adds `plan_status` (string, e.g., 'Draft', 'Active')
 *   `Message`
-    *   Properties: `message_id` (UUID, primary key), `timestamp`, `is_twin_interaction` (boolean, mirrors Qdrant flag)
-*   `Preference` *(Used if explicitly modeling stated preferences)*
-    *   Properties: `preference_id` (UUID, primary key), `statement` (text), `timestamp`
+    *   Properties: `message_id` (UUID, primary key), `timestamp` (datetime), `is_twin_interaction` (boolean)
+*   `Chunk` *(NEW - Represents text segments indexed in Qdrant)*
+    *   Properties: `chunk_id` (UUID, primary key), `qdrant_point_id` (string, optional), `source_type` (string), `timestamp` (datetime), `is_twin_interaction` (boolean)
 *   `Topic`
-    *   Properties: `topic_id` (UUID, primary key), `name` (e.g., "budget", "java", "ui-design")
-*   `Vote`
-    *   Properties: `vote_id` (UUID, primary key), `target` (text, e.g., "Variant A"), `value` (int/string), `timestamp`
+    *   Properties: `topic_id` (UUID, primary key), `name` (string, e.g., "budget", "java", "ui-design")
+*   `Preference`
+    *   Properties: `preference_id` (UUID, primary key), `statement` (text), `timestamp` (datetime)
+*   `Decision` *(NEW)*
+    *   Properties: `decision_id` (UUID, primary key), `text` (string), `timestamp` (datetime), `status` (string, e.g., 'Proposed', 'Agreed', 'Implemented')
+*   `ActionItem` *(Consolidated - covers user tasks & potentially simple agent tasks)*
+    *   Properties: `action_id` (UUID, primary key), `text` (string), `status` (string, e.g., 'Open', 'In Progress', 'Done'), `due_date` (datetime, nullable), `timestamp` (datetime created)
+*   `Blocker` *(NEW)*
+    *   Properties: `blocker_id` (UUID, primary key), `text` (string), `status` (string, e.g., 'Identified', 'Resolved'), `timestamp` (datetime identified)
+*   `Risk` *(NEW)*
+    *   Properties: `risk_id` (UUID, primary key), `text` (string), `severity` (string, e.g., 'Low', 'Medium', 'High'), `status` (string, e.g., 'Identified', 'Mitigated'), `timestamp` (datetime identified)
+*   `Agent` *(NEW)*
+    *   Properties: `agent_id` (UUID, primary key), `name` (string), `type` (string, e.g., 'Summarizer', 'Planner')
+*   `AgentAction` *(NEW - Log of agent activity)*
+    *   Properties: `action_id` (UUID, primary key), `agent_id` (UUID), `action_type` (string, e.g., 'summarize_chunk', 'create_action_item'), `timestamp` (datetime), `status` (string, e.g., 'Success', 'Failure'), `details` (string, optional JSON/text payload)
+*   `Vote` *(Future)*
+    *   Properties: `vote_id` (UUID, primary key), `target` (text), `value` (int/string), `timestamp` (datetime)
 
-*(Nodes like `Organization`, `Team`, `Topic`, `Vote` can be defined in the schema for future use but are not strictly required or populated by the prototype's initial data/features).*
+**Core Relationship Types (Additions/Updates Marked):**
 
-**Core Relationship Types for Prototype:**
-
+*Existing Relationships (Confirm usage or adjust direction/name as needed):*
 *   `(User)-[:MEMBER_OF {role: string, joined_at: datetime}]->(Team)`
 *   `(Team)-[:BELONGS_TO]->(Organization)`
-*   `(Project)-[:OWNED_BY]->(Organization)` // Or potentially linked via Team
+*   `(Project)-[:OWNED_BY]->(Organization)`
 *   `(Team)-[:WORKS_ON]->(Project)`
-*   `(User)-[:WORKS_ON]->(Project)` // Direct assignment or derived via team
+*   `(User)-[:WORKS_ON]->(Project)`
 *   `(User)-[:PARTICIPATED_IN]->(Session)`
 *   `(Session)-[:PART_OF]->(Project)`
-*   `(User)-[:UPLOADED {timestamp: datetime}]->(Document)` *(For associating the uploader)*
-*   `(Document)-[:ATTACHED_TO]->(Session)` *(If uploaded during a specific session)*
-*   `(Document)-[:RELATED_TO]->(Project)` *(General project association)*
+*   `(User)-[:UPLOADED {timestamp: datetime}]->(Document)`
+*   `(Document)-[:ATTACHED_TO]->(Session)`
+*   `(Document)-[:RELATED_TO]->(Project)`
 *   `(User)-[:AUTHORED {timestamp: datetime}]->(Message)`
 *   `(Message)-[:POSTED_IN]->(Session)`
-*   `(Message)-[:REPLY_TO]->(Message)` // Threading
-*   `(User)-[:STATED {timestamp: datetime}]->(Preference)` *(If modeling explicit preferences)*
-*   `(Preference)-[:APPLIES_TO]->(Project)` *(Context)*
-*   `(Preference)-[:SOURCE_MESSAGE]->(Message)` *(Link preference to where it was said)*
-*   `(Preference)-[:SOURCE_DOCUMENT]->(Document)` *(Link preference to where it was written)*
-*   `(Preference)-[:RELATED_TO]->(Topic)` // Subject of preference
-*   `(Preference)-[:MENTIONS {relevance: float}]->(Topic)` // Identified via NLP
-*   `(Message)-[:REPLY_TO]->(Message)` // Threading
-*   `(Message)-[:MENTIONS {relevance: float}]->(Topic)` // Identified via NLP
-*   `(Document)-[:MENTIONS {relevance: float}]->(Topic)` // Identified via NLP
+*   `(Message)-[:REPLY_TO]->(Message)`
+*   `(Topic)-[:MENTIONED_IN]->(Message)` *(Changed direction)*
+*   `(Topic)-[:MENTIONED_IN]->(Document)` *(Changed direction)*
 *   `(User)-[:CAST_VOTE {timestamp: datetime}]->(Vote)`
-*   `(Vote)-[:APPLIES_TO]->(Session)` // Context
-*   `(Vote)-[:APPLIES_TO]->(Project)` // Context
-*   `(Vote)-[:ABOUT_TOPIC]->(Topic)` // What was voted on
-*   `(Vote)-[:HAS_RATIONALE]->(Message)` // Link to justifying message(s)
+*   `(Vote)-[:APPLIES_TO]->(Session)`
+*   `(Vote)-[:APPLIES_TO]->(Project)`
+*   `(Vote)-[:ABOUT_TOPIC]->(Topic)`
+*   `(Vote)-[:HAS_RATIONALE]->(Message)`
 
-*(Relationships like `MENTIONS`, `REPLY_TO`, `MEMBER_OF`, `WORKS_ON`, vote relationships etc., are for future extension).*
+*New/Updated Relationships:*
+*   `(Chunk)-[:PART_OF_DOCUMENT]->(Document)`
+*   `(Chunk)-[:PART_OF_MESSAGE]->(Message)`
+*   `(Chunk)-[:PART_OF_SESSION]->(Session)`
+*   `(Chunk)-[:CONTEXT_PROJECT]->(Project)`
+*   `(Chunk)-[:AUTHORED_BY]->(User)`
+*   `(Topic)-[:MENTIONED_IN]->(Chunk)`
+*   `(Preference)-[:DERIVED_FROM]->(Chunk)`
+*   `(User)-[:STATED]->(Preference)`
+*   `(Preference)-[:APPLIES_TO]->(Project)`
+*   `(Preference)-[:RELATED_TO]->(Topic)`
+*   `(Decision)-[:DERIVED_FROM]->(Chunk)`
+*   `(Decision)-[:APPLIES_TO]->(Project)`
+*   `(Decision)-[:MADE_IN]->(Session)`
+*   `(Decision)-[:MADE_BY]->(User)`
+*   `(ActionItem)-[:DERIVED_FROM]->(Chunk)`
+*   `(ActionItem)-[:ASSIGNED_TO]->(User)`
+*   `(ActionItem)-[:ASSIGNED_TO]->(Agent)`
+*   `(ActionItem)-[:APPLIES_TO]->(Project)`
+*   `(ActionItem)-[:CREATED_IN]->(Session)`
+*   `(ActionItem)-[:PART_OF]->(Plan)`
+*   `(Blocker)-[:IDENTIFIED_IN]->(Chunk)`
+*   `(Blocker)-[:RELATES_TO]->(Project)`
+*   `(Blocker)-[:REPORTED_BY]->(User)`
+*   `(Risk)-[:IDENTIFIED_IN]->(Chunk)`
+*   `(Risk)-[:RELATES_TO]->(Project)`
+*   `(Risk)-[:REPORTED_BY]->(User)`
+*   `(User)-[:MANAGES]->(Project)`
+*   `(Session)-[:ASSOCIATED_WITH]->(Document)`
+*   `(Agent)-[:PERFORMED]->(AgentAction)`
+*   `(AgentAction)-[:TRIGGERED_BY]->(User)`
+*   `(AgentAction)-[:TRIGGERED_BY]->(Session)`
+*   `(AgentAction)-[:AFFECTED]->(Chunk)`
+*   `(AgentAction)-[:CREATED]->(ActionItem)`
+*   `(AgentAction)-[:CREATED]->(Decision)`
+*   `(AgentAction)-[:USED_TOOL]->(Tool)`
 
-**How it's used (Example - Session Context Retrieval):**
 
-1.  Canvas Agent asks (via API call `/api/retrieve/context`): "What was discussed about the roadmap in the current Book Gen session?" (`session_id=SESSION_BOOK_CURRENT_ID`, `project_id=PROJECT_BOOK_GEN_ID`, `query_text="roadmap"`)
-2.  **Neo4j Step:** Query to find participants (optional but good practice):
-    ```cypher
-    MATCH (s:Session {session_id: $session_id})<-[:PARTICIPATED_IN]-(u:User)
-    RETURN u.user_id AS participantId
-    ```
-    (Result: Alice_ID, Bob_ID, Charlie_ID)
-3.  **Qdrant Step:** Query Qdrant for vectors semantically similar to "roadmap".
-4.  Filter the Qdrant query using `must` conditions:
-    *   `session_id == SESSION_BOOK_CURRENT_ID`
-    *   Optionally add `project_id == PROJECT_BOOK_GEN_ID`
-    *   *(Could also filter by participant IDs found in step 2 if strict participation is needed, but session_id filter might be sufficient)*
-5.  Retrieve matching chunks from Qdrant payload, including:
-    *   Alice: "Okay team, let's finalize the Q3 roadmap for the Book Generator."
-    *   Bob: "My main priority is integrating the niche research tool." (Relevant if embedding understands it relates to roadmap priorities)
-    *   Charlie: "I think improving the outline generation logic is critical first." (Also relevant)
+**How it's used (Example - Knowledge Extraction):**
 
-## Summary of Integration (Prototype)
+1.  A new message chunk arrives and is processed by the Knowledge Extraction Service.
+2.  NLP identifies a potential `ActionItem` within the `Chunk`.
+3.  **Neo4j Step:**
+    *   `MERGE` the `Chunk` node (using `chunk_id` from Qdrant payload).
+    *   Create a new `ActionItem` node with properties (text, status='Open', timestamp).
+    *   Create the `(ActionItem)-[:DERIVED_FROM]->(Chunk)` relationship.
+    *   If NLP identified an assignee, find the `User` (or potentially `Agent`) node and create `(ActionItem)-[:ASSIGNED_TO]->(Assignee)`.
+    *   Link context: Find parent `Session`/`Project` via the `Chunk` and create `(ActionItem)-[:CREATED_IN]->(Session)` and `(ActionItem)-[:APPLIES_TO]->(Project)`.
+4.  **Qdrant Step (Optional Denormalization):** Update the payload of the source `Chunk` with `derived_action_id = new_action_item_id`.
 
-1.  **Ingestion:** Mock data or data from prototype UI (uploads, chats) comes into the API.
-    *   Service layer coordinates embedding.
-    *   **Neo4j:** `MERGE` core nodes (`User`, `Project`, `Session`, `Document`, `Message`) and create core relationships (`PARTICIPATED_IN`, `UPLOADED`, `AUTHORED`, `POSTED_IN`, etc.) using provided UUIDs. Set `is_private`/`is_twin_interaction` properties on nodes.
-    *   **Qdrant:** Store text chunk embeddings with payloads containing all relevant UUIDs and the `is_private`/`is_twin_interaction` flags.
-2.  **Querying:** API endpoints trigger service layer.
-    *   Services may query Neo4j first for context IDs (e.g., session participants).
-    *   Services query Qdrant using semantic vectors and filters derived from API parameters and potentially Neo4j results (`user_id`, `session_id`, `project_id`, `is_private`, `is_twin_interaction`).
-    *   Results from Qdrant (text + metadata) are returned.
+## Summary of Integration (Expanded)
+
+1.  **Ingestion:**
+    *   Service layer coordinates embedding and Neo4j node creation.
+    *   **Neo4j:** `MERGE` core nodes (`User`, `Project`, `Session`, `Document`, `Message`, **`Chunk`**) and create structural relationships (`PART_OF_*`, `AUTHORED_BY`, etc.).
+    *   **Qdrant:** Store chunk embeddings with payloads containing all relevant UUIDs.
+2.  **Knowledge Extraction Service:**
+    *   Processes new `Chunk` nodes (or listens to events).
+    *   Uses NLP/rules to identify potential Decisions, ActionItems, Blockers, Risks, Topics.
+    *   **Neo4j:** Creates corresponding new nodes (`Decision`, `ActionItem`, etc.) and links them via `DERIVED_FROM` / `IDENTIFIED_IN` to the source `Chunk`(s). Creates context links (`APPLIES_TO`, `CREATED_IN`).
+    *   **Qdrant (Optional):** Updates source chunk payloads with `derived_*_id` flags/UUIDs.
+3.  **Querying:**
+    *   Services query Qdrant for semantic similarity (e.g., "show risks for project X").
+    *   Services query Neo4j for relationships (e.g., "find action items assigned to Bob", "show decisions derived from chunks in session Y", "find chunks related to project Z managed by Alice"). Use indexes heavily.
+    *   Combine results: Use Neo4j to filter/enrich Qdrant results (using `chunk_id`) or use Neo4j results to inform Qdrant queries.
 
 ## Clarification: `is_twin_interaction` Flag
 
