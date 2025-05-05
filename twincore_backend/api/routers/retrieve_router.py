@@ -534,7 +534,7 @@ async def retrieve_by_topic(
 
 
 # Add the preference endpoint
-@router.get("/preferences", response_model=Dict[str, Any])
+@router.get("/preferences", response_model=Dict[str, Any], deprecated=True)
 async def retrieve_preferences(
     user_id: str,
     decision_topic: str,
@@ -546,6 +546,8 @@ async def retrieve_preferences(
     preference_service: PreferenceService = Depends(get_preference_service)
 ):
     """Retrieve the user's preference statements related to a specific decision topic.
+    
+    DEPRECATED: Use '/v1/users/{user_id}/preferences' instead.
     
     This endpoint combines both vector search and graph relationships to find 
     user statements expressing preferences about a specific topic or decision.

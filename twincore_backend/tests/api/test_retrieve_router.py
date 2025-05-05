@@ -523,7 +523,7 @@ def mock_preference_service():
 
 
 def test_retrieve_preferences_endpoint(test_client, mock_preference_service):
-    """Test the preferences retrieval endpoint."""
+    """Test the preferences retrieval endpoint (deprecated)."""
     # Create mock preference data with valid UUIDs
     test_user_id = str(uuid.uuid4())
     test_chunk_1 = str(uuid.uuid4())
@@ -558,7 +558,7 @@ def test_retrieve_preferences_endpoint(test_client, mock_preference_service):
     # Configure the mock to return test results
     mock_preference_service.query_user_preference.return_value = mock_preferences
     
-    # Call the endpoint with individual parameters
+    # Call the endpoint with individual parameters - Note: This tests the deprecated endpoint
     response = test_client.get(
         "/v1/retrieve/preferences",
         params={
@@ -580,7 +580,7 @@ def test_retrieve_preferences_endpoint(test_client, mock_preference_service):
 
 
 def test_retrieve_preferences_with_include_messages_to_twin_param(test_client, mock_preference_service):
-    """Test the preferences retrieval endpoint with include_messages_to_twin parameter."""
+    """Test the preferences retrieval endpoint with include_messages_to_twin parameter (deprecated)."""
     # Create mock preference data with valid UUIDs
     test_user_id = str(uuid.uuid4())
     test_chunk_1 = str(uuid.uuid4())
@@ -615,7 +615,7 @@ def test_retrieve_preferences_with_include_messages_to_twin_param(test_client, m
     # Configure the mock to return test results
     mock_preference_service.query_user_preference.return_value = mock_preferences
     
-    # Call the endpoint with include_messages_to_twin = False (override default)
+    # Call the endpoint with include_messages_to_twin = False (override default) - Note: This tests the deprecated endpoint
     response = test_client.get(
         "/v1/retrieve/preferences",
         params={
@@ -636,7 +636,7 @@ def test_retrieve_preferences_with_include_messages_to_twin_param(test_client, m
 
 
 def test_retrieve_preferences_default_include_messages_to_twin(test_client, mock_preference_service):
-    """Test the preferences retrieval endpoint with default include_messages_to_twin parameter."""
+    """Test the preferences retrieval endpoint with default include_messages_to_twin parameter (deprecated)."""
     # Create mock preference data with valid UUIDs
     test_user_id = str(uuid.uuid4())
     decision_topic = "dark mode"
@@ -653,7 +653,7 @@ def test_retrieve_preferences_default_include_messages_to_twin(test_client, mock
     # Configure the mock to return test results
     mock_preference_service.query_user_preference.return_value = mock_preferences
     
-    # Call the endpoint without specifying include_messages_to_twin
+    # Call the endpoint without specifying include_messages_to_twin - Note: This tests the deprecated endpoint
     response = test_client.get(
         "/v1/retrieve/preferences",
         params={
@@ -671,7 +671,7 @@ def test_retrieve_preferences_default_include_messages_to_twin(test_client, mock
     call_args = mock_preference_service.query_user_preference.call_args[1]
     
     # Default for preferences endpoint should be True
-    assert call_args["include_messages_to_twin"] is True 
+    assert call_args["include_messages_to_twin"] is True
 
 # --- Tests for Group Context Endpoint ---
 

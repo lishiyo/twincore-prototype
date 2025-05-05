@@ -84,6 +84,7 @@ class PreferenceService:
                 limit=limit,
                 project_id=project_id,
                 session_id=session_id,
+                include_twin_interactions=include_messages_to_twin
             )
             logger.info(f"Found {len(graph_results)} preference statements via graph for user {user_id}")
         except Exception as e:

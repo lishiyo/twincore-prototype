@@ -240,6 +240,7 @@ class INeo4jDAL(ABC):
         limit: int = 5,
         project_id: Optional[str] = None,
         session_id: Optional[str] = None,
+        include_twin_interactions: bool = True,
     ) -> List[Dict[str, Any]]:
         """Get user statements related to preferences on a specific topic.
         
@@ -249,6 +250,7 @@ class INeo4jDAL(ABC):
             limit: Maximum number of statements to return
             project_id: Optional filter by project ID
             session_id: Optional filter by session ID
+            include_twin_interactions: Whether to include twin interactions
             
         Returns:
             List of content nodes containing preference statements

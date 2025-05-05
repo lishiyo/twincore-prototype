@@ -528,7 +528,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 ### 3.11 Retrieve User Preferences
 
 *   **Endpoint:** `GET /v1/users/{user_id}/preferences`
-*   **Description:** Retrieves known preferences for a specific user, filtered by a required decision topic and optionally by project/session scope. Combines explicit statements, inferred preferences, and relevant chat history. By default, this **includes** content generated during direct user-twin interactions. Use `include_messages_to_twin=false` to exclude them.
+*   **Description:** Retrieves known preferences for a specific user, filtered by a required decision topic and optionally by project/session scope. Combines explicit statements, inferred preferences, and relevant chat history. Private docs are always included. By default, this **includes** content generated during direct user-twin interactions. Use `include_messages_to_twin=false` to exclude them.
 *   **Path Parameters:**
     *   `user_id`: `string (uuid)` - REQUIRED: The user whose preferences are being queried.
 *   **Query Parameters:**
@@ -538,7 +538,6 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `limit`: `integer, optional (default: 5)` - Maximum number of relevant statements/items to return.
     *   `score_threshold`: `float, optional (default: 0.6)` - Minimum score for vector search results (relevant statements) to be considered.
     *   `include_messages_to_twin`: `boolean, optional (default: True)` - If false, results from the vector search portion will exclude chunks where `is_twin_interaction` is true.
-    *   `include_private`: `boolean, optional (default: True)` - If true, include user's private docs in the query.
 *   **Responses:**
     *   `200 OK`: Successfully retrieved preference information.
       ```json

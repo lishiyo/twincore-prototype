@@ -596,6 +596,7 @@ class Neo4jDAL(INeo4jDAL):
         limit: int = 5,
         project_id: Optional[str] = None,
         session_id: Optional[str] = None,
+        include_twin_interactions: bool = True,
     ) -> List[Dict[str, Any]]:
         """Get user statements related to preferences on a specific topic.
         
@@ -610,6 +611,7 @@ class Neo4jDAL(INeo4jDAL):
             limit: Maximum number of statements to return
             project_id: Optional filter by project ID
             session_id: Optional filter by session ID
+            include_twin_interactions: Whether to include twin interactions
             
         Returns:
             List of content nodes containing preference statements
@@ -620,6 +622,7 @@ class Neo4jDAL(INeo4jDAL):
             # Build conditions for optional filters
             project_condition = "AND c.project_id = $project_id" if project_id else ""
             session_condition = "AND c.session_id = $session_id" if session_id else ""
+            twin_condition = "" if include_twin_interactions else "AND NOT c.is_twin_interaction"
             
             # Initialize parameters
             params = {
@@ -639,7 +642,7 @@ class Neo4jDAL(INeo4jDAL):
             query1 = f"""
             // Try first to find explicit preference statements
             MATCH (u:User {{user_id: $user_id}})-[:CREATED]->(c:Content)
-            WHERE NOT c.is_twin_interaction {project_condition} {session_condition}
+            WHERE 1=1 {twin_condition} {project_condition} {session_condition}
             MATCH (c)-[:STATES_PREFERENCE]->(t:Topic)
             WHERE t.name CONTAINS $topic OR $topic CONTAINS t.name
             RETURN c
@@ -651,7 +654,7 @@ class Neo4jDAL(INeo4jDAL):
             query2 = f"""
             // If no explicit preferences, look for content mentioning the topic
             MATCH (u:User {{user_id: $user_id}})-[:CREATED]->(c:Content)
-            WHERE NOT c.is_twin_interaction {project_condition} {session_condition}
+            WHERE 1=1 {twin_condition} {project_condition} {session_condition}
             MATCH (c)-[:MENTIONS]->(t:Topic)
             WHERE t.name CONTAINS $topic OR $topic CONTAINS t.name
             RETURN c
@@ -663,7 +666,7 @@ class Neo4jDAL(INeo4jDAL):
             query3 = f"""
             // Fallback: Just find user-created content (will rely on vector similarity)
             MATCH (u:User {{user_id: $user_id}})-[:CREATED]->(c:Content)
-            WHERE NOT c.is_twin_interaction {project_condition} {session_condition}
+            WHERE 1=1 {twin_condition} {project_condition} {session_condition}
             RETURN c
             LIMIT $limit
             """

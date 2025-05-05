@@ -136,9 +136,8 @@ class TestPreferenceEndpoint:
         """Test retrieving preferences for a specific user on a topic."""
         # Query the preference endpoint
         response = await async_client.get(
-            "/v1/retrieve/preferences",
+            f"/v1/users/{test_data['user_id']}/preferences",
             params={
-                "user_id": test_data["user_id"],
                 "decision_topic": test_data["topic"],
                 "limit": 5,
                 "score_threshold": 0.6,
@@ -176,9 +175,8 @@ class TestPreferenceEndpoint:
         """Test the preference endpoint with a topic the user has no preferences about."""
         # Query with a topic that shouldn't have preferences
         response = await async_client.get(
-            "/v1/retrieve/preferences",
+            f"/v1/users/{test_data['user_id']}/preferences",
             params={
-                "user_id": test_data["user_id"],
                 "decision_topic": "non_existent_topic_12345",
                 "limit": 5,
                 "score_threshold": 0.8  # Use a higher threshold for this specific test
@@ -200,9 +198,8 @@ class TestPreferenceEndpoint:
         """Test the preference endpoint with include_messages_to_twin parameter set to true."""
         # Query with include_messages_to_twin=true (explicitly)
         response_with_twin = await async_client.get(
-            "/v1/retrieve/preferences",
+            f"/v1/users/{test_data['user_id']}/preferences",
             params={
-                "user_id": test_data["user_id"],
                 "decision_topic": test_data["topic"],
                 "limit": 5,
                 "include_messages_to_twin": "true",  # Explicitly include twin interactions
@@ -234,9 +231,8 @@ class TestPreferenceEndpoint:
         """Test the preference endpoint with include_messages_to_twin parameter set to false."""
         # Query with include_messages_to_twin=false (explicitly)
         response_without_twin = await async_client.get(
-            "/v1/retrieve/preferences",
+            f"/v1/users/{test_data['user_id']}/preferences",
             params={
-                "user_id": test_data["user_id"],
                 "decision_topic": test_data["topic"],
                 "limit": 5,
                 "include_messages_to_twin": "false",  # Explicitly exclude twin interactions
@@ -263,9 +259,8 @@ class TestPreferenceEndpoint:
         """Test the preference endpoint with default include_messages_to_twin parameter (should be true)."""
         # Query without specifying include_messages_to_twin
         default_response = await async_client.get(
-            "/v1/retrieve/preferences",
+            f"/v1/users/{test_data['user_id']}/preferences",
             params={
-                "user_id": test_data["user_id"],
                 "decision_topic": test_data["topic"],
                 "limit": 5,
                 "score_threshold": 0.6
@@ -275,9 +270,8 @@ class TestPreferenceEndpoint:
         
         # Query with include_messages_to_twin=true for comparison
         explicit_response = await async_client.get(
-            "/v1/retrieve/preferences",
+            f"/v1/users/{test_data['user_id']}/preferences",
             params={
-                "user_id": test_data["user_id"],
                 "decision_topic": test_data["topic"],
                 "limit": 5,
                 "score_threshold": 0.6,
