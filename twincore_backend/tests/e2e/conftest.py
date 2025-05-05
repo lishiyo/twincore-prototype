@@ -217,11 +217,8 @@ async def use_test_databases():
     from api.routers.ingest_router import get_message_connector as original_get_message_connector
     from api.routers.ingest_router import get_document_connector as original_get_document_connector
     
-    # Import preference service dependency if it exists
-    try:
-        from api.routers.retrieve_router import get_preference_service as original_get_preference_service
-    except ImportError:
-        original_get_preference_service = None
+    # Import the specific get_preference_service from user_router
+    from api.routers.user_router import get_preference_service as original_get_preference_service
     
     # Override the Neo4j driver function to use the test database
     async def test_get_neo4j_driver():
@@ -300,24 +297,24 @@ async def use_test_databases():
     app.dependency_overrides[original_get_message_connector] = test_get_message_connector
     app.dependency_overrides[original_get_document_connector] = test_get_document_connector
     
-    # Apply preference service override if it exists
-    if original_get_preference_service:
-        async def test_get_preference_service():
-            from services.preference_service import PreferenceService
-            
-            qdrant_client = await test_get_async_qdrant_client()
-            neo4j_driver = await test_get_neo4j_driver()
-            
-            qdrant_dal = QdrantDAL(client=qdrant_client)
-            neo4j_dal = Neo4jDAL(driver=neo4j_driver)
-            embedding_service = EmbeddingService()
-            
-            return PreferenceService(
-                qdrant_dal=qdrant_dal,
-                neo4j_dal=neo4j_dal,
-                embedding_service=embedding_service
-            )
-        app.dependency_overrides[original_get_preference_service] = test_get_preference_service
+    # Always apply preference service override using the function from user_router
+    async def test_get_preference_service():
+        """Provides a PreferenceService instance using test databases."""
+        from services.preference_service import PreferenceService
+        
+        qdrant_client = await test_get_async_qdrant_client()
+        neo4j_driver = await test_get_neo4j_driver()
+        
+        qdrant_dal = QdrantDAL(client=qdrant_client)
+        neo4j_dal = Neo4jDAL(driver=neo4j_driver)
+        embedding_service = EmbeddingService()
+        
+        return PreferenceService(
+            qdrant_dal=qdrant_dal,
+            neo4j_dal=neo4j_dal,
+            embedding_service=embedding_service
+        )
+    app.dependency_overrides[original_get_preference_service] = test_get_preference_service
     
     # Yield control back to the test
     yield

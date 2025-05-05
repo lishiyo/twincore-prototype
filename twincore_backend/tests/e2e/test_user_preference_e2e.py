@@ -6,7 +6,13 @@ from datetime import datetime
 
 import pytest_asyncio
 import asyncio
-
+from tests.e2e.test_utils import get_test_neo4j_driver
+from dal.neo4j_dal import Neo4jDAL
+import asyncio
+from core.db_clients import get_async_qdrant_client
+from qdrant_client import models as qdrant_models
+from tests.e2e.test_utils import get_test_async_qdrant_client
+        
 @pytest.mark.e2e
 @pytest.mark.xdist_group(name="qdrant")  # Group Qdrant-dependent tests
 @pytest.mark.xdist_group(name="neo4j")   # Group Neo4j-dependent tests
@@ -18,10 +24,6 @@ class TestPreferenceEndpoint:
         """
         Fixture to ensure the Qdrant collection exists before tests.
         """
-        import asyncio
-        from core.db_clients import get_async_qdrant_client
-        from qdrant_client import models as qdrant_models
-        from tests.e2e.test_utils import get_test_async_qdrant_client
         
         print("==== PREFERENCE TEST: CREATING QDRANT COLLECTION BEFORE TEST ====")
         
@@ -124,6 +126,73 @@ class TestPreferenceEndpoint:
         
         # Add a small delay to allow async ingestion to complete
         await asyncio.sleep(2) 
+        
+        # NEW: Create Topic node and relationships in Neo4j directly
+        # This is needed because the Phase 9 Knowledge Extraction service
+        # which would normally create topics is not implemented yet
+        
+        
+        # Get Neo4j driver and DAL
+        neo4j_driver = await get_test_neo4j_driver()
+        neo4j_dal = Neo4jDAL(driver=neo4j_driver)
+        
+        # 1. Create the Topic node
+        topic_node = await neo4j_dal.create_node_if_not_exists(
+            label="Topic",
+            properties={"name": test_topic, "topic_id": str(uuid.uuid4())},
+            constraints={"name": test_topic}
+        )
+        
+        # 2. Now we need to find all Content nodes from this user to connect them to the Topic
+        try:
+            async with neo4j_driver.session() as session:
+                # Find all the user's content nodes
+                # We're deliberately using source_type=message for simplicity
+                # In a real system, we would use proper chunk IDs
+                query = """
+                MATCH (u:User {user_id: $user_id})-[:CREATED]->(c:Content)
+                RETURN c.chunk_id as chunk_id, c.text_content as text_content
+                """
+                
+                result = await session.run(query, {"user_id": test_user_id})
+                content_nodes = [{"chunk_id": record["chunk_id"], "text_content": record["text_content"]} 
+                               async for record in result]
+                
+                # Create MENTIONS relationships between content and topic
+                for content in content_nodes:
+                    # Skip if no chunk_id
+                    if not content.get("chunk_id"):
+                        continue
+                        
+                    # Connect this content to the topic
+                    await neo4j_dal.create_relationship_if_not_exists(
+                        start_label="Content",
+                        start_constraints={"chunk_id": content["chunk_id"]},
+                        end_label="Topic",
+                        end_constraints={"name": test_topic},
+                        relationship_type="MENTIONS",
+                        properties={"relevance": 0.9}  # Mock relevance score
+                    )
+                    
+                    # For the first content (assuming it's a preference statement),
+                    # also create a STATES_PREFERENCE relationship
+                    if content == content_nodes[0]:
+                        await neo4j_dal.create_relationship_if_not_exists(
+                            start_label="Content",
+                            start_constraints={"chunk_id": content["chunk_id"]},
+                            end_label="Topic",
+                            end_constraints={"name": test_topic},
+                            relationship_type="STATES_PREFERENCE",
+                            properties={"confidence": 0.95}  # Mock confidence score
+                        )
+                        
+                print(f"Created Topic node and relationships for {len(content_nodes)} content nodes")
+                
+        except Exception as e:
+            print(f"Error creating Topic relationships: {e}")
+            
+        # Add more delay to ensure Neo4j operations complete
+        await asyncio.sleep(2)
         
         # Return test data for use in tests
         return {
