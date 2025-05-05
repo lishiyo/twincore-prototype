@@ -104,6 +104,7 @@ Models relationships essential for context, authorship, and preference tracking 
 *   `(Preference)-[:SOURCE_MESSAGE]->(Message)` *(Link preference to where it was said)*
 *   `(Preference)-[:SOURCE_DOCUMENT]->(Document)` *(Link preference to where it was written)*
 *   `(Preference)-[:RELATED_TO]->(Topic)` // Subject of preference
+*   `(Preference)-[:MENTIONS {relevance: float}]->(Topic)` // Identified via NLP
 *   `(Message)-[:REPLY_TO]->(Message)` // Threading
 *   `(Message)-[:MENTIONS {relevance: float}]->(Topic)` // Identified via NLP
 *   `(Document)-[:MENTIONS {relevance: float}]->(Topic)` // Identified via NLP
