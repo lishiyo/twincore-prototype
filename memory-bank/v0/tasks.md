@@ -299,12 +299,18 @@ This document outlines the development tasks for building the TwinCore backend p
         - [ ] Create new `twincore_frontend` folder, create `streamlit_app.py`.
         - [ ] Add `streamlit`, `requests` to `requirements.txt`. Install.
         - [ ] Basic app structure and title.
-        - [ ] Add README.md to explain how this frontend works, all its expected features and use case flows, and how to run it.
+        - [x] Add README.md to explain how this frontend works, all its expected features and use case flows, and how to run it.
 
 - [ ] **Task 8.2: UI Layout & Components** (D: 8.1)
     - [ ] Steps:
         - [ ] Implement User Selector (`st.selectbox`).
-        - [ ] Implement Canvas Agent Simulation section (text inputs, buttons for context/preference).
+        - [ ] Implement Canvas Agent Simulation section:
+            - [ ] Inputs/Button for Shared Context (`GET /v1/retrieve/context`).
+            - [ ] Inputs/Button for User Context (`GET /v1/users/{user_id}/context`).
+            - [ ] Inputs/Button for User Preference (`GET /v1/users/{user_id}/preferences`).
+            - [ ] Inputs/Button for Group Context (`GET /v1/retrieve/group`).
+        - [ ] Implement Group Chat Simulation section:
+            - [ ] Text area/Button for sending group messages (`POST /v1/ingest/message`).
         - [ ] Implement User <> Twin Interaction section (text area, button).
         - [ ] Implement Document Upload Simulation section (text inputs, checkbox, button).
         - [ ] Implement **Transcript Simulation Section:**
@@ -316,7 +322,14 @@ This document outlines the development tasks for building the TwinCore backend p
 
 - [ ] **Task 8.3: Backend API Integration** (D: 4.3, 5.1, 5.2, 6.2, 6.3, 7.2, 8.2)
     - [ ] Steps:
-        - [ ] Add `requests` calls within button callbacks to hit the corresponding backend API endpoints (`/v1/retrieve/context`, `/v1/retrieve/preferences`, `/v1/retrieve/private_memory`, `/v1/ingest/document`, `/v1/ingest/message` implicitly via private memory).
+        - [ ] Add `requests` calls within button callbacks to hit the corresponding backend API endpoints:
+            - [ ] `GET /v1/retrieve/context` (Shared Context)
+            - [ ] `GET /v1/users/{user_id}/context` (User Context)
+            - [ ] `GET /v1/users/{user_id}/preferences` (User Preference)
+            - [ ] `GET /v1/retrieve/group` (Group Context)
+            - [ ] `POST /v1/ingest/message` (Group Message)
+            - [ ] `POST /v1/users/{user_id}/private_memory` (User/Twin Interaction, should ingest message and return user's private context)
+            - [ ] `POST /v1/ingest/document` (Document text Upload)
         - [ ] Add `requests` call for "Send Utterance Chunk" button to hit `POST /v1/ingest/chunk` with `doc_id`, selected user, utterance text, session context.
         - [ ] Add `requests` call for "Finalize Transcript" button to hit `POST /v1/documents/{doc_id}/metadata` with `doc_id`, `source_uri` input, etc.
         - [ ] Pass appropriate data (selected user ID, text inputs, context IDs) to the API calls.
