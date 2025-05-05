@@ -256,15 +256,42 @@ This document outlines the development tasks for building the TwinCore backend p
             - [x] [API/Contract] Write API test verifying endpoint schema, path parameter, request/response, status code.
             - [x] [E2E] Write E2E test: Create a document via ingestion, then call `/v1/documents/{doc_id}/metadata` to update `source_uri`, verify change in Neo4j.
 
+- [ ] **Task 7.6: Implement User and Group Context Retrieval** (D: 2.1, 6.1)
+    - [ ] Steps:
+        - [ ] **Sub-task 7.6.1: Implement User Context Endpoint (`GET /v1/users/{user_id}/context`)**
+            - [ ] Implement service logic in `RetrievalService` to fetch all relevant context for a single user, respecting scope and `include_messages_to_twin` (default True) and `include_private` (default True).
+            - [ ] Define API endpoint in a relevant router (e.g., `user_router.py`), see [api.md](./api.md) for spec.
+            - [ ] Write API/Contract tests.
+            - [ ] Write Service Integration tests.
+            - [ ] Write E2E tests verifying comprehensive user context retrieval.
+        - [ ] **Sub-task 7.6.2: Implement Group Context Endpoint (`GET /v1/retrieve/group`)**
+            - [ ] Implement service logic in `RetrievalService` to fetch context for multiple users based on group scope (session, project, team), respecting filters and grouping results.
+            - [ ] Define API endpoint in `retrieve_router.py`,  see [api.md](./api.md) for spec.
+            - [ ] Write API/Contract tests.
+            - [ ] Write Service Integration tests.
+            - [ ] Write E2E tests verifying group context retrieval across participants.
+
+- [ ] **Task 7.7: Refactor Preference Endpoint** (D: Phase 7 completion)
+    - [ ] Steps:
+        - [ ] **Sub-task 7.7.1: Refactor Preference Endpoint Path & Parameters**
+            - [ ] Move endpoint from `GET /v1/retrieve/preferences`  (currently in `retrieval_router.py`) to `GET /v1/users/{user_id}/preferences` (use `user_router.py`).
+            - [ ] Update router definition, changing `user_id` from query param to path param.
+            - [ ] Update service method signature if needed.
+            - [ ] Update OpenAPI documentation (`/docs`).
+            - [ ] **Crucially:** Update ALL existing tests (Unit, Integration, API, E2E) for the preference endpoint to use the new path and parameter structure.
+
 ---
 
 ## Phase 8: Verification UI (Streamlit)
 
+**Critical**: This Streamlit frontend MUST be completely encapsulated from our backend, because we are only using it for development (the real frontend will be a separate repo). Essentially, we will use this to simulate the calls that the real external client (Developer A in [separationStrategy](./separationStrategy.md)) would mamke.
+
 - [ ] **Task 8.1: Streamlit App Setup** (D: 1.1)
     - [ ] Steps:
-        - [ ] Create `streamlit_app.py`.
+        - [ ] Create new `twincore_frontend` folder, create `streamlit_app.py`.
         - [ ] Add `streamlit`, `requests` to `requirements.txt`. Install.
         - [ ] Basic app structure and title.
+        - [ ] Add README.md to explain how this frontend works, all its expected features and use case flows, and how to run it.
 
 - [ ] **Task 8.2: UI Layout & Components** (D: 8.1)
     - [ ] Steps:

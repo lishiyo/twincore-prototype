@@ -55,7 +55,7 @@ class RetrievalService:
         include_private: bool = False,
         include_messages_to_twin: bool = False,
     ) -> List[Dict[str, Any]]:
-        """Retrieve context-relevant information based on semantic search.
+        """Retrieve context-relevant information based on semantic search. 
         
         Args:
             query_text: The text query to search for
@@ -64,8 +64,8 @@ class RetrievalService:
             project_id: Optional filter by project ID
             session_id: Optional filter by session ID
             source_type: Optional filter by source type
-            include_private: Whether to include private content
-            include_messages_to_twin: Whether to include messages to twin interactions
+            include_private: Whether to include private content like personal docs (default False)
+            include_messages_to_twin: Whether to include messages to twin interactions (default False)
         
         Returns:
             List of content chunks with relevance scores and metadata
@@ -130,7 +130,8 @@ class RetrievalService:
                     "project_id": project_id,
                     "session_id": session_id,
                     "is_twin_chat": True,
-                    "source_type": "query"
+                    "source_type": "query",
+                    "is_private": True
                 })
                 logger.debug(f"Ingested twin query: {query_text}")
             except Exception as e:

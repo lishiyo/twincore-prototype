@@ -148,6 +148,7 @@ async def get_retrieval_service_with_message_connector() -> RetrievalService:
 async def retrieve_context(
     query_text: str,
     limit: int = 10,
+    user_id: Optional[str] = None,
     project_id: Optional[str] = None,
     session_id: Optional[str] = None,
     include_graph: bool = Query(False, description="Whether to include graph relationships"),
@@ -157,16 +158,21 @@ async def retrieve_context(
     """Retrieve context-relevant information based on semantic search.
     
     This endpoint retrieves content chunks from the memory store based on
-    semantic similarity to the provided query text, filtered by the specified
-    project and session context.
+    semantic similarity to the provided query text, filtered by any combo of user, project, or session context.
+    The most likely use case is to retrieve context for a project, across all users and sessions.
+    This is primarily PUBLIC context around a project or session (does not include user's personal docs or private messages to twins by default).
+    
+    To retrieve user-specific context, use `GET /v1/users/{user_id}/context` (this would include the user's private docs and messages to twins).
+    To retrieve group-specific context (like multiple users in a project, session, or team), use `GET /v1/retrieve/group` (this would include their private docs and messages to twins as well).
     
     Args:
         query_text: The text to search for
         limit: Maximum number of results to return
-        project_id: Optional filter by project ID
-        session_id: Optional filter by session ID
-        include_graph: Whether to include graph-based enrichments
-        include_messages_to_twin: Whether to include messages to the twin
+        user_id: Optional filter by user ID (only return content from this user)
+        project_id: Optional filter by project ID (only return content from this project)
+        session_id: Optional filter by session ID (only return content from this session)
+        include_graph: Whether to include graph-based enrichments (default False)
+        include_messages_to_twin: Whether to include the user's private messages to the twins (default False)
         retrieval_service: The retrieval service dependency
     """
     try:
@@ -174,17 +180,21 @@ async def retrieve_context(
             results = await retrieval_service.retrieve_enriched_context(
                 query_text=query_text,
                 limit=limit,
+                user_id=user_id,
                 project_id=project_id,
                 session_id=session_id,
-                include_messages_to_twin=include_messages_to_twin
+                include_messages_to_twin=include_messages_to_twin,
+                include_private=False # Not including private docs by default
             )
         else:
             results = await retrieval_service.retrieve_context(
                 query_text=query_text,
                 limit=limit,
+                user_id=user_id,
                 project_id=project_id,
                 session_id=session_id,
-                include_messages_to_twin=include_messages_to_twin
+                include_messages_to_twin=include_messages_to_twin,
+                include_private=False # Not including private docs by default
             )
         
         # Convert to response model
@@ -257,7 +267,13 @@ async def retrieve_private_memory(
     as a twin interaction, storing it in the memory store.
     
     Args:
-        query: The private memory query parameters
+        query: The private memory query parameters, which include:
+            query_text: The text to search for
+            user_id: The user ID to filter by
+            limit: Maximum number of results to return
+            project_id: Optional filter by project ID
+            session_id: Optional filter by session ID
+            include_messages_to_twin: Whether to include retrieving user messages to the twin (default True)
         include_graph: Whether to include graph-based enrichments
         retrieval_service: The retrieval service dependency with message connector
     """

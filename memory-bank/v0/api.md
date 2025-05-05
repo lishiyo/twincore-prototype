@@ -186,16 +186,16 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 
 ## 3. Retrieval Endpoints
 
-### 3.1 Retrieve Context
+### 3.1 Retrieve Context (Shared Scope)
 
 *   **Endpoint:** `GET /v1/retrieve/context`
-*   **Description:** Retrieves relevant text chunks based on a semantic query within a specified user and scope (project/session). By default, this excludes content generated during direct user-twin interactions. Use the `include_messages_to_twin` parameter to include them. Can optionally enrich results with related graph context.
+*   **Description:** Retrieves relevant text chunks based on a semantic query within a **shared scope** (project or session). This endpoint focuses on the collective *public* content within that scope. By default, this excludes content generated during direct user-twin interactions (use the `include_messages_to_twin` parameter to include them) and the user's private docs. Can optionally enrich results with related graph context. **Note**: For user-specific context including their private docs and interactions, use `GET /user/{user_id}/context`. For multiple users, use `GET /retrieve/group`.
 *   **Query Parameters:**
     *   `query_text`: `string` - REQUIRED: The natural language query for semantic search.
-    *   `session_id`: `string (uuid), optional` - Scope: Filter by session.
-    *   `project_id`: `string (uuid), optional` - Scope: Filter by project.
+    *   `session_id`: `string (uuid), optional` - Scope: Filter by session. **One of `session_id` or `project_id` must be provided.**
+    *   `project_id`: `string (uuid), optional` - Scope: Filter by project. **One of `session_id` or `project_id` must be provided.**
     *   `limit`: `integer, optional (default: 10)` - Maximum number of chunks to return.
-    *   `include_messages_to_twin`: `boolean, optional (default: False)` - If true, results will include chunks where `is_twin_interaction` is true (i.e., user queries to the twin).
+    *   `include_messages_to_twin`: `boolean, optional (default: False)` - If true, results will include chunks where `is_twin_interaction` is true.
     *   `include_graph`: `boolean, optional (default: False)` - If true, results will be enriched with related graph context (e.g., project details, participants). This may increase response time.
 *   **Responses:**
     *   `200 OK`: Successfully retrieved context chunks.
@@ -222,58 +222,26 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
         "total": "integer"
       }
       ```
-    *   `400 Bad Request`: Missing required query parameters (`query_text`).
+    *   `400 Bad Request`: Missing required query parameters (`query_text`, scope ID) or invalid parameters.
     *   `401 Unauthorized`: Missing or invalid authentication token.
     *   `404 Not Found`: If specified scope IDs do not exist (optional check).
 
-### 3.2 Retrieve Preferences
-
-*   **Endpoint:** `GET /v1/retrieve/preferences`
-*   **Description:** Retrieves known preferences for a user, potentially filtered by project or topic. Combines explicit statements, inferred preferences, and relevant chat history. By default, this **includes** content generated during direct user-twin interactions (user queries/statements to the twin). Use `include_messages_to_twin=false` to exclude them.
-*   **Query Parameters:**
-    *   `user_id`: `string (uuid)` - REQUIRED: The user whose preferences are being queried.
-    *   `decision_topic`: `string` - REQUIRED: The topic to find preferences for.
-    *   `project_id`: `string (uuid), optional` - Scope: Filter preferences relevant to a specific project.
-    *   `session_id`: `string (uuid), optional` - Scope: Filter preferences relevant to a specific session.
-    *   `limit`: `integer, optional (default: 5)` - Maximum number of preference statements to return.
-    *   `score_threshold`: `float, optional (default: 0.6)` - Minimum score for vector search results to be considered.
-    *   `include_messages_to_twin`: `boolean, optional (default: True)` - If false, results from the vector search will exclude chunks where `is_twin_interaction` is true.
-*   **Responses:**
-    *   `200 OK`: Successfully retrieved preference information.
-      ```json
-      {
-        // Structure TBD based on how preferences are modeled in Neo4j/Qdrant
-        "explicit_preferences": [
-          { "preference_id": "string", "statement": "string", "topic": "string, optional", "source": "string" }
-        ],
-        "inferred_from_votes": [
-          { "vote_id": "string", "decision": "string", "topic": "string", "user_stance": "string (e.g., 'for', 'against')" }
-        ],
-        "relevant_statements": [ // Context chunks potentially indicating preference
-          {
-            "chunk_id": "string (uuid)",
-            "text": "string",
-            "score": "float", // Relevance score if applicable
-            "metadata": { ... } // Similar to context retrieval metadata
-          }
-        ]
-      }
-      ```
-    *   `400 Bad Request`: Missing required query parameter (`user_id`).
-    *   `401 Unauthorized`: Missing or invalid authentication token.
+### 3.2 Retrieve Preferences - MOVED
+*   **This endpoint has been moved to `GET /v1/users/{user_id}/preferences` (see Section 3.x below).**
 
 ### 3.3 Retrieve Group Context
 
 *   **Endpoint:** `GET /v1/retrieve/group`
-*   **Description:** Retrieves relevant information (experiences, preferences, or memories) from multiple participants within a defined group scope (session, project, or team) based on a query. By default, this excludes content generated during direct user-twin interactions. Use the `include_messages_to_twin` parameter to include them.
+*   **Description:** Retrieves relevant information (experiences, preferences, or memories) from **multiple participants** associated with a defined group scope (session, project, or team) based on a query. This endpoint aims to gather context reflecting the perspectives of individuals within the group. By default, this *includes* content marked as private to those users and messages generated during direct user-twin interactions for those users within the scope.
 *   **Query Parameters:**
     *   `session_id`: `string (uuid), optional` - Scope: Required if `project_id` and `team_id` are not provided.
     *   `project_id`: `string (uuid), optional` - Scope: Required if `session_id` and `team_id` are not provided.
     *   `team_id`: `string (uuid), optional` - Scope: Required if `session_id` and `project_id` are not provided.
-    *   `query`: `string` - REQUIRED: The natural language query for semantic search across the group.
-    *   `limit_per_user`: `integer, optional (default: 5)` - Maximum results per user.
-    *   `include_messages_to_twin`: `boolean, optional (default: False)` - If true, results will include chunks where `is_twin_interaction` is true.
-    *   `metadata`: `dict, optional` - Filter here for explicit votes, preferences, or just the results of semantic search across the group.
+    *   `query`: `string` - REQUIRED: The natural language query for semantic search across the group participants' relevant data.
+    *   `limit_per_user`: `integer, optional (default: 5)` - Maximum results per user included in the response.
+    *   `include_messages_to_twin`: `boolean, optional (default: True)` - If true, results for each user will include chunks where `is_twin_interaction` is true.
+    *   `include_private`: `boolean, optional (default: True)` - If true, include chunks marked as private associated with the users in the scope.
+    *   `metadata`: `dict, optional` - Advanced filtering options (TBD - e.g., filter for explicit votes within the group).
 *   **Responses:**
     *   `200 OK`: Successfully retrieved group context, grouped by user.
       ```json
@@ -380,10 +348,10 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `400 Bad Request`: Missing required query parameter (`topic_name`).
     *   `401 Unauthorized`: Missing or invalid authentication token.
 
-### 3.6 Retrieve Private Memory
+### 3.6 Retrieve Private Memory (User Interaction)
 
 *   **Endpoint:** `POST /v1/retrieve/private_memory`
-*   **Description:** Retrieves a user's private memory based on semantic search. It also ingests the query itself as a twin interaction (marked with `is_twin_interaction: true`). By default, the retrieval **includes** previous user messages to the twin. Set `include_messages_to_twin` to false in the request body to exclude them. Can optionally enrich results with related graph context.
+*   **Description:** Retrieves a user's private memory based on semantic search **AND ingests the query itself** as a twin interaction (marked with `is_twin_interaction: true`). This endpoint is designed specifically for the user's direct interaction loop with their twin simulation. By default, the retrieval **includes** previous user messages to the twin. Set `include_messages_to_twin` to false in the request body to exclude them. **Note:** For read-only queries *about* a user without ingestion, use `GET /v1/users/{user_id}/context`.
 *   **Request Body:**
     ```json
     {
@@ -396,7 +364,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     }
     ```
 *   **Query Parameters:**
-    *   `include_graph`: `boolean, optional (default: False)` - If true, results will be enriched with related graph context (e.g., linked documents, related messages). This may increase response time.
+    *   `include_graph`: `boolean, optional (default: False)` - If true, results will be enriched with related graph context.
 *   **Responses:**
     *   `200 OK`: Successfully retrieved private memory chunks.
       ```json
@@ -518,6 +486,83 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `400 Bad Request`: Missing context parameter, or both `chunk_id` and `query_text` provided.
     *   `401 Unauthorized`: Missing or invalid authentication token.
     *   `404 Not Found`: If `chunk_id` is provided but not found.
+
+---
+
+## User-Specific Retrieval Endpoints
+
+### 3.10 Retrieve User Context (Read-Only)
+
+*   **Endpoint:** `GET /v1/users/{user_id}/context`
+*   **Description:** Retrieves relevant text chunks associated **specifically with a given user** based on a semantic query. This searches across all user's relevant data (private docs, group messages, twin interactions, etc.), optionally filtered by project/session scope. This endpoint is **read-only** and performs **no ingestion**. Ideal for external agents (like the Canvas Agent) querying *about* a user's perspective or knowledge.
+*   **Path Parameters:**
+    *   `user_id`: `string (uuid)` - REQUIRED: The ID of the user whose context is being queried.
+*   **Query Parameters:**
+    *   `query_text`: `string` - REQUIRED: The natural language query for semantic search.
+    *   `session_id`: `string (uuid), optional` - Scope: Further filter results by session.
+    *   `project_id`: `string (uuid), optional` - Scope: Further filter results by project.
+    *   `limit`: `integer, optional (default: 10)` - Maximum number of chunks to return.
+    *   `include_messages_to_twin`: `boolean, optional (default: True)` - If true, results will include chunks where `is_twin_interaction` is true (i.e., user queries to the twin). Set to false to exclude these interactions.
+    *   `include_private`: `boolean, optional (default: True)` - If true, include user's private docs in the query.
+*   **Responses:**
+    *   `200 OK`: Successfully retrieved user context chunks. Response format follows the `ChunksResponse` model (similar to `GET /v1/retrieve/context`).
+      ```json
+      // Example (Structure defined by ChunksResponse model)
+      {
+        "chunks": [
+          {
+            "chunk_id": "string (uuid)",
+            "text": "string",
+            "score": "float",
+            "metadata": { ... } // Standard chunk metadata
+          }
+        ],
+        "total": "integer"
+      }
+      ```
+    *   `400 Bad Request`: Missing required query parameter (`query_text`).
+    *   `401 Unauthorized`: Missing or invalid authentication token.
+    *   `404 Not Found`: If the specified `user_id` does not exist.
+
+
+### 3.11 Retrieve User Preferences
+
+*   **Endpoint:** `GET /v1/users/{user_id}/preferences`
+*   **Description:** Retrieves known preferences for a specific user, filtered by a required decision topic and optionally by project/session scope. Combines explicit statements, inferred preferences, and relevant chat history. By default, this **includes** content generated during direct user-twin interactions. Use `include_messages_to_twin=false` to exclude them.
+*   **Path Parameters:**
+    *   `user_id`: `string (uuid)` - REQUIRED: The user whose preferences are being queried.
+*   **Query Parameters:**
+    *   `decision_topic`: `string` - REQUIRED: The topic to find preferences for (e.g., "frontend framework choice").
+    *   `project_id`: `string (uuid), optional` - Scope: Filter preferences relevant to a specific project.
+    *   `session_id`: `string (uuid), optional` - Scope: Filter preferences relevant to a specific session.
+    *   `limit`: `integer, optional (default: 5)` - Maximum number of relevant statements/items to return.
+    *   `score_threshold`: `float, optional (default: 0.6)` - Minimum score for vector search results (relevant statements) to be considered.
+    *   `include_messages_to_twin`: `boolean, optional (default: True)` - If false, results from the vector search portion will exclude chunks where `is_twin_interaction` is true.
+    *   `include_private`: `boolean, optional (default: True)` - If true, include user's private docs in the query.
+*   **Responses:**
+    *   `200 OK`: Successfully retrieved preference information.
+      ```json
+      {
+        // Structure TBD based on how preferences are modeled in Neo4j/Qdrant
+        "explicit_preferences": [
+          { "preference_id": "string", "statement": "string", "topic": "string, optional", "source": "string" }
+        ],
+        "inferred_from_votes": [
+          { "vote_id": "string", "decision": "string", "topic": "string", "user_stance": "string (e.g., 'for', 'against')" }
+        ],
+        "relevant_statements": [ // Context chunks potentially indicating preference
+          {
+            "chunk_id": "string (uuid)",
+            "text": "string",
+            "score": "float", // Relevance score if applicable
+            "metadata": { ... } // Similar to context retrieval metadata
+          }
+        ]
+      }
+      ```
+    *   `400 Bad Request`: Missing required query parameter (`decision_topic`).
+    *   `401 Unauthorized`: Missing or invalid authentication token.
+    *   `404 Not Found`: If the specified `user_id` does not exist.
 
 ---
 

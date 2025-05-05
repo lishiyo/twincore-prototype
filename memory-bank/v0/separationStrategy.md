@@ -106,6 +106,47 @@ graph TD
     *   Action: Queries Neo4j/Qdrant across participants in the specified scope to find relevant experience, preferences, or memories; the filtering can be in the `metadata`.
     *   Response: `[{ "user_id": "uuid", "results": [{ "chunk_id": "uuid", ... }] }, ...]` (Structure defined by Pydantic models).
 
+## Example Flow
+
+The most likely query that the Canvas agent (Dev A) would be sending to Dev B (this repo) would be a query to the twin representing some user:
+- "as User1's twin, what would User1 think about {XYZ decision}?"
+- "what would User1 want to do here for this case?"
+- "when is the best time for User1 to hold the next session?"
+
+This effectively allows the digital twin to stand in for the user during sessions. In fact the Canvas agent could be holding a session with only twins! To architect this:
+
+**The Twin Agent lives on Dev A's side.** Why?
+- Clean Separation:  Dev B provides the "Memory" (data + retrieval API), Dev A provides the "Reasoning" (LLM calls, synthesis, orchestration).
+- Flexibility for Dev A: Dev A controls the LLM choice, prompting techniques, context window management, and agentic logic (e.g., using LangGraph).
+- Scalability: LLM and agent orchestration scaling is Dev A's concern, keeping Dev B focused on data layer performance.
+- Performance: Dev B's API remains fast, focused only on retrieval. The synthesis latency happens on Dev A's side, who can manage user expectations accordingly.
+- Cons:
+    - Data Transfer: Dev A needs to pull potentially significant context from Dev B over the network.
+    - Complexity for Dev A: Dev A implements and manages the LLM interaction logic.
+
+To answer a query like "What would Alice think about using React?", the flow would currently look like this:
+
+1. **Canvas Agent (Dev A)** identifies the need: Needs Alice's perspective on React.
+2. **Canvas Agent (Dev A)** calls TwinCore API (Dev B): It would likely call `GET /v1/users/{user_id}/context` (or possibly `GET /v1/users/{user_id}/preferences` if framed as a decision topic).
+    - Request: user_id=Alice_ID, query_text="thoughts on using React for frontend" (or similar semantic query).
+3. **TwinCore Backend (Dev B)** retrieves evidence: Searches Alice's Qdrant data, finds relevant chunks (e.g., messages where she discussed frontend, docs she wrote about tech choices, past chats with her twin about frameworks), and returns a ranked list of these text chunks with their metadata.
+4. **Canvas Agent (Dev A)** receives evidence: Gets the list of relevant text snippets from the API response.
+5. **Canvas Agent (Dev A)** performs synthesis: Takes the original question ("What would Alice think about React?") and the retrieved evidence chunks. It then constructs a prompt for an LLM (e.g., Claude, Gemini) like:
+
+```python
+    You are Alice's digital twin. Based *only* on the following statements and historical data from Alice, answer the question: "What would Alice think about using React for the frontend?"
+
+    Relevant Data:
+    - [Chunk 1 text: "I really liked how easy state management was in Vue on the last project."]
+    - [Chunk 2 text: "We need something with a large community and good component libraries for this project."]
+    - [Chunk 3 text (from twin chat): User query: "compare react vs vue performance", Twin response: "..."]
+    - ... more chunks ...
+
+    Synthesize Alice's likely perspective:
+```
+
+6. **Canvas Agent (Dev A)** gets synthesized answer: The LLM generates the answer, which Dev A can then use in the Canvas UI or for further orchestration.
+
 
 **Workflow & Communication:**
 

@@ -29,6 +29,7 @@ class MessageIngest(ContentBase):
     project_id: Optional[str] = Field(None, description="ID of the associated project")
     session_id: Optional[str] = Field(None, description="ID of the associated session")
     is_twin_chat: bool = Field(False, description="Whether this is a private twin interaction")
+    is_private: bool = Field(False, description="Whether this is a private message")
 
 
 class DocumentIngest(ContentBase):
