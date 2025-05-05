@@ -1,10 +1,11 @@
-# TwinCore Active Context - Sun May  4 15:43:37 PDT 2025
+# TwinCore Active Context - Sun May  4 16:53:00 PDT 2025
 
 ## Current Work Focus
-- **Completed Phase 7: Preference Endpoint** (including debugging and fixing E2E tests)
-- **Refined Twin Interaction Filtering (Task 7.4)**: DAL and Service layers updated and tested.
-- Moving to Phase 8: Twin Interaction Endpoints OR completing API layer for Task 7.4.
-- Still need to investigate the E2E test failure for document ingestion (`test_document_ingestion_end_to_end`)
+- **Designing Transcript Strategy:** Defined approach for handling streaming transcript data, including data models (`dataSchema.md`), API endpoints (`api.md`), and connector logic (`transcript_strategy.md`).
+- **Implementing Transcript Strategy (Task 7.5):**
+    - **Sub-task 7.5.1 (Complete):** Updated Neo4j DAL (`neo4j_dal.py` and tests) to support document metadata updates (`source_uri`, etc.).
+    - **Sub-task 7.5.2 (Complete):** Implemented chunk ingestion logic in `DocumentConnector` (`ingestion/connectors/document_connector.py` and tests), ensuring parent `Document` nodes are handled in Neo4j.
+- **Continuing Phase 7 (Task 7.5):** Moving to implement the API endpoints for chunk ingestion and metadata updates.
 
 ## Project State
 ### What's Working
@@ -57,6 +58,8 @@
     - Comprehensive unit, integration, and E2E tests for all preference components, now passing after debugging
     - Successfully implemented fallback strategies for preference retrieval (explicit preferences, topic-based, vector similarity with thresholding)
 - **Twin Interaction Filtering (Task 7.4)**: Updated DAL and Service layers to correctly handle `include_twin_interactions` parameter, including fixing related tests.
+- **Transcript Ingestion Strategy Design:** Detailed plan documented in `transcript_strategy.md`.
+- **Core Transcript Ingestion Logic (Task 7.5.1, 7.5.2):** Neo4j DAL updated for metadata, and `DocumentConnector` updated with `ingest_chunk` logic and tests.
 
 ### What's Broken
 - **`test_document_ingestion_end_to_end`:** Still failing with `AssertionError: No document chunks found in Qdrant`. Investigation ongoing.
@@ -82,6 +85,7 @@
 - Defined future expansions for retrieval endpoints to be implemented in Phase 11
 - Implemented preference retrieval with multiple fallback strategies and score thresholding to ensure useful and relevant results even with sparse knowledge graphs.
 - Refining twin interaction filtering logic (`include_twin_interactions`) across DAL, Services, and eventually APIs.
+- Adopted dedicated API endpoints (`/v1/ingest/chunk`, `/v1/documents/{doc_id}/metadata`) for transcript chunk ingestion and metadata updates for clarity.
 
 ## Tech Stack
 - Backend: FastAPI (Python)
@@ -123,11 +127,12 @@
 - Asynchronous operations can introduce timing issues in tests, requiring delays or better synchronization.
 - Keeping interfaces and implementations synchronized is crucial and requires diligent testing.
 - E2E tests with state changes (like query ingestion) need assertions that verify behavior rather than exact state counts.
+- Neo4j `MERGE` requires care when properties might be null; use explicit constraints.
+- Separating metadata updates from content ingestion into distinct API endpoints improves clarity.
 
 ## Next Steps
-- Complete remaining sub-tasks for Task 7.4 (API endpoint and Pydantic model updates).
-- Move to Phase 8: Twin Interaction Endpoints
-  - Implement Task 8.1: Twin Detection Service 
-  - Implement Task 8.2: Twin Response API Endpoint
-  - Implement Task 8.3: End-to-End Test for Twin Interactions
-- Investigate and fix the `AssertionError` in `test_document_ingestion_end_to_end`
+- **Complete Task 7.5:**
+    - Implement Sub-task 7.5.3: Chunk Ingestion API Endpoint (`/v1/ingest/chunk`).
+    - Implement Sub-task 7.5.4: Document Metadata Update API Endpoint (`/v1/documents/{doc_id}/metadata`).
+- **Move to Phase 8:** Verification UI (Streamlit), including transcript simulation.
+- Investigate and fix the `AssertionError` in `test_document_ingestion_end_to_end`.

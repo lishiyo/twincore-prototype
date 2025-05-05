@@ -213,7 +213,7 @@ class TestIngestionService:
         
         # Document-Session UPLOADED_IN relationship
         doc_session_rel = [call for call in relationship_calls 
-                          if call[0][0] == "Document" and call[0][2] == "Session" and call[0][4] == "UPLOADED_IN"]
+                          if call[0][0] == "Document" and call[0][2] == "Session" and call[0][4] == "ATTACHED_TO"]
         assert len(doc_session_rel) == 1
         
         # User-Chunk OWNS relationship (since is_private=True)

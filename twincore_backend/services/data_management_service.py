@@ -80,4 +80,55 @@ class DataManagementService:
         except Exception as e:
             error_msg = f"Failed to clear all data: {str(e)}"
             logger.error(error_msg)
+            raise DataManagementServiceError(error_msg)
+
+    async def update_document_metadata(
+        self,
+        doc_id: str,
+        source_uri: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
+        timestamp: Optional[str] = None
+    ) -> bool:
+        """Update metadata for a specific document in Neo4j.
+
+        Args:
+            doc_id: The ID of the document to update.
+            source_uri: The optional URI string to set/update.
+            metadata: An optional dictionary of other metadata fields to set/update.
+            user_id: The ID of the user performing the update (for logging/audit).
+            timestamp: The timestamp of the update (for logging/audit).
+
+        Returns:
+            True if the update was successful, False if the document was not found.
+        
+        Raises:
+            DataManagementServiceError: If the update fails.
+        """
+        if source_uri is None and metadata is None:
+            logger.warning(f"Update document metadata called for {doc_id} with no data.")
+            return False 
+            
+        try:
+            logger.info(f"Updating metadata for document {doc_id}. URI: {source_uri is not None}, Metadata keys: {list(metadata.keys()) if metadata else []}")
+            
+            success = await self._neo4j_dal.update_document_metadata(
+                doc_id=doc_id,
+                source_uri=source_uri,
+                metadata=metadata
+            )
+            
+            if not success:
+                logger.warning(f"Document {doc_id} not found for metadata update.")
+                return False
+                
+            logger.info(f"Successfully updated metadata for document {doc_id}")
+            return True
+
+        except ValueError as ve:
+             logger.error(f"Value error updating metadata for doc {doc_id}: {ve}")
+             raise DataManagementServiceError(f"Invalid data for metadata update: {ve}")
+        except Exception as e:
+            error_msg = f"Failed to update metadata for document {doc_id}: {str(e)}"
+            logger.error(error_msg, exc_info=True)
             raise DataManagementServiceError(error_msg) 

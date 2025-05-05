@@ -35,22 +35,11 @@ def mock_text_chunker():
 
 
 @pytest.fixture
-def mock_neo4j_dal():
-    """Mock Neo4jDAL for testing."""
-    dal = AsyncMock(spec=INeo4jDAL)
-    # Mock methods used by ingest_chunk
-    dal.create_node_if_not_exists.return_value = {}
-    dal.create_relationship_if_not_exists.return_value = True
-    return dal
-
-
-@pytest.fixture
-def document_connector(mock_ingestion_service, mock_text_chunker, mock_neo4j_dal):
+def document_connector(mock_ingestion_service, mock_text_chunker):
     """Create DocumentConnector with mocked dependencies."""
     return DocumentConnector(
         ingestion_service=mock_ingestion_service,
-        text_chunker=mock_text_chunker,
-        neo4j_dal=mock_neo4j_dal # Inject mock Neo4j DAL
+        text_chunker=mock_text_chunker
     )
 
 
@@ -204,13 +193,12 @@ class TestDocumentConnector:
             await document_connector.ingest_document(document_data)
 
     @pytest.mark.asyncio
-    async def test_document_connector_init_validates_dependencies(self, mock_ingestion_service, mock_text_chunker, mock_neo4j_dal):
+    async def test_document_connector_init_validates_dependencies(self, mock_ingestion_service, mock_text_chunker):
         """Test that DocumentConnector initialization validates dependencies."""
         # Valid initialization
         connector = DocumentConnector(
             ingestion_service=mock_ingestion_service,
-            text_chunker=mock_text_chunker,
-            neo4j_dal=mock_neo4j_dal
+            text_chunker=mock_text_chunker
         )
         assert connector is not None
         
@@ -218,30 +206,20 @@ class TestDocumentConnector:
         with pytest.raises(ValueError, match="IngestionService must be provided"):
             DocumentConnector(
                 ingestion_service=None,
-                text_chunker=mock_text_chunker,
-                neo4j_dal=mock_neo4j_dal
+                text_chunker=mock_text_chunker
             )
         
         # Missing text_chunker
         with pytest.raises(ValueError, match="TextChunker must be provided"):
             DocumentConnector(
                 ingestion_service=mock_ingestion_service,
-                text_chunker=None,
-                neo4j_dal=mock_neo4j_dal
-            )
-        
-        # Missing neo4j_dal
-        with pytest.raises(ValueError, match="Neo4jDAL must be provided"):
-            DocumentConnector(
-                ingestion_service=mock_ingestion_service,
-                text_chunker=mock_text_chunker,
-                neo4j_dal=None
+                text_chunker=None
             )
 
     # --- Tests for ingest_chunk --- 
 
     @pytest.mark.asyncio
-    async def test_ingest_chunk_success(self, document_connector, mock_ingestion_service, mock_neo4j_dal):
+    async def test_ingest_chunk_success(self, document_connector, mock_ingestion_service):
         """Test successful chunk ingestion (e.g., transcript snippet)."""
         # Arrange
         chunk_data = {
@@ -262,26 +240,6 @@ class TestDocumentConnector:
         # Assert
         assert result is True
 
-        # Verify Neo4j DAL was called to ensure parent document exists
-        mock_neo4j_dal.create_node_if_not_exists.assert_called_once_with(
-            label="Document",
-            properties=pytest.approx({ # Use approx for timestamp comparison if needed
-                "document_id": chunk_data["doc_id"],
-                "name": f"Transcript Document {chunk_data['doc_id']}",
-                "source_type": "transcript",
-                "timestamp": chunk_data["timestamp"],
-                "uploader_id": chunk_data["user_id"],
-            }),
-            constraints={"document_id": chunk_data["doc_id"]}
-        )
-        
-        # Verify Neo4j DAL was called to link Document and Session
-        mock_neo4j_dal.create_relationship_if_not_exists.assert_called_once_with(
-            start_label="Document", start_constraints={"document_id": chunk_data["doc_id"]},
-            end_label="Session", end_constraints={"session_id": chunk_data["session_id"]},
-            relationship_type="ATTACHED_TO"
-        )
-
         # Verify IngestionService was called with correct parameters
         mock_ingestion_service.ingest_chunk.assert_called_once_with(
             chunk_id=chunk_data["chunk_id"],
@@ -299,7 +257,7 @@ class TestDocumentConnector:
         )
 
     @pytest.mark.asyncio
-    async def test_ingest_chunk_generates_chunk_id(self, document_connector, mock_ingestion_service, mock_neo4j_dal):
+    async def test_ingest_chunk_generates_chunk_id(self, document_connector, mock_ingestion_service):
         """Test ingest_chunk generates a chunk_id if not provided."""
         # Arrange
         chunk_data = {
@@ -344,7 +302,7 @@ class TestDocumentConnector:
                 await document_connector.ingest_chunk(chunk_data)
 
     @pytest.mark.asyncio
-    async def test_ingest_chunk_handles_ingestion_error(self, document_connector, mock_ingestion_service, mock_neo4j_dal):
+    async def test_ingest_chunk_handles_ingestion_error(self, document_connector, mock_ingestion_service):
         """Test ingest_chunk propagates errors from ingestion service."""
         # Arrange
         chunk_data = {
@@ -359,22 +317,4 @@ class TestDocumentConnector:
 
         # Act & Assert
         with pytest.raises(IngestionServiceError, match="Ingest failed"):
-            await document_connector.ingest_chunk(chunk_data)
-
-    @pytest.mark.asyncio
-    async def test_ingest_chunk_handles_neo4j_error(self, document_connector, mock_ingestion_service, mock_neo4j_dal):
-        """Test ingest_chunk propagates errors from neo4j dal."""
-        # Arrange
-        chunk_data = {
-            "user_id": str(uuid.uuid4()),
-            "session_id": str(uuid.uuid4()),
-            "doc_id": str(uuid.uuid4()),
-            "text": "More text.",
-            "timestamp": datetime.now().isoformat(),
-        }
-        # Setup mock to raise an exception
-        mock_neo4j_dal.create_node_if_not_exists.side_effect = Exception("Neo4j error")
-
-        # Act & Assert
-        with pytest.raises(Exception, match="Neo4j error"):
             await document_connector.ingest_chunk(chunk_data) 

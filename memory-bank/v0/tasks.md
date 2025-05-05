@@ -236,18 +236,18 @@ This document outlines the development tasks for building the TwinCore backend p
 
 - [ ] **Task 7.5: Implement Transcript Ingestion Strategy** (D: 2.1, 3.3, 3.4, 3.5)
     - [ ] Steps:
-        - [ ] **Sub-task 7.5.1: Update Neo4j DAL for Document Metadata**
-            - [ ] Add `source_uri` property handling to `Document` node creation/update methods in `dal/neo4j_dal.py`.
-            - [ ] Add new method `update_document_metadata(doc_id, source_uri=None, metadata=None)` to update existing document nodes.
-            - [ ] [DAL Int] Write/update integration tests to verify `source_uri` and metadata updates on `Document` nodes.
-        - [ ] **Sub-task 7.5.2: Implement Chunk Ingestion Logic**
-            - [ ] Add `ingest_chunk(data)` method to `ingestion/connectors/document_connector.py` (or a new `transcript_connector.py`).
-            - [ ] Logic should ensure parent `Document` node exists in Neo4j (creating if first chunk via DAL call) and upsert chunk to Qdrant via DAL.
-            - [ ] [Service Int] Test `ingest_chunk` logic in isolation, mocking DAL calls.
-        - [ ] **Sub-task 7.5.3: Implement Chunk Ingestion API Endpoint (`/v1/ingest/chunk`)**
-            - [ ] Define `POST /v1/ingest/chunk` endpoint in `api/routers/ingest_router.py`. Use Pydantic models. Inject relevant connector/service.
-            - [ ] [API/Contract] Write API test verifying endpoint schema, request/response, status code.
-            - [ ] [E2E] Write E2E test: Call `/v1/ingest/chunk` multiple times for the same `doc_id`, verify chunks in Qdrant with correct metadata and the parent `Document` node in Neo4j.
+        - [x] **Sub-task 7.5.1: Update Neo4j DAL for Document Metadata**
+            - [x] Add `source_uri` property handling to `Document` node creation/update methods in `dal/neo4j_dal.py`.
+            - [x] Add new method `update_document_metadata(doc_id, source_uri=None, metadata=None)` to update existing document nodes.
+            - [x] [DAL Int] Write/update integration tests to verify `source_uri` and metadata updates on `Document` nodes.
+        - [x] **Sub-task 7.5.2: Implement Chunk Ingestion Logic**
+            - [x] Add `ingest_chunk(data)` method to `ingestion/connectors/document_connector.py` (or a new `transcript_connector.py`).
+            - [x] Logic should ensure parent `Document` node exists in Neo4j (creating if first chunk via DAL call) and upsert chunk to Qdrant via DAL.
+            - [x] [Service Int] Test `ingest_chunk` logic in isolation, mocking DAL calls.
+        - [x] **Sub-task 7.5.3: Implement Chunk Ingestion API Endpoint (`/v1/ingest/chunk`)**
+            - [x] Define `POST /v1/ingest/chunk` endpoint in `api/routers/ingest_router.py`. Use Pydantic models. Inject relevant connector/service.
+            - [x] [API/Contract] Write API test verifying endpoint schema, request/response, status code.
+            - [x] [E2E] Write E2E test: Call `/v1/ingest/chunk` multiple times for the same `doc_id`, verify chunks in Qdrant with correct metadata and the parent `Document` node in Neo4j.
         - [ ] **Sub-task 7.5.4: Implement Document Metadata Update API Endpoint (`/v1/documents/{doc_id}/metadata`)**
             - [ ] Define `POST /v1/documents/{doc_id}/metadata` endpoint in a relevant router (e.g., `api/routers/admin_router.py` or `ingest_router.py`).
             - [ ] Add service logic (e.g., in `DataManagementService` or `IngestionService`) to call the new `neo4j_dal.update_document_metadata` method.

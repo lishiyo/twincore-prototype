@@ -10,10 +10,8 @@ from qdrant_client import models as qdrant_models
 
 from core.db_clients import get_async_qdrant_client, get_neo4j_driver
 from main import app, get_document_connector
-from api.routers import ingest_router
 from qdrant_client import models
-from core.db_setup.qdrant_setup import setup_qdrant_collection
-import pytest_asyncio
+from fastapi import status
 
 logger = logging.getLogger(__name__)
 
@@ -277,3 +275,113 @@ class TestDocumentIngestionE2E:
         # Now this should work as the collection exists
         assert response.status_code == 202
         assert response.json() == {"status": "accepted", "message": "Document received and queued for ingestion."} 
+
+    @pytest.mark.asyncio
+    async def test_chunk_ingestion_end_to_end(self, async_client: AsyncClient):
+        """Test the full chunk ingestion flow via the API."""
+        # Generate unique IDs for this test
+        user_id = str(uuid.uuid4())
+        doc_id = str(uuid.uuid4()) # Parent document ID
+        session_id = str(uuid.uuid4())
+        project_id = str(uuid.uuid4())
+        
+        # Chunk data to ingest
+        chunks_to_ingest = [
+            {
+                "user_id": user_id,
+                "session_id": session_id,
+                "doc_id": doc_id,
+                "text": "This is the first transcript chunk.",
+                "timestamp": datetime.now().isoformat(),
+                "project_id": project_id,
+                "chunk_id": str(uuid.uuid4()),
+                "metadata": {"turn": 1}
+            },
+            {
+                "user_id": str(uuid.uuid4()), # Different user for second chunk
+                "session_id": session_id,
+                "doc_id": doc_id,
+                "text": "This is the second utterance.",
+                "timestamp": datetime.now().isoformat(),
+                "project_id": project_id,
+                "chunk_id": str(uuid.uuid4()),
+                "metadata": {"turn": 2}
+            }
+        ]
+
+        logger.info(f"Running chunk ingestion test for document {doc_id}")
+
+        # Ingest each chunk via the API
+        for chunk_data in chunks_to_ingest:
+            response = await async_client.post("/v1/ingest/chunk", json=chunk_data)
+            assert response.status_code == status.HTTP_202_ACCEPTED, f"Failed to ingest chunk: {response.text}"
+        
+        logger.info(f"Ingested {len(chunks_to_ingest)} chunks via API")
+        
+        # Add a delay to allow asynchronous processing
+        await asyncio.sleep(2)
+
+        # Verify chunks in Qdrant
+        qdrant_client = get_async_qdrant_client()
+        scroll_result = await qdrant_client.scroll(
+            collection_name="twin_memory",
+            scroll_filter=models.Filter(
+                must=[
+                    models.FieldCondition(key="doc_id", match=models.MatchValue(value=doc_id)),
+                    models.FieldCondition(key="source_type", match=models.MatchValue(value="transcript_snippet"))
+                ]
+            ),
+            limit=10
+        )
+        points = scroll_result[0]
+        assert len(points) == len(chunks_to_ingest), "Incorrect number of chunks found in Qdrant"
+
+        # Verify payloads match ingested data
+        qdrant_chunk_ids = {p.id for p in points}
+        original_chunk_ids = {c["chunk_id"] for c in chunks_to_ingest}
+        assert qdrant_chunk_ids == original_chunk_ids
+
+        for point in points:
+            payload = point.payload
+            original_chunk = next(c for c in chunks_to_ingest if c["chunk_id"] == point.id)
+            assert payload["text_content"] == original_chunk["text"]
+            assert payload["user_id"] == original_chunk["user_id"]
+            assert payload["session_id"] == original_chunk["session_id"]
+            assert payload["doc_id"] == doc_id
+            assert payload["source_type"] == "transcript_snippet"
+            assert payload["turn"] == original_chunk["metadata"]["turn"]
+        
+        # Verify parent document and relationships in Neo4j
+        neo4j_driver = await get_neo4j_driver()
+        try:
+            async with neo4j_driver.session() as session:
+                # Check for Document node
+                doc_result = await session.run(
+                    "MATCH (d:Document {document_id: $doc_id}) RETURN d.name as name, d.source_type as type",
+                    doc_id=doc_id
+                )
+                doc_record = await doc_result.single()
+                assert doc_record is not None, "Parent Document node not found in Neo4j"
+                assert doc_record["type"] == "transcript"
+                # Check name was set correctly based on first chunk logic
+                assert doc_record["name"] == f"Transcript Document {doc_id}"
+                
+                # Check Document -> Session relationship
+                rel_result = await session.run(
+                    "MATCH (d:Document {document_id: $doc_id})-[:ATTACHED_TO]->(s:Session {session_id: $session_id}) RETURN count(s)",
+                    doc_id=doc_id, session_id=session_id
+                )
+                rel_count = await rel_result.single()
+                assert rel_count[0] == 1, "Document -> Session relationship not found"
+                
+                # Check that Chunk nodes exist (created by IngestionService)
+                chunk_count_result = await session.run(
+                    "MATCH (c:Chunk)-[:PART_OF]->(d:Document {document_id: $doc_id}) RETURN count(c)",
+                    doc_id=doc_id
+                )
+                chunk_count_record = await chunk_count_result.single()
+                assert chunk_count_record[0] == len(chunks_to_ingest), "Incorrect number of Chunk nodes found in Neo4j"
+
+        finally:
+            await neo4j_driver.close()
+            logger.info("Neo4j driver closed in chunk ingestion test") 

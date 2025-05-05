@@ -28,15 +28,13 @@ class DocumentConnector:
     def __init__(
         self,
         ingestion_service: IngestionService,
-        text_chunker: TextChunker,
-        neo4j_dal: INeo4jDAL # Add Neo4j DAL dependency
+        text_chunker: TextChunker
     ):
         """Initialize the document connector.
         
         Args:
             ingestion_service: Core service for handling data storage
             text_chunker: Processor for splitting text into chunks
-            neo4j_dal: Data access layer for Neo4j graph database
         
         Raises:
             ValueError: If any required dependency is None
@@ -45,12 +43,9 @@ class DocumentConnector:
             raise ValueError("IngestionService must be provided to DocumentConnector")
         if text_chunker is None:
             raise ValueError("TextChunker must be provided to DocumentConnector")
-        if neo4j_dal is None: # Validate Neo4j DAL
-            raise ValueError("Neo4jDAL must be provided to DocumentConnector")
             
         self._ingestion_service = ingestion_service
         self._text_chunker = text_chunker
-        self._neo4j_dal = neo4j_dal # Store Neo4j DAL instance
         logger.info("DocumentConnector initialized")
     
     async def ingest_document(
@@ -199,31 +194,7 @@ class DocumentConnector:
         logger.info(f"Ingesting chunk {chunk_id_to_use} for document {doc_id}")
 
         try:
-            # 1. Ensure parent Document node exists in Neo4j
-            # We need a name for the document node if created here.
-            # Using a generic name based on doc_id if not otherwise known.
-            # In a real scenario, the first chunk might carry the intended doc name.
-            doc_name = f"Transcript Document {doc_id}" 
-            doc_props = {
-                "document_id": doc_id,
-                "name": doc_name,
-                "source_type": "transcript", # Parent doc is a transcript
-                "timestamp": timestamp, # Use chunk timestamp as rough creation time
-                "uploader_id": user_id, # Associate with the user of the first chunk?
-            }
-            await self._neo4j_dal.create_node_if_not_exists(
-                label="Document",
-                properties=doc_props,
-                constraints={"document_id": doc_id}
-            )
-            
-            # Ensure relationship between Document and Session exists
-            if session_id:
-                 await self._neo4j_dal.create_relationship_if_not_exists(
-                     start_label="Document", start_constraints={"document_id": doc_id},
-                     end_label="Session", end_constraints={"session_id": session_id},
-                     relationship_type="ATTACHED_TO"
-                 )
+            doc_name = chunk_data.get("metadata", {}).get("doc_name", f"Transcript Document {doc_id}")
 
             # 2. Call IngestionService to handle embedding and storage
             # Pass all relevant fields from chunk_data

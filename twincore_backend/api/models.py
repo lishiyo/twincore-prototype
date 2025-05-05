@@ -41,6 +41,18 @@ class DocumentIngest(ContentBase):
     is_private: bool = Field(False, description="Whether this is a private document")
 
 
+class IngestChunkRequest(BaseModel):
+    """Model for ingesting a single chunk (e.g., transcript snippet)."""
+    user_id: str = Field(..., description="ID of the speaker/author of the chunk")
+    session_id: str = Field(..., description="Session context ID")
+    doc_id: str = Field(..., description="Consistent ID of the parent Document this chunk belongs to")
+    text: str = Field(..., description="The text content of the chunk/utterance")
+    timestamp: datetime = Field(..., description="Time the chunk/utterance occurred or was created")
+    project_id: Optional[str] = Field(None, description="Optional project context ID")
+    chunk_id: Optional[str] = Field(None, description="Optional: Unique ID for this specific chunk from source system")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Optional: Any additional source-specific metadata")
+
+
 # Retrieval Models
 class ContextQuery(BaseModel):
     """Query parameters for retrieving context."""

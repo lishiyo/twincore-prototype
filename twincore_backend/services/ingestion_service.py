@@ -264,53 +264,61 @@ class IngestionService:
                     )
             
             # Handle document and message specific logic
-            if source_type == 'document' or source_type == 'document_chunk':
-                if doc_id:
-                    doc_props = {"document_id": doc_id}
-                    if doc_name:
-                        doc_props["name"] = doc_name
-                    if user_id:
-                        doc_props["uploader_id"] = user_id
-                    if is_private:
-                        doc_props["is_private"] = is_private
+            if doc_id:
+                # Determine the source_type for the Document node itself
+                # If the chunk is a snippet, the parent is a transcript
+                document_node_source_type = "transcript" if source_type == "transcript_snippet" else source_type
+                
+                doc_props = {
+                    "document_id": doc_id,
+                    "source_type": document_node_source_type # Set source type for the Document node
+                }
+                if doc_name:
+                    doc_props["name"] = doc_name
+                if user_id: # Who uploaded/created the context for this doc initially?
+                    doc_props["uploader_id"] = user_id 
+                if is_private: # Does the document itself have a privacy setting?
+                    doc_props["is_private"] = is_private
+                if timestamp: # Add timestamp to the document node too
+                    doc_props["timestamp"] = timestamp
                     
-                    await self._neo4j_dal.create_node_if_not_exists("Document", doc_props, {"document_id": doc_id})
-                    created_nodes.append(("Document", {"document_id": doc_id}))
-                    
-                    # Connect Chunk to Document
+                await self._neo4j_dal.create_node_if_not_exists("Document", doc_props, {"document_id": doc_id})
+                created_nodes.append(("Document", {"document_id": doc_id}))
+                
+                # Connect Chunk to Document
+                await self._neo4j_dal.create_relationship_if_not_exists(
+                    "Chunk", {"chunk_id": chunk_id_str},
+                    "Document", {"document_id": doc_id},
+                    "PART_OF",
+                    #{"timestamp": timestamp} # Timestamp might be redundant here
+                )
+                
+                # Connect User to Document (UPLOADED seems appropriate here regardless of source_type)
+                if user_id:
                     await self._neo4j_dal.create_relationship_if_not_exists(
-                        "Chunk", {"chunk_id": chunk_id_str},
+                        "User", {"user_id": user_id},
                         "Document", {"document_id": doc_id},
-                        "PART_OF",
+                        "UPLOADED", # Relationship indicating who added the document context
                         {"timestamp": timestamp}
                     )
-                    
-                    # Connect User to Document if both provided
-                    if user_id:
-                        await self._neo4j_dal.create_relationship_if_not_exists(
-                            "User", {"user_id": user_id},
-                            "Document", {"document_id": doc_id},
-                            "UPLOADED",
-                            {"timestamp": timestamp}
-                        )
-                    
-                    # Connect Document to Project if both provided
-                    if project_id:
-                        await self._neo4j_dal.create_relationship_if_not_exists(
-                            "Document", {"document_id": doc_id},
-                            "Project", {"project_id": project_id},
-                            "PART_OF",
-                            {}
-                        )
-                    
-                    # Connect Document to Session if both provided
-                    if session_id:
-                        await self._neo4j_dal.create_relationship_if_not_exists(
-                            "Document", {"document_id": doc_id},
-                            "Session", {"session_id": session_id},
-                            "UPLOADED_IN",
-                            {"timestamp": timestamp}
-                        )
+                
+                # Connect Document to Project if both provided
+                if project_id:
+                    await self._neo4j_dal.create_relationship_if_not_exists(
+                        "Document", {"document_id": doc_id},
+                        "Project", {"project_id": project_id},
+                        "PART_OF",
+                        {}
+                    )
+                
+                # Connect Document to Session if both provided (Use ATTACHED_TO)
+                if session_id:
+                    await self._neo4j_dal.create_relationship_if_not_exists(
+                        "Document", {"document_id": doc_id},
+                        "Session", {"session_id": session_id},
+                        "ATTACHED_TO", # Use ATTACHED_TO as per strategy
+                        #{"timestamp": timestamp} # Timestamp might be redundant here
+                    )
             
             elif source_type == 'message':
                 if message_id:
@@ -417,6 +425,11 @@ class IngestionService:
                 metadata=metadata
             )
             
+            # Convert timestamp to string if it's a datetime object before passing to DAL
+            timestamp_str = timestamp
+            if isinstance(timestamp_str, datetime):
+                timestamp_str = timestamp_str.isoformat()
+                
             # Store in Qdrant
             await self._qdrant_dal.upsert_vector(
                 chunk_id=chunk_id,
@@ -428,7 +441,7 @@ class IngestionService:
                 session_id=session_id,
                 doc_id=doc_id,
                 message_id=message_id,
-                timestamp=timestamp,
+                timestamp=timestamp_str, # Pass the string version
                 is_twin_interaction=is_twin_interaction,
                 is_private=is_private,
                 metadata=metadata
@@ -444,7 +457,7 @@ class IngestionService:
                 doc_id=doc_id,
                 message_id=message_id,
                 doc_name=doc_name,
-                timestamp=timestamp,
+                timestamp=timestamp_str, # Pass the string version here too for consistency
                 is_twin_interaction=is_twin_interaction,
                 is_private=is_private
             )

@@ -2,6 +2,46 @@
 
 **IMPORTANT**: Put your changes at the top!
 
+## Sun May  4 16:53:00 PDT 2025
+
+**Changes:**
+*   **Transcript Strategy (Task 7.5):**
+    *   Created `memory-bank/v0/transcript_strategy.md` detailing the plan for handling streaming transcript ingestion, including the new `POST /v1/ingest/chunk` and `POST /v1/documents/{doc_id}/metadata` endpoints.
+    *   Updated `memory-bank/v0/api.md` and `memory-bank/v0/dataSchema.md` to reflect the new strategy and endpoints.
+    *   **Task 7.5.1 (Complete):** Updated `dal/neo4j_dal.py` to include `update_document_metadata` method for setting `source_uri` and other metadata. Added corresponding integration tests in `tests/dal/test_neo4j_dal.py` and fixed a `MERGE` issue related to null properties in tests.
+    *   **Task 7.5.2 (Complete):** Added `ingest_chunk` method to `ingestion/connectors/document_connector.py` to handle ingestion of individual chunks (like transcript snippets), ensuring the parent `Document` node exists in Neo4j. Updated connector tests.
+*   Updated `memory-bank/v0/tasks.md` to reflect progress on Task 7.5 and adjusted Phase 8 Streamlit tasks for transcript simulation.
+
+**Errors & Learnings:**
+*   Neo4j `MERGE` cannot use `null` properties in the merge condition. Ensure explicit `constraints` (like the primary key) are provided to `create_node_if_not_exists` when other properties might be null during initial creation.
+
+**Next Steps:**
+*   Implement Task 7.5.3: Chunk Ingestion API Endpoint (`/v1/ingest/chunk`).
+
+## Sun May  4 15:43:37 PDT 2025
+
+**Changes:**
+*   **Completed Phase 7: Preference Endpoint**
+    *   Implemented `PreferenceService` with multi-strategy retrieval (explicit, topic, vector).
+    *   Implemented `/v1/retrieve/preferences` API endpoint.
+    *   Added DAL methods `search_user_preferences` (Qdrant) and `get_user_preference_statements` (Neo4j).
+    *   Wrote and passed Unit, Integration, API/Contract, and E2E tests for preference retrieval.
+    *   Debugged and fixed multiple E2E test failures related to status codes, request validation (`score_threshold`), fixture overrides (`use_test_databases`), async client setup, and Qdrant collection setup (`ensure_collection_exists`).
+    *   Finalized implementation of `include_messages_to_twin` filtering across DAL, Service, and API layers for preference retrieval, context retrieval, private memory, group context, and timeline endpoints (Task 7.4).
+
+**Errors & Learnings:**
+*   E2E testing requires careful management of test isolation, especially with shared database resources. Fixtures like `use_test_databases` and explicit setup/teardown are crucial.
+*   Debugging E2E tests often involves checking logs and behavior across multiple application layers.
+*   Vector search requires careful tuning of `score_threshold` for relevance.
+*   Keep DAL interfaces and implementations synchronized.
+*   Asynchronous operations require careful handling in tests (e.g., `ASGITransport` for `httpx.AsyncClient`).
+
+**Next Steps:**
+*   Investigate remaining failure in `test_document_ingestion_end_to_end`.
+*   Move to Phase 8: Streamlit UI or Phase 9: Knowledge Extraction.
+*   Consider design for handling streaming transcript ingestion.
+
+
 ## Sun May  4 15:43:37 PDT 2025 - Fixed Interface Definitions and E2E Test Logic
 
 ### Changes since last update
