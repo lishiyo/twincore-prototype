@@ -114,7 +114,7 @@ class ContentChunk(BaseModel):
     text: str = Field(..., description="Text content of the chunk")
     source_type: str = Field(..., description="Type of source (e.g., 'message', 'document')")
     timestamp: datetime = Field(..., description="Timestamp when the content was created/ingested")
-    user_id: str = Field(..., description="ID of the user who created/owns the content")
+    user_id: Optional[str] = Field(None, description="ID of the user who created/owns the content (optional)")
     project_id: Optional[str] = Field(None, description="Project ID the content belongs to")
     session_id: Optional[str] = Field(None, description="Session ID the content belongs to")
     doc_id: Optional[str] = Field(None, description="Document ID for document chunks")
