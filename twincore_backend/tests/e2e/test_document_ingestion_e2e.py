@@ -384,4 +384,75 @@ class TestDocumentIngestionE2E:
 
         finally:
             await neo4j_driver.close()
-            logger.info("Neo4j driver closed in chunk ingestion test") 
+            logger.info("Neo4j driver closed in chunk ingestion test")
+
+    @pytest.mark.asyncio
+    async def test_update_document_metadata_end_to_end(
+        self,
+        async_client: AsyncClient,
+        # Note: Neo4j driver fixture is implicitly used via get_neo4j_driver()
+        # Note: Qdrant client fixture is implicitly used via get_async_qdrant_client()
+    ):
+        """
+        Tests the POST /v1/documents/{doc_id}/metadata endpoint end-to-end.
+        1. Ingests a chunk to create the Document node.
+        2. Calls the metadata update endpoint.
+        3. Verifies the update in Neo4j.
+        """
+        user_id = str(uuid.uuid4())
+        session_id = str(uuid.uuid4())
+        doc_id = str(uuid.uuid4())
+        chunk_id = str(uuid.uuid4())
+        initial_chunk_data = {
+            "user_id": user_id,
+            "session_id": session_id,
+            "doc_id": doc_id,
+            "chunk_id": chunk_id,
+            "text": "Initial chunk to create the document node.",
+            "timestamp": datetime.now().isoformat(), # Removed timezone for consistency with other tests
+        }
+
+        # 1. Ingest chunk to create the document
+        ingest_response = await async_client.post("/v1/ingest/chunk", json=initial_chunk_data)
+        assert ingest_response.status_code == 202, f"Ingest failed: {ingest_response.text}"
+
+        # Add a small delay to ensure async processing completes
+        await asyncio.sleep(1) # Adjusted delay based on existing tests
+
+        # 2. Call metadata update endpoint
+        source_uri_to_set = f"s3://test-bucket/transcripts/{doc_id}.txt"
+        metadata_payload = {
+            "user_id": user_id, # Need a user performing the action
+            "source_uri": source_uri_to_set,
+            "metadata": {
+                "final_participant_ids": [user_id, str(uuid.uuid4())],
+                "language": "en"
+            }
+        }
+        update_response = await async_client.post(
+            f"/v1/documents/{doc_id}/metadata",
+            json=metadata_payload
+        )
+        assert update_response.status_code == 200, f"Metadata update failed: {update_response.text}"
+
+        # Add a small delay for Neo4j update
+        await asyncio.sleep(1)
+
+        # 3. Verify update in Neo4j
+        neo4j_driver = await get_neo4j_driver()
+        try:
+            async with neo4j_driver.session(database="neo4j") as session:
+                result = await session.run(
+                    """
+                    MATCH (d:Document {document_id: $doc_id})
+                    RETURN d.source_uri AS source_uri, d.language AS language
+                    """,
+                    doc_id=doc_id
+                )
+                record = await result.single()
+        finally:
+            await neo4j_driver.close()
+
+        assert record is not None, f"Document node {doc_id} not found in Neo4j after update."
+        assert record["source_uri"] == source_uri_to_set, "source_uri was not updated correctly."
+        assert record["language"] == "en", "Metadata property 'language' was not updated correctly." 
