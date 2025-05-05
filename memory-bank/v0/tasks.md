@@ -462,52 +462,39 @@ This document outlines the development tasks for building the TwinCore backend p
 
 ---
 
-## Phase 10: Final Testing & Refinement
-
-- [ ] **Task 10.1: Final Testing & Refinement** (D: All Phases 1-8)
-    - [ ] Steps:
-        - [ ] Run all automated tests (`pytest`). Ensure 100% pass rate.
-        - [ ] Check code coverage (`pytest --cov`). Address major gaps.
-        - [ ] Perform manual testing using the Streamlit UI (Phase 8) to cover key user flows.
-        - [ ] Review code for clarity, consistency, and adherence to patterns (`systemPatterns.md`).
-        - [ ] Refactor code as needed based on testing and review.
-        - [ ] Update `README.md` with final usage instructions.
-
----
-
-## Phase 11: Advanced Retrieval & Suggestions (Leveraging Enriched Graph)
+## Phase 10: Advanced Retrieval & Suggestions (Leveraging Enriched Graph)
 
 *Note: This phase implements advanced retrieval endpoints, leveraging the enriched knowledge graph from Phase 9 and incorporating strategies like **Graph-Enhanced RAG** and **Advanced Graph Filtering** inspired by `memory-bank/v1/retrieval_improvement.md` and tested in `scripts/combined_retrieval_demo.py`.*
 
-- [ ] **Task 11.0: Implement Core Graph Enrichment Logic** (D: Phase 9 Completion)
+- [ ] **Task 10.0: Implement Core Graph Enrichment Logic** (D: Phase 9 Completion)
     - [ ] **Goal:** Create reusable service/DAL logic for enriching chunk data with connected graph entities.
     - [ ] Steps:
-        - [ ] **Sub-task 11.0.1: Enhance Neo4j DAL for Comprehensive Context:**
+        - [ ] **Sub-task 10.0.1: Enhance Neo4j DAL for Comprehensive Context:**
             - [ ] Implement/Refine `Neo4jDAL.get_comprehensive_chunk_context(chunk_ids)` method (similar to demo script) to efficiently retrieve connected Users (author), Topics (mentioned), Sessions/Projects (context), Documents (source), and crucially, linked Decisions, ActionItems, Risks, Blockers using the relationships defined in Phase 9 (`DERIVED_FROM`, `IDENTIFIED_IN`, `RELATES_TO`, `ASSIGNED_TO`, etc.).
             - [ ] [TDD - DAL Int] Write integration tests verifying this method returns the expected linked entities for various scenarios (chunk linked to decision, action item, risk, etc.).
-        - [ ] **Sub-task 11.0.2: Integrate Enrichment into RetrievalService:**
+        - [ ] **Sub-task 10.0.2: Integrate Enrichment into RetrievalService:**
             - [ ] Modify `RetrievalService` methods (like `_enrich_results_with_graph`) to use the comprehensive DAL method.
             - [ ] Ensure enrichment is applied consistently where `include_graph=True` is requested.
             - [ ] [TDD - Service Int] Test that service methods correctly call the comprehensive DAL enrichment and format the results.
 
-- [ ] **Task 11.1: Implement Advanced Filtering Logic** (D: Phase 9 Completion)
+- [ ] **Task 10.1: Implement Advanced Filtering Logic** (D: Phase 9 Completion)
     - [ ] **Goal:** Enable filtering of Qdrant results based on graph relationships and properties of connected entities.
     - [ ] Steps:
-        - [ ] **Sub-task 11.1.1: Implement Neo4j DAL Filtering Methods:**
+        - [ ] **Sub-task 10.1.1: Implement Neo4j DAL Filtering Methods:**
             - [ ] Create specific `Neo4jDAL` methods for filtering `chunk_ids` based on graph patterns, e.g.:
                 - `filter_chunks_linked_to_entity(chunk_ids, entity_label, entity_properties)` (e.g., find chunks `DERIVED_FROM` a `Decision` with `status='Agreed'`).
                 - `filter_chunks_by_relationship_to_node(chunk_ids, target_node_label, target_node_id, relationship_type, direction)` (e.g., find chunks `MENTIONS` a specific `Topic` ID).
                 - Adapt filtering patterns from demo script (`filter_by_project_manager`, `filter_by_document_session`).
             - [ ] [TDD - DAL Int] Write integration tests for each new filtering method against seeded graph data.
-        - [ ] **Sub-task 11.1.2: Integrate Filtering into RetrievalService:**
+        - [ ] **Sub-task 10.1.2: Integrate Filtering into RetrievalService:**
             - [ ] Update `RetrievalService` methods to accept new filtering parameters (e.g., `filter_by_decision_status`, `filter_by_assigned_action_user_id`).
             - [ ] Conditionally call the appropriate Neo4j DAL filtering methods *after* the initial Qdrant search but *before* enrichment/returning results.
             - [ ] [TDD - Service Int] Test that service methods apply filters correctly by mocking DAL calls.
 
-- [ ] **Task 11.2: Re-implement Full User Preference Endpoint (`/v1/users/{user_id}/preferences`)** (D: 7.7, 11.0, 11.1)
+- [ ] **Task 10.2: Re-implement Full User Preference Endpoint (`/v1/users/{user_id}/preferences`)** (D: 7.7, 10.0, 10.1)
     - [ ] Steps:
-        - [ ] Refine/Implement `PreferenceService` to leverage graph enrichment (Task 11.0) - show context around preference statements (e.g., related decisions, topics).
-        - [ ] Add optional graph-based filtering (Task 11.1) via query parameters (e.g., filter by preferences related to a specific `project_id`).
+        - [ ] Refine/Implement `PreferenceService` to leverage graph enrichment (Task 10.0) - show context around preference statements (e.g., related decisions, topics).
+        - [ ] Add optional graph-based filtering (Task 10.1) via query parameters (e.g., filter by preferences related to a specific `project_id`).
         - [ ] Define `GET /v1/users/{user_id}/preferences` endpoint (confirm path/params). Use Pydantic models reflecting enriched structure.
         - [ ] [TDD Steps]:
             - [ ] [DAL Int] Test underlying graph queries for preferences and context. Test filtering queries.
@@ -515,17 +502,17 @@ This document outlines the development tasks for building the TwinCore backend p
             - [ ] [API/Contract] Test endpoint schema/status, including new filter parameters.
             - [ ] [E2E] Test preference retrieval with enrichment and filtering scenarios.
 
-- [ ] **Task 11.3: Re-implement Group Context Endpoint (`/v1/retrieve/group`)** (D: 7.6.2, 11.0, 11.1)
+- [ ] **Task 10.3: Re-implement Group Context Endpoint (`/v1/retrieve/group`)** (D: 7.6.2, 10.0, 10.1)
     - [ ] Steps:
-        - [ ] Refactor `retrieve_group_context` logic in `RetrievalService` to apply comprehensive graph enrichment (Task 11.0) to results for each user.
-        - [ ] Add advanced graph filtering options (Task 11.1) applicable across the group (e.g., `filter_by_topic`, `filter_by_risk_status`).
+        - [ ] Refactor `retrieve_group_context` logic in `RetrievalService` to apply comprehensive graph enrichment (Task 10.0) to results for each user.
+        - [ ] Add advanced graph filtering options (Task 10.1) applicable across the group (e.g., `filter_by_topic`, `filter_by_risk_status`).
         - [ ] Define `GET /v1/retrieve/group` endpoint. Update Pydantic models for enriched results.
         - [ ] [TDD Steps]:
             - [ ] [DAL Int/Service Int] Test participant identification, cross-user Qdrant query, filtering logic, and enrichment aggregation.
             - [ ] [API/Contract] Verify request/response, including new filters.
             - [ ] [E2E] Test group retrieval with enrichment and filtering.
 
-- [ ] **Task 11.4: Implement Entity Connections Endpoint (`/retrieve/entity_connections`)** (D: 11.0)
+- [ ] **Task 10.4: Implement Entity Connections Endpoint (`/retrieve/entity_connections`)** (D: 10.0)
     - [ ] Steps:
         - [ ] Refine `get_entity_connections` in `Neo4jDAL` to return richer property details for connected nodes (leveraging new entity types).
         - [ ] Refine service method in `RetrievalService`.
@@ -535,20 +522,20 @@ This document outlines the development tasks for building the TwinCore backend p
             - [ ] [API/Contract] Test endpoint schema/status.
             - [ ] [E2E] Call endpoint for various entity types (Chunk, Decision, ActionItem, Topic), verify connections and properties.
 
-- [ ] **Task 11.5: Implement Timeline Endpoint (`/retrieve/timeline`)** (D: 11.0, 11.1)
+- [ ] **Task 10.5: Implement Timeline Endpoint (`/retrieve/timeline`)** (D: 10.0, 10.1)
     - [ ] Steps:
         - [ ] Refine Qdrant time filtering/sorting (as before).
-        - [ ] Add **optional** graph enrichment (Task 11.0) via `include_graph` parameter.
-        - [ ] Add **optional** graph filtering (Task 11.1) via query parameters (e.g., timeline for items `MENTIONS` specific topic).
+        - [ ] Add **optional** graph enrichment (Task 10.0) via `include_graph` parameter.
+        - [ ] Add **optional** graph filtering (Task 10.1) via query parameters (e.g., timeline for items `MENTIONS` specific topic).
         - [ ] Define `GET /v1/retrieve/timeline` endpoint. Update Pydantic models.
         - [ ] [TDD Steps]:
             - [ ] [DAL Int] Test Qdrant time filtering + Neo4j graph filtering combinations.
             - [ ] [API/Contract] Test endpoint schema/status with new parameters.
             - [ ] [E2E] Test timeline retrieval with and without enrichment/filtering.
 
-- [ ] **Task 11.6: Implement Suggest Related Entities Endpoint (`/suggest/related_entities`)** (D: 11.0, 11.1)
+- [ ] **Task 10.6: Implement Suggest Related Entities Endpoint (`/suggest/related_entities`)** (D: 10.0, 10.1)
     - [ ] Steps:
-        - [ ] Refactor `suggest_related_entities` logic in `RetrievalService` to heavily rely on graph traversal from the context (chunk or query results). Use comprehensive context (Task 11.0).
+        - [ ] Refactor `suggest_related_entities` logic in `RetrievalService` to heavily rely on graph traversal from the context (chunk or query results). Use comprehensive context (Task 10.0).
         - [ ] Leverage new entity types (Suggest related Decisions, Risks, ActionItems as well as Topics, Docs, Users).
         - [ ] Define `GET /suggest/related_entities` endpoint. Update Pydantic models for richer suggestions.
         - [ ] [TDD Steps]:
@@ -556,11 +543,24 @@ This document outlines the development tasks for building the TwinCore backend p
             - [ ] [API/Contract] Test endpoint schema/status.
             - [ ] [E2E] Test suggestions for different inputs, verifying relevant new entity types are suggested.
 
-- [ ] **Task 11.7: (Optional) Explore Advanced Re-ranking/Query Expansion** (D: All Phase 11 endpoints)
+- [ ] **Task 10.7: (Optional) Explore Advanced Re-ranking/Query Expansion** (D: All Phase 10 endpoints)
     - [ ] Steps:
-        - [ ] Based on Phase 11 results, evaluate if Graph-Aware Re-ranking or Query Expansion (from `retrieval_improvement.md`) is necessary.
+        - [ ] Based on Phase 10 results, evaluate if Graph-Aware Re-ranking or Query Expansion (from `retrieval_improvement.md`) is necessary.
         - [ ] If needed, design and implement chosen strategy:
             - Refactor `RetrievalService` methods.
             - Update DAL calls (e.g., fetch more initial results for re-ranking).
             - Add API flags if needed.
             - Write tests specifically verifying the impact of the new strategy.
+
+---
+
+## Phase 11: Final Testing & Refinement
+
+- [ ] **Task 11.1: Final Testing & Refinement** (D: All Phases 1-10)
+    - [ ] Steps:
+        - [ ] Run all automated tests (`pytest`). Ensure 100% pass rate.
+        - [ ] Check code coverage (`pytest --cov`). Address major gaps.
+        - [ ] Perform manual testing using the Streamlit UI (Phase 8) to cover key user flows.
+        - [ ] Review code for clarity, consistency, and adherence to patterns (`systemPatterns.md`).
+        - [ ] Refactor code as needed based on testing and review.
+        - [ ] Update `README.md` with final usage instructions.
