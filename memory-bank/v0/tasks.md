@@ -369,32 +369,96 @@ This document outlines the development tasks for building the TwinCore backend p
                 - Ingest the *exact same query text* from the *same user* via `POST /v1/users/{user_id}/private_memory` twice. Verify only one Qdrant point and one Neo4j `:Chunk` node exist for the *query itself* (source_type='query').
                 - Ingest a message via `/ingest/message`, then ingest the *same text* as a query via `/private_memory`. Verify *two* distinct points/nodes exist (because `source_type` differs: 'message' vs. 'query').
 
-- [ ] **Task 9.1: Knowledge Extraction Service** (D: 1.1)
+- [ ] **Task 9.1: Knowledge Extraction Service - Design & Prompt Engineering** (D: 1.1, `dataSchema.md` finalized)
+    - **Goal:** Design and refine LLM prompts to reliably extract structured knowledge (entities and relationship hints) from text chunks, and implement the core service logic.
     - [ ] Steps:
-        - [ ] Design extraction schema/prompts (Topics, Preferences, Entities etc.).
-        - [ ] Create `services/knowledge_extraction_service.py`.
-        - [ ] Implement `KnowledgeExtractionService` class, including logic to call LLM API (e.g., Gemini) and parse results.
-        - [ ] [TDD Steps]:
-            - [ ] [Unit] Test LLM result parsing logic (mock LLM response).
+        - [ ] **Sub-task 9.1.1: Define Structured Output Schema:**
+            - Formalize the expected JSON output structure from the LLM. This structure should include:
+                - A list of extracted entities.
+                - Each entity having a `temp_id` (for batch processing), `entity_type` (e.g., 'ActionItem', 'Risk', 'Topic'), a `properties` dictionary (with extracted text, status hints, etc.), and a `relationships` list.
+                - Each relationship dictionary specifying `type` (e.g., 'ASSIGNED_TO', 'RELATES_TO', 'MENTIONS', 'ADDRESSES'), `target_type` (e.g., 'User', 'Project', 'Topic'), and either `target_hint` (for external entities like 'Bob', 'Project Y') or `target_temp_id` (for linking to another entity within the same LLM output batch).
+            - Document this schema clearly for prompt engineering and parsing.
+        - [ ] **Sub-task 9.1.2: Develop & Test Prompts:**
+            - Create a dedicated test script (e.g., `scripts/test_extraction_prompts.py`) to iterate on prompt design.
+            - Include diverse examples covering:
+                - Simple entity extraction (Decision, ActionItem, etc.).
+                - Entities with associated targets (ActionItem assigned to User, Risk related to Project/Topic).
+                - Implicit relationships (ActionItem addressing a previously mentioned Risk).
+                - Ambiguous mentions.
+            - The script should call the target LLM (e.g., Gemini) with the prompt and sample text, then validate if the returned JSON conforms to the defined schema (Sub-task 9.1.1) and if the extracted entities/relationships are semantically correct for the input text.
+            - Refine prompts based on test results until achieving acceptable accuracy and consistency.
+        - [ ] **Sub-task 9.1.3: Implement `KnowledgeExtractionService` Core Logic:**
+            - Create `services/knowledge_extraction_service.py`.
+            - Implement `KnowledgeExtractionService` class (taking LLM client dependency).
+            - Implement `extract_knowledge(text_content: str) -> list[dict]` method: call the refined LLM prompt, parse the response according to the defined schema, handle errors/malformed responses.
+        - [ ] **Sub-task 9.1.4: Unit Testing (Parsing):**
+            - [TDD - Unit] Write unit tests focusing *only* on the response parsing logic within `KnowledgeExtractionService`. Mock the LLM client call and provide various pre-defined valid/invalid JSON strings (based on the schema from 9.1.1) to verify correct parsing into the list of dictionaries, and proper error handling for malformed JSON.
 
-- [ ] **Task 9.2: Update Neo4j DAL for Extraction** (D: 3.3, 9.1)
+- [ ] **Task 9.2: Update Neo4j DAL for Extracted Entities & Relationships** (D: 3.3, `dataSchema.md` finalized)
+    - **Goal:** Ensure Neo4j DAL methods can create/merge all required nodes and relationships based on potentially resolved IDs provided by the `IngestionService`.
     - [ ] Steps:
-        - [ ] Define new node labels (e.g., `Topic`, `Preference`) and relationship types (e.g., `MENTIONS`, `STATES_PREFERENCE`) in `dataSchema.md` (if not already drafted).
-        - [ ] Add methods to `dal/neo4j_dal.py` to merge/create extracted entities and relationships based on parsed LLM results.
-        - [ ] [TDD Steps]:
-            - [ ] [DAL Int] Test new DAL methods against test Neo4j, verifying graph structure updates.
+        - [ ] **Sub-task 9.2.1: Implement Node Creation/Merge Methods:**
+            - Add/Verify specific methods in `dal/neo4j_dal.py` for each extractable entity type (`merge_topic`, `create_preference`, `create_decision`, `create_action_item`, `create_blocker`, `create_risk`). These methods take properties extracted by the LLM (text, status, etc.) and context IDs (project, session) *provided by the IngestionService*.
+            - Ensure methods return the created/merged node's actual Neo4j ID.
+        - [ ] **Sub-task 9.2.2: Implement Generic Relationship Creation:**
+            - Add a flexible method like `create_relationship_by_ids(source_node_id: str, relationship_type: str, target_node_id: str, properties: dict | None = None)`.
+            - This method will be used by the `IngestionService` in the second pass to create relationships identified by the LLM (both internal batch links and external resolved links).
+        - [ ] **Sub-task 9.2.3: Implement Entity Lookup Methods:**
+            - Add methods needed for entity resolution by the `IngestionService`, e.g.:
+                - `find_user_id_by_name(name: str) -> str | None`
+                - `find_project_id_by_name(name: str) -> str | None`
+                - `find_topic_id_by_name(name: str) -> str | None` (Consider if topics should be strictly merged by `merge_topic` instead).
+            - Implement basic caching for these lookups if needed later.
+        - [ ] **Sub-task 9.2.4: DAL Integration Testing:**
+            - [TDD - DAL Int] Write/update integration tests for node creation (`9.2.1`), relationship creation (`9.2.2`), and entity lookups (`9.2.3`). Verify correct graph structures are formed and lookups work as expected. Use test fixtures to create necessary context nodes (Users, Projects, etc.) for lookups.
 
-- [ ] **Task 9.3: Integrate Extraction into Ingestion Service** (D: 3.5, 9.1, 9.2)
+- [ ] **Task 9.3: Integrate Hybrid Extraction into Ingestion Service** (D: 3.5, 9.0, 9.1, 9.2)
+    - **Goal:** Orchestrate the hybrid knowledge extraction flow within the ingestion pipeline: call extraction, resolve entity hints, create nodes, and link relationships.
     - [ ] Steps:
-        - [ ] Modify `services/ingestion_service.py` methods (`ingest_message`, `ingest_document`).
-        - [ ] Add step to call `KnowledgeExtractionService` after embedding.
-        - [ ] Add step to call new Neo4j DAL methods with extracted information.
-        - [ ] [TDD Steps]:
-            - [ ] [Service Int] Test modified ingestion logic, mocking extraction service and DALs, verify correct methods are called.
+        - [ ] **Sub-task 9.3.1: Inject Dependencies:**
+            - Inject `KnowledgeExtractionService` and updated `Neo4jDAL` into `IngestionService`.
+        - [ ] **Sub-task 9.3.2: Implement Two-Pass Processing in `ingest_chunk`:**
+            - **After** creating the source `:Chunk` node via `_update_neo4j_graph`:
+            - **Call Extraction:** `extracted_data = knowledge_extraction_service.extract_knowledge(text_content)`.
+            - **Pass 1: Node Creation & Entity Resolution:**
+                - Initialize an empty dictionary `temp_id_to_neo4j_id = {}`.
+                - Initialize an empty dictionary `resolved_external_ids = {}`.
+                - Loop through `extracted_data`:
+                    - For each entity, extract `temp_id`, `entity_type`, `properties`, and `relationships`.
+                    - Call the appropriate DAL node creation method (e.g., `neo4j_dal.create_decision(properties=...)`) passing properties and known context IDs (project_id, session_id from original chunk). Store the returned `neo4j_node_id` in `temp_id_to_neo4j_id[temp_id] = neo4j_node_id`.
+                    - Loop through the `relationships` for this entity:
+                        - If a relationship has a `target_hint` (external entity like a User name or Project name):
+                            - Check if hint is already in `resolved_external_ids`. If not, call the appropriate DAL lookup method (e.g., `neo4j_dal.find_user_id_by_name(target_hint)`).
+                            - Store the result (or None if not found) in `resolved_external_ids[target_hint] = resolved_id`.
+            - **Pass 2: Relationship Creation:**
+                - Loop through `extracted_data` again:
+                    - Get the source node's Neo4j ID: `source_neo4j_id = temp_id_to_neo4j_id[entity['temp_id']]`.
+                    - Loop through its `relationships`:
+                        - Determine the target Neo4j ID:
+                            - If it has `target_temp_id`, `target_neo4j_id = temp_id_to_neo4j_id[relationship['target_temp_id']]`.
+                            - If it has `target_hint`, `target_neo4j_id = resolved_external_ids.get(relationship['target_hint'])`.
+                        - If `target_neo4j_id` is found:
+                            - Call `neo4j_dal.create_relationship_by_ids(source_neo4j_id, relationship['type'], target_neo4j_id)`.
+                    - Create standard context relationships (e.g., `APPLIES_TO` Project, `CREATED_IN` Session) by calling `neo4j_dal.create_relationship_by_ids` using the `source_neo4j_id` and the context IDs held by the service.
+            - **Error Handling:** Implement robust error handling for LLM failures, parsing errors, failed entity resolution, and DAL errors.
+        - [ ] **Sub-task 9.3.3: Service Integration Testing:**
+            - [TDD - Service Int] Write comprehensive tests for the updated `IngestionService.ingest_chunk` logic:
+                - Mock `KnowledgeExtractionService` to return structured output including inter-entity relationships (using `target_temp_id`) and external hints (using `target_hint`).
+                - Mock `Neo4jDAL` methods (node creation, relationship creation, entity lookups). Ensure lookups are mocked to return expected IDs for hints.
+                - Verify the two-pass logic: Correct node creation calls occur first, followed by correct entity lookup calls, and finally correct relationship creation calls with the right source/target IDs (resolved or mapped from temp IDs).
+                - Test edge cases: LLM returns no entities, entity resolution fails for a hint, relationship target not found.
 
-- [ ] **Task 9.4: Extraction Testing** (D: 9.3)
+- [ ] **Task 9.4: Extraction End-to-End Testing (Hybrid Approach)** (D: 9.3, Phase 5 E2E Tests)
+    - **Goal:** Verify the complete hybrid flow: API -> Ingestion -> Extraction -> Resolution -> Neo4j Persistence.
     - [ ] Steps:
-        - [ ] [E2E] Write E2E tests: ingest data via API, then query Neo4j directly to verify extracted entities/relationships exist.
+        - [ ] **Sub-task 9.4.1: Develop E2E Tests:**
+            - [TDD - E2E] Write/update E2E tests for knowledge extraction, focusing on complex cases:
+                - **Test Case 1 (ActionItem with Assignee Hint):** Ingest "Alice needs to review the Q3 budget". Verify `:ActionItem` created, `[:ASSIGNED_TO]` relationship points to the correct resolved `:User` node for Alice, `[:DERIVED_FROM]` points to the source `:Chunk`, context links exist.
+                - **Test Case 2 (Risk related to Project Hint):** Ingest "Risk: API latency might impact Project Alpha". Verify `:Risk`, `[:RELATES_TO]` points to resolved `:Project` node for Alpha, `[:IDENTIFIED_IN]` points to source `:Chunk`.
+                - **Test Case 3 (Decision addressing Risk - requires LLM to link):** Ingest "Risk: Market shift requires product pivot. Decision: We will target enterprise customers starting Q4.". Query Neo4j to verify `:Risk`, `:Decision`, the link between them (e.g., `[:ADDRESSES]`), and links back to the source `:Chunk`(s).
+                - **Test Case 4 (Multiple & Mixed):** Ingest text containing multiple items (e.g., Blocker identified, ActionItem assigned, Topic mentioned). Verify all expected nodes and relationships are created correctly, including inter-entity links identified by the LLM.
+        - [ ] **Sub-task 9.4.2: Debug & Refine:**
+            - Run E2E tests. Debug failures (prompts, parsing, resolution logic, DAL queries, test setup).
 
 ---
 
