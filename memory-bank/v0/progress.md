@@ -2,6 +2,28 @@
 
 **IMPORTANT**: Put your changes at the top! The most recent update is at the top.
 
+## Mon May  6 10:42:17 PDT 2025
+
+**Changes:**
+*   **Completed Task 7.7.2: Refactor Private Memory Endpoint Path & Parameters**
+    *   Moved endpoint from `POST /v1/retrieve/private_memory` to `POST /v1/users/{user_id}/private_memory`.
+    *   Updated router definitions in `user_router.py` and added redirect in `retrieve_router.py` for backward compatibility.
+    *   Refactored the request body model (`PrivateMemoryQuery`) to remove `user_id` field, as it's now part of the path.
+    *   Updated associated unit and E2E tests, moving relevant tests from `test_retrieval_e2e.py` to `test_user_context_retrieval.py`.
+    *   Removed old tests from `test_retrieval_e2e.py` to avoid duplication.
+    *   Updated all references in Markdown files to use the new endpoint path.
+    *   Updated API documentation (`api.md`) to show the old endpoint as deprecated and document the new one.
+
+**Errors & Learnings:**
+*   Migrating routes should include a temporary redirect for backward compatibility.
+*   Path parameters provide a cleaner API structure than having IDs in the request body.
+*   Consistent user-specific endpoint organization (`/v1/users/{user_id}/`) improves API discoverability.
+*   E2E tests should be organized by functional area rather than strictly by API structure.
+
+**Next Steps:**
+*   Investigate and fix the document ingestion E2E test failure (`test_document_ingestion_end_to_end`).
+*   Move to Phase 8: Verification UI (Streamlit), including transcript simulation.
+
 ## Sun May  4 22:53:07 PDT 2025
 
 **Changes:**
@@ -147,7 +169,7 @@
   - Adding a `score_threshold` parameter to the Qdrant DAL (`search_user_preferences`) and Preference Service (`query_user_preference`) to filter out low-confidence vector search results.
   - Manually filtering Qdrant results in the DAL based on the threshold as the client parameter alone was insufficient.
   - Passing the `score_threshold` parameter from the API endpoint down to the service/DAL.
-- All E2E tests for the preference endpoint are now passing, including the `test_retrieve_preferences_with_no_results` scenario.
+  - All E2E tests for the preference endpoint are now passing, including the `test_retrieve_preferences_with_no_results` scenario.
 
 ### Errors & Learnings
 - E2E testing requires careful attention to API contracts (status codes, request/response models).
@@ -205,7 +227,7 @@
 - **Completed Phase 6: Retrieval Endpoints**
   - Verified and fixed all retrieval endpoints:
     - `/v1/retrieve/context` - for retrieving context-aware information based on semantic search
-    - `/v1/retrieve/private_memory` - for retrieving user's private memory with query ingestion
+    - `/v1/users/{user_id}/private_memory` - for retrieving user's private memory with query ingestion
     - `/v1/retrieve/related_content` - for graph-based retrieval of related content
     - `/v1/retrieve/topic` - for topic-based content retrieval
   - Fixed Neo4j Cypher query syntax issues in `get_related_content` method:

@@ -96,11 +96,11 @@ for chunk in initial_data_chunks:
 *   **API Models (Pydantic):** Define models for API request bodies and responses (e.g., `IngestRequest`, `RetrievalRequest`, `ContextResponse`).
 *   **Core Endpoints:**
     *   `POST /api/seed_data`: Endpoint to load `initial_data_chunks` into Qdrant/Neo4j.
-    *   `POST /api/ingest/message`: Accepts user chat, group chat, or twin chat messages. Embeds text, stores in Qdrant with full metadata (`user_id`, `session_id`, `project_id`, `is_twin_chat: bool`), updates Neo4j relationships.
-    *   `POST /api/ingest/document`: Simulates file upload. Accepts text content, `user_id`, `doc_name`, context (`project_id`, `session_id`), `is_private: bool`. Chunks the text (simple split for prototype), embeds chunks, stores in Qdrant with metadata (incl. `doc_id`), updates Neo4j.
-    *   `POST /api/retrieve/context`: (Simulates Canvas Agent call) Takes `session_id`, `project_id`, `query_text`. Finds participants in Neo4j for the session, performs filtered Qdrant search across *all* relevant docs/messages in that session/project context. Returns ranked list of text chunks + metadata.
-    *   `POST /api/retrieve/private_memory`: (Simulates User->Twin call) Takes `user_id`, `query_text`, optional `session_id`, `project_id` for scoping. Performs Qdrant search filtered *only* by `user_id` (+ optional scope), potentially boosting recent items or items from specified context. Returns ranked list. *Crucially, this endpoint also ingests the `query_text` as a twin chat message for the user.*
-    *   `POST /api/query/user_preference`: (Simulates Canvas Agent -> Twin call) Takes `user_id`, `session_id`, `project_id`, `decision_topic`. Queries Neo4j/Qdrant for past statements/data by that `user_id` related to the topic in context. Returns relevant snippets. *(Relies on explicit data in prototype; enriched by LLM extraction in Phase 9+)*.
+    *   `POST /v1/ingest/message`: Accepts user chat, group chat, or twin chat messages. Embeds text, stores in Qdrant with full metadata (`user_id`, `session_id`, `project_id`, `is_twin_chat: bool`), updates Neo4j relationships.
+    *   `POST /v1/ingest/document`: Simulates file upload. Accepts text content, `user_id`, `doc_name`, context (`project_id`, `session_id`), `is_private: bool`. Chunks the text (simple split for prototype), embeds chunks, stores in Qdrant with metadata (incl. `doc_id`), updates Neo4j.
+    *   `GET /v1/retrieve/context`: (Simulates Canvas Agent call) Takes `session_id`, `project_id`, `query_text`. Finds participants in Neo4j for the session, performs filtered Qdrant search across *all* relevant docs/messages in that session/project context. Returns ranked list of text chunks + metadata.
+    *   `POST /v1/users/{user_id}/private_memory`: (Simulates User->Twin call) Takes `query_text`, optional `session_id`, `project_id` for scoping. Performs Qdrant search filtered *only* by `user_id` (+ optional scope), potentially boosting recent items or items from specified context. Returns ranked list. *Crucially, this endpoint also ingests the `query_text` as a twin chat message for the user.*
+    *   `GET /v1/users/{user_id}/preferences`: (Simulates Canvas Agent -> Twin call) Takes `user_id`, `session_id`, `project_id`, `decision_topic`. Queries Neo4j/Qdrant for past statements/data by that `user_id` related to the topic in context. Returns relevant snippets. *(Relies on explicit data in prototype; enriched by LLM extraction in Phase 9+)*.
 *   **Internal Logic:**
     *   **Ingestion:** Function to handle embedding, Qdrant upsert, and Neo4j MERGE based on *provided* metadata. *(Phase 9 adds LLM extraction step before Neo4j MERGE)*.
     *   **Retrieval:** Functions to build Qdrant filters dynamically, perform searches, potentially query Neo4j for IDs.
@@ -118,7 +118,7 @@ for chunk in initial_data_chunks:
         *   `st.button("Ask Twin Preference")` -> Calls backend `/api/query/user_preference` for the *selected user*.
     *   **User <> Twin Interaction:**
         *   `st.text_area("Chat with your Twin")`
-        *   `st.button("Send to Twin")` -> Calls backend `/api/retrieve/private_memory` with selected `user_id` and chat text. *This backend endpoint handles both retrieval AND ingestion of the user's query*.
+        *   `st.button("Send to Twin")` -> Calls backend `/api/users/{user_id}/private_memory` with selected `user_id` and chat text. *This backend endpoint handles both retrieval AND ingestion of the user's query*.
     *   **Document Upload Simulation:**
         *   `st.text_input("Document Name (e.g., 'MyNewIdea.txt')")`
         *   `st.text_area("Document Content")`
@@ -134,7 +134,7 @@ for chunk in initial_data_chunks:
 3.  **Embedding & Core DAL/Ingestion (Phase 3):** Implement `EmbeddingService`. Define DAL interfaces. Implement core Neo4j/Qdrant DAL methods (`MERGE`/`upsert`). Implement core `IngestionService` logic (orchestrating embedding & DAL calls based on metadata). Write Unit & Integration tests (DAL/Service levels).
 4.  **Seeding Endpoint (Phase 4):** Implement mock data module. Implement `seed_initial_data` in `IngestionService`. Create `/api/seed_data` endpoint. Write E2E test for seeding.
 5.  **Ingestion Endpoints (Phase 5):** Implement `/ingest/message` & `/ingest/document` endpoints and underlying service logic (including basic chunking). Write corresponding Service Int, API/Contract, E2E tests.
-6.  **Retrieval Endpoints (Phase 6):** Implement `RetrievalService` and necessary DAL filtering/query methods. Implement `/retrieve/context` & `/retrieve/private_memory` (including query ingestion). Write corresponding DAL Int, Service Int, API/Contract, E2E tests, focusing on filtering logic.
+6.  **Retrieval Endpoints (Phase 6):** Implement `RetrievalService` and necessary DAL filtering/query methods. Implement `/retrieve/context` & `/users/{user_id}/private_memory` (including query ingestion). Write corresponding DAL Int, Service Int, API/Contract, E2E tests, focusing on filtering logic.
 7.  **Preference Endpoint (Phase 7):** Implement `PreferenceService` (simple retrieval). Implement `/query/user_preference` endpoint. Write corresponding tests.
 8.  **Verification UI (Phase 8):** Build minimal Streamlit app connecting to the API endpoints for manual verification.
 9.  **(Future) Knowledge Extraction (Phase 9):** Design extraction schema/prompts. Implement `KnowledgeExtractionService` (LLM calls). Update Neo4j DAL. Integrate into `IngestionService`. Write Unit, Integration, and E2E tests for extraction.

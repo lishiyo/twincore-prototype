@@ -1,11 +1,10 @@
-# TwinCore Active Context - Sun May  4 22:53:07 PDT 2025
+# TwinCore Active Context - Mon May  6 10:42:17 PDT 2025
 
 ## Current Work Focus
-- **Refactoring Private Memory Endpoint (Task 7.7.2):**
-    - Move `POST /v1/retrieve/private_memory` to `POST /v1/users/{user_id}/private_memory`.
-    - Update request body model, service signature, tests, and documentation.
 - **Investigating E2E Test Failure:**
     - Addressing the `AssertionError` in `test_document_ingestion_end_to_end`.
+- **Preparing for Phase 8:**
+    - Planning Streamlit verification UI implementation including transcript simulation.
 
 ## Project State
 ### What's Working
@@ -41,11 +40,12 @@
 - **Task 5.2 Complete:** Document Ingestion Endpoint implementation (connector, service logic, API endpoint) is done.
 - **Phase 6 Complete:** All retrieval endpoints are implemented and tested: context, private memory, related content, and topic retrieval.
 - Test isolation improvements: `xdist_group` markers, per-class Qdrant setup/cleanup, autouse cleanup fixture, correct `ASGITransport`, `use_test_databases` fixture.
-- **Phase 7 Almost Complete:** Preference retrieval endpoints implemented and tested, including multi-strategy retrieval and twin interaction filtering.
+- **Phase 7 Complete:** Preference and private memory endpoints moved to consistent path format (`/v1/users/{user_id}/...`), including:
+  - **Task 7.7.1 Complete:** Moved `GET /v1/retrieve/preferences` to `GET /v1/users/{user_id}/preferences`.
+  - **Task 7.7.2 Complete:** Moved `POST /v1/retrieve/private_memory` to `POST /v1/users/{user_id}/private_memory`.
 - **Transcript Strategy (Task 7.5) Complete:** Implemented Neo4j DAL updates, DocumentConnector chunk ingestion, and API endpoints for chunk ingestion & metadata update.
 - **User and Group Context Retrieval (Task 7.6) Complete:** Implemented `GET /v1/users/{user_id}/context` and `GET /v1/retrieve/group` endpoints with full testing.
 - **E2E Test Refactoring:** Seeding fixtures moved to `tests/e2e/fixtures/retrieval_fixtures.py`.
-- **Preference Endpoint Refactoring (Task 7.7.1) Complete:** Moved `GET /v1/retrieve/preferences` to `GET /v1/users/{user_id}/preferences`, updated tests and documentation. Removed old endpoint.
 - **Neo4j Preference Filtering Fixed:** Corrected `get_user_preference_statements` in Neo4j DAL to respect `include_twin_interactions` flag.
 
 ### What's Broken
@@ -124,9 +124,10 @@
 - Proper exception handling in API routers is crucial for returning correct HTTP status codes.
 - Refactoring E2E test fixtures into dedicated files enhances maintainability.
 - Carefully check DAL logic against expected API behavior, especially regarding filtering flags.
+- Path parameters provide a cleaner API structure than having IDs in the request body.
+- User-specific endpoint organization under `/v1/users/{user_id}/` improves API discoverability.
+- E2E tests should be organized by functional area rather than strictly by API structure.
 
 ## Next Steps
-- **Complete Task 7.7:**
-    - Implement Sub-task 7.7.2: Refactor Private Memory Endpoint Path & Parameters.
 - Investigate and fix the `AssertionError` in `test_document_ingestion_end_to_end`.
 - Move to Phase 8: Verification UI (Streamlit), including transcript simulation.

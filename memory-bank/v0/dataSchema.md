@@ -49,7 +49,7 @@ For the full project, we would be using Postgres, Qdrant, and Neo4j. For the pro
 **How it's used (Example - Private Memory):**
 
 1.  User Alice asks her twin (via Streamlit UI): "What were my ideas for cover art?"
-2.  The `/api/retrieve/private_memory` endpoint is called with `user_id=Alice_ID`, `query_text="ideas for cover art"`.
+2.  The `/v1/users/{user_id}/private_memory` endpoint is called with `user_id=Alice_ID`, `query_text="ideas for cover art"`.
 3.  The endpoint *first* ingests the query: Creates a chunk with `text_content="What were my ideas for cover art?"`, `user_id=Alice_ID`, `is_twin_interaction=true`, `source_type='twin_chat_query'`, other relevant context (session/project if available). Upserts to Qdrant & adds node/relationship to Neo4j.
 4.  Then, it performs retrieval: Queries Qdrant for vectors semantically similar to "ideas for cover art".
 5.  Filters the Qdrant query: `must` condition `user_id == Alice_ID`. Optionally filter further by `project_id`/`session_id` if provided in the API call. Could potentially filter out `is_twin_interaction=true` results if only showing source material.
@@ -152,18 +152,18 @@ The `is_twin_interaction` boolean flag in the Qdrant payload serves a critical r
 *   **`is_twin_interaction: False` (or null/absent):** Represents **Source Content**. This is the raw material ingested from external user activities, such as messages sent in a chat application (`source_type: 'message'`), uploaded documents (`source_type: 'document_chunk'`), or transcript utterances (`source_type: 'transcript_snippet'`). It forms the basis of the twin's knowledge.
 
 *   **`is_twin_interaction: True`:** Represents **Interaction Content**. This data is generated *specifically* during a direct interaction loop between a user and their digital twin. This typically includes:
-    *   The user's query or prompt directed *to* the twin (e.g., when calling `/v1/retrieve/private_memory` which yields `source_type: 'twin_chat_query'`).
+    *   The user's query or prompt directed *to* the twin (e.g., when calling `/v1/users/{user_id}/private_memory` which yields `source_type: 'twin_chat_query'`).
 
 **Usage Pattern:**
 
 1.  **Setting the Flag:**
     *   Standard ingestion endpoints (`/v1/ingest/message`, `/v1/ingest/document`, `/v1/ingest/chunk`) typically result in chunks with `is_twin_interaction: False`.
-    *   Endpoints simulating a direct user-twin interaction (like `/v1/retrieve/private_memory`, which ingests the user's query) should set `is_twin_interaction: True` for the ingested query chunk.
+    *   Endpoints simulating a direct user-twin interaction (like `/v1/users/{user_id}/private_memory`, which ingests the user's query) should set `is_twin_interaction: True` for the ingested query chunk.
 2.  **Filtering during Retrieval:**
     *   Retrieval endpoints that perform vector searches can control whether to include Interaction Content using an `include_messages_to_twin` (or similarly named) parameter.
     *   **Default Behavior:**
         *   General context retrieval (e.g., `/v1/retrieve/context`, `/v1/retrieve/group`, `/v1/retrieve/timeline`) typically defaults to `include_messages_to_twin: False` to focus on original source material.
-        *   User-specific retrieval like preferences (`/v1/retrieve/preferences`) and private memory (`/v1/retrieve/private_memory`) typically defaults to `include_messages_to_twin: True`, as the user's direct statements to the twin are often crucial for these tasks.
+        *   User-specific retrieval like preferences (`/v1/retrieve/preferences`) and private memory (`/v1/users/{user_id}/private_memory`) typically defaults to `include_messages_to_twin: True`, as the user's direct statements to the twin are often crucial for these tasks.
     *   The DAL methods (`QdrantDAL.search_vectors`, `QdrantDAL.search_user_preferences`) accept a corresponding boolean flag to implement this filtering.
 
 This distinction, controlled by the API parameter, allows retrieval endpoints to fetch the appropriate type of information based on the specific use case.

@@ -279,14 +279,14 @@ This document outlines the development tasks for building the TwinCore backend p
             - [x] Update service method signature if needed.
             - [x] Update OpenAPI documentation (`/docs`).
             - [x] **Crucially:** Update ALL existing tests (Unit, Integration, API, E2E) for the preference endpoint to use the new path and parameter structure.
-        - [ ] **Sub-task 7.7.2: Refactor Private Memory Endpoint Path & Parameters**
-            - [ ] Move endpoint from `POST /v1/retrieve/private_memory` (in `retrieve_router.py`) to `POST /v1/users/{user_id}/private_memory` (in `user_router.py`).
-            - [ ] Update router definition, changing `user_id` from the request body to a path parameter. Update the request body model (`PrivateMemoryQuery`) accordingly.
-            - [ ] Update service method signature if needed.
-            - [ ] Update OpenAPI documentation (`/docs`).
-            - [ ] Update all relevant tests (Unit, Integration, API, E2E) for the private memory endpoint.
-            - [ ] Remove the old endpoint and associated tests from `retrieve_router.py`.
-            - [ ] Update all references (e.g. in the markdown files) from `/v1/retrieve/private_memory` to `/v1/users/{user_id}/private_memory`.
+        - [x] **Sub-task 7.7.2: Refactor Private Memory Endpoint Path & Parameters**
+            - [x] Move endpoint from `POST /v1/retrieve/private_memory` (in `retrieve_router.py`) to `POST /v1/users/{user_id}/private_memory` (in `user_router.py`).
+            - [x] Update router definition, changing `user_id` from the request body to a path parameter. Update the request body model (`PrivateMemoryQuery`) accordingly.
+            - [x] Update service method signature if needed.
+            - [x] Update OpenAPI documentation (`/docs`).
+            - [x] Update all relevant tests (Unit, Integration, API, E2E) for the private memory endpoint.
+            - [x] Remove the old endpoint and associated tests from `retrieve_router.py`.
+            - [x] Update all references (e.g. in the markdown files) from `/v1/retrieve/private_memory` to `/v1/users/{user_id}/private_memory`.
 
 ---
 

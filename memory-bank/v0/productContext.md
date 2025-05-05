@@ -22,12 +22,12 @@ This document outlines the product goals, scope, features, and simulated context
 
 **3. Core Features (Backend API Endpoints):**
 
-*   `POST /api/seed_data`: Loads initial mock data into Qdrant/Neo4j.
-*   `POST /api/ingest/message`: Ingests user/group/twin chat messages. Stores in Qdrant/Neo4j with metadata.
-*   `POST /api/ingest/document`: Simulates file upload. Chunks text, stores in Qdrant/Neo4j with metadata (including privacy flag).
-*   `POST /api/retrieve/context`: Simulates Canvas Agent request. Retrieves relevant public/group context for a given session/project based on query text.
-*   `POST /api/retrieve/private_memory`: Simulates User->Twin chat/query. Retrieves context filtered *only* for the requesting user (and optional scope). Also ingests the user's query as a twin interaction.
-*   `POST /api/query/user_preference`: Simulates Canvas Agent request. Retrieves past statements/data relevant to a user's preference on a specific topic within a context. *(Accuracy enhanced in Phase 9+)*
+*   `POST /v1/seed_data`: Loads initial mock data into Qdrant/Neo4j.
+*   `POST /v1/ingest/message`: Ingests user/group/twin chat messages. Stores in Qdrant/Neo4j with metadata.
+*   `POST /v1/ingest/document`: Simulates file upload. Chunks text, stores in Qdrant/Neo4j with metadata (including privacy flag).
+*   `POST /v1/retrieve/context`: Simulates Canvas Agent request. Retrieves relevant public/group context for a given session/project based on query text.
+*   `POST /v1/users/{user_id}/private_memory`: Simulates User->Twin chat/query. Retrieves context filtered *only* for the requesting user (and optional scope). Also ingests the user's query as a twin interaction.
+*   `POST /v1/query/user_preference`: Simulates Canvas Agent request. Retrieves past statements/data relevant to a user's preference on a specific topic within a context. *(Accuracy enhanced in Phase 9+)*
 
 **4. Simulated Interaction Model (`separationStrategy.md`):**
 
@@ -35,7 +35,7 @@ This document outlines the product goals, scope, features, and simulated context
     *   Getting general context relevant to the current session/project (`/retrieve/context`).
     *   Getting a specific user's viewpoint or preference on a topic (`/query/user_preference`).
 *   **User (via Minimal UI):**
-    *   Can directly interact with their Twin (`/retrieve/private_memory` endpoint handles both retrieval and ingestion of the user query).
+    *   Can directly interact with their Twin (`/users/{user_id}/private_memory` endpoint handles both retrieval and ingestion of the user query).
     *   Can simulate uploading documents (`/ingest/document`).
 *   **Data Flow:** Canvas Agent events or user actions trigger API calls to TwinCore for ingestion or retrieval.
 
