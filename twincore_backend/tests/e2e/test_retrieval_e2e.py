@@ -185,14 +185,13 @@ class TestRetrievalE2E:
         
         # Create a request payload
         payload = {
-            "user_id": user_id,
             "query_text": "personal document",  # Query relevant to our seeded test data
             "project_id": project_id,
             "limit": 5
         }
         
         # Send a real API request using the fixture
-        response = await async_client.post("/v1/retrieve/private_memory", json=payload)
+        response = await async_client.post(f"/v1/users/{user_id}/private_memory", json=payload)
         
         # Verify the response
         assert response.status_code == 200
@@ -228,14 +227,13 @@ class TestRetrievalE2E:
         
         # Create a request payload
         payload = {
-            "user_id": user_id,
             "query_text": unique_query,
             "project_id": project_id,
             "limit": 5
         }
         
         # Send a real API request using the fixture
-        response = await async_client.post("/v1/retrieve/private_memory", json=payload)
+        response = await async_client.post(f"/v1/users/{user_id}/private_memory", json=payload)
         
         # Verify the response is successful
         assert response.status_code == 200
@@ -487,13 +485,12 @@ class TestRetrievalE2E:
         
         # Test 1: User 1 queries private memory - should see own private content, not user 2's
         user1_query = {
-            "user_id": user1_id,
             "query_text": "private notes confidential",  # Query matching both users' private content
             "project_id": project_id,
             "limit": 10
         }
         
-        user1_response = await async_client.post("/v1/retrieve/private_memory", json=user1_query)
+        user1_response = await async_client.post(f"/v1/users/{user1_id}/private_memory", json=user1_query)
         
         # Verify response
         assert user1_response.status_code == 200
@@ -514,13 +511,12 @@ class TestRetrievalE2E:
         
         # Test 2: User 2 queries private memory - should see own private content, not user 1's
         user2_query = {
-            "user_id": user2_id,
             "query_text": "private notes confidential",  # Same query
             "project_id": project_id,
             "limit": 10
         }
         
-        user2_response = await async_client.post("/v1/retrieve/private_memory", json=user2_query)
+        user2_response = await async_client.post(f"/v1/users/{user2_id}/private_memory", json=user2_query)
         
         # Verify response
         assert user2_response.status_code == 200
@@ -681,71 +677,77 @@ class TestRetrievalE2E:
         
         # 1. Test with include_messages_to_twin=true - should include twin interactions
         with_twin_payload = {
-            "user_id": user_id,
             "query_text": "project timeline",
             "project_id": project_id,
             "limit": 10,
-            "include_messages_to_twin": True,  # Explicitly include twin interactions
-            "include_private": True            # Explicitly include private content
+            "include_messages_to_twin": True  # Explicitly include twin interactions
         }
         
         # Send API request
-        with_twin_response = await async_client.post(
-            "/v1/retrieve/private_memory",
-            json=with_twin_payload
-        )
+        with_twin_response = await async_client.post(f"/v1/users/{user_id}/private_memory", json=with_twin_payload)
         
         # Verify the response
         assert with_twin_response.status_code == 200
         with_twin_data = with_twin_response.json()
         
-        # Check that we got results back
+        # Check that we got results and twin interactions are included
         assert "chunks" in with_twin_data
         assert with_twin_data["total"] > 0
         
-        # Ingesting a query to private_memory endpoint also creates a twin interaction
-        # Wait for that to be processed
-        await asyncio.sleep(2)
+        # Should find both twin interactions and regular messages
+        twin_interaction_found = False
+        regular_message_found = False
+        
+        for chunk in with_twin_data["chunks"]:
+            if "Twin interaction:" in chunk["text"]:
+                twin_interaction_found = True
+            if "Regular message:" in chunk["text"]:
+                regular_message_found = True
+        
+        assert twin_interaction_found, "Twin interaction not found when include_messages_to_twin=true"
+        assert regular_message_found, "Regular message not found"
         
         # 2. Test with include_messages_to_twin=false - should exclude twin interactions
         without_twin_payload = {
-            "user_id": user_id,
             "query_text": "project timeline",
             "project_id": project_id,
             "limit": 10,
-            "include_messages_to_twin": False,  # Explicitly exclude twin interactions
-            "include_private": True             # Explicitly include private content
+            "include_messages_to_twin": False  # Explicitly exclude twin interactions
         }
         
         # Send API request
-        without_twin_response = await async_client.post(
-            "/v1/retrieve/private_memory",
-            json=without_twin_payload
-        )
+        without_twin_response = await async_client.post(f"/v1/users/{user_id}/private_memory", json=without_twin_payload)
         
         # Verify the response
         assert without_twin_response.status_code == 200
         without_twin_data = without_twin_response.json()
         
-        # Check that we got results back - should have fewer results than with_twin
+        # Check results - should not include twin interactions
         assert "chunks" in without_twin_data
-        assert without_twin_data["total"] < with_twin_data["total"], "Expected fewer results when excluding twin interactions"
+        
+        # Should find only regular messages, not twin interactions
+        twin_interaction_found = False
+        regular_message_found = False
+        
+        for chunk in without_twin_data["chunks"]:
+            if "Twin interaction:" in chunk["text"]:
+                twin_interaction_found = True
+            if "Regular message:" in chunk["text"]:
+                regular_message_found = True
+        
+        assert not twin_interaction_found, "Twin interaction found when include_messages_to_twin=false"
+        assert regular_message_found, "Regular message not found"
         
         # 3. Test default behavior (include_messages_to_twin should default to true for private_memory endpoint)
         default_payload = {
-            "user_id": user_id,
             "query_text": "project timeline",
             "project_id": project_id,
-            "limit": 10,
-            "include_private": True              # Explicitly include private content
+            "limit": 10
             # No include_messages_to_twin parameter - should default to true
         }
         
         # Send API request
-        default_response = await async_client.post(
-            "/v1/retrieve/private_memory",
-            json=default_payload
-        )
+        default_response = await async_client.post(f"/v1/users/{user_id}/private_memory", json=default_payload)
         
         # Verify the response
         assert default_response.status_code == 200

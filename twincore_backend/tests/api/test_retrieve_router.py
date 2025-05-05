@@ -171,112 +171,6 @@ def test_retrieve_context_default_include_messages_to_twin(test_client, mock_ret
     # Default for context endpoint should be False
     assert call_args["include_messages_to_twin"] is False
 
-
-def test_retrieve_private_memory_endpoint(test_client, mock_retrieval_service_with_message_connector):
-    """Test the /v1/retrieve/private_memory endpoint."""
-    # Arrange
-    user_id = str(uuid.uuid4())
-    project_id = str(uuid.uuid4())
-    now = datetime.now()
-    test_results = [
-        {
-            "chunk_id": "private-chunk-1",
-            "text_content": "This is private content",
-            "source_type": "document",
-            "user_id": user_id,
-            "project_id": project_id,
-            "timestamp": now.timestamp(),
-            "is_private": True,
-            "score": 0.88,
-        }
-    ]
-    
-    # Configure the mock to return test results
-    mock_retrieval_service_with_message_connector.retrieve_private_memory.return_value = test_results
-    
-    # Prepare the request payload - still using POST for private_memory since it has side effects
-    payload = {
-        "user_id": user_id,
-        "query_text": "find my private notes",
-        "project_id": project_id,
-        "limit": 5,
-        "include_messages_to_twin": False
-    }
-    
-    # Act
-    response = test_client.post("/v1/retrieve/private_memory", json=payload)
-    
-    # Assert
-    assert response.status_code == 200
-    response_data = response.json()
-    
-    # Verify the service was called with the correct parameters
-    mock_retrieval_service_with_message_connector.retrieve_private_memory.assert_called_once()
-    call_args = mock_retrieval_service_with_message_connector.retrieve_private_memory.call_args[1]
-    assert call_args["query_text"] == payload["query_text"]
-    assert call_args["user_id"] == payload["user_id"]
-    assert call_args["project_id"] == payload["project_id"]
-    assert call_args["limit"] == payload["limit"]
-    assert call_args["include_messages_to_twin"] == payload["include_messages_to_twin"]
-    
-    # Verify response structure
-    assert "chunks" in response_data
-    assert "total" in response_data
-    assert response_data["total"] == 1
-    
-    # Verify first chunk contents
-    chunk = response_data["chunks"][0]
-    assert chunk["chunk_id"] == "private-chunk-1"
-    assert chunk["text"] == "This is private content"
-    assert chunk["source_type"] == "document"
-    assert chunk["user_id"] == user_id
-    assert chunk["project_id"] == project_id
-    assert chunk["score"] == 0.88
-
-
-def test_retrieve_private_memory_default_include_messages_to_twin(test_client, mock_retrieval_service_with_message_connector):
-    """Test the /v1/retrieve/private_memory endpoint with default include_messages_to_twin parameter."""
-    # Arrange
-    user_id = str(uuid.uuid4())
-    project_id = str(uuid.uuid4())
-    test_results = [
-        {
-            "chunk_id": "private-chunk-1",
-            "text_content": "This is private content",
-            "source_type": "document",
-            "user_id": user_id,
-            "project_id": project_id,
-            "timestamp": datetime.now().timestamp(),
-            "is_private": True,
-            "score": 0.88,
-        }
-    ]
-    
-    # Configure the mock to return test results
-    mock_retrieval_service_with_message_connector.retrieve_private_memory.return_value = test_results
-    
-    # Prepare the request payload without include_messages_to_twin
-    payload = {
-        "user_id": user_id,
-        "query_text": "find my private notes",
-        "project_id": project_id,
-        "limit": 5
-    }
-    
-    # Act
-    response = test_client.post("/v1/retrieve/private_memory", json=payload)
-    
-    # Assert
-    assert response.status_code == 200
-    
-    # Verify the service was called with the correct default parameter
-    mock_retrieval_service_with_message_connector.retrieve_private_memory.assert_called_once()
-    call_args = mock_retrieval_service_with_message_connector.retrieve_private_memory.call_args[1]
-    
-    # Default for private_memory endpoint should be True
-    assert call_args["include_messages_to_twin"] is True
-
-
 def test_retrieve_context_validation_error(test_client):
     """Test validation errors for the /retrieve/context endpoint."""
     # Missing required query_text parameter
@@ -285,7 +179,6 @@ def test_retrieve_context_validation_error(test_client):
     
     # Verify error message mentions the missing field
     assert "query_text" in response.text
-
 
 def test_retrieve_context_with_graph_data(test_client, mock_retrieval_service):
     """Test the /retrieve/context endpoint with graph enrichment."""

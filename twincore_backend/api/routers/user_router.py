@@ -4,12 +4,12 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, HTTPException, Path
 
-from api.models import ChunksResponse, ContentChunk # Import ContentChunk
+from api.models import ChunksResponse, ContentChunk, PrivateMemoryQuery # Import PrivateMemoryQuery
 from services.retrieval_service import RetrievalService
 from services.preference_service import PreferenceService
 from dal.qdrant_dal import QdrantDAL
 from dal.neo4j_dal import Neo4jDAL
-from api.routers.retrieve_router import get_retrieval_service, get_qdrant_dal, get_neo4j_dal, get_embedding_service
+from api.routers.retrieve_router import get_retrieval_service, get_qdrant_dal, get_neo4j_dal, get_embedding_service, get_retrieval_service_with_message_connector
 
 logger = logging.getLogger(__name__)
 
@@ -140,4 +140,106 @@ async def get_user_preferences(
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving user preferences: {str(e)}"
-        ) 
+        )
+
+@router.post(
+    "/{user_id}/private_memory",
+    response_model=ChunksResponse,
+    summary="Create + Retrieve Private Memory (User Interaction)",
+    description="Retrieves a user's private memory based on semantic search AND ingests the query itself as a twin interaction (marked with is_twin_interaction: true). "
+                "This endpoint is designed specifically for the user's direct interaction loop with their twin simulation. "
+                "By default, the retrieval includes previous user messages to the twin. Set include_messages_to_twin to false to exclude them."
+)
+async def retrieve_user_private_memory(
+    user_id: str = Path(..., description="The ID of the user whose memory is being queried and whose query is being ingested."),
+    query: PrivateMemoryQuery = ...,
+    include_graph: bool = Query(False, description="Whether to include graph-based enrichments"),
+    retrieval_service: RetrievalService = Depends(get_retrieval_service_with_message_connector),
+) -> ChunksResponse:
+    """API endpoint to retrieve a user's private memory and ingest the query."""
+    try:
+        logger.info(f"Received private memory request for user_id={user_id}, query='{query.query_text}'")
+        
+        # First call the private memory retrieval method, passing user_id from the path
+        results = await retrieval_service.retrieve_private_memory(
+            query_text=query.query_text,
+            user_id=user_id,  # Use the path parameter instead of from the request body
+            limit=query.limit,
+            project_id=query.project_id,
+            session_id=query.session_id,
+            include_messages_to_twin=query.include_messages_to_twin
+        )
+        
+        # If include_graph is True, enhance with graph data
+        if include_graph and results:
+            # Build a new list of enriched results
+            enriched_results = []
+            for result in results:
+                # Add the basic result
+                enriched_results.append(result)
+                
+                # For each result, we could optionally get related content
+                if "chunk_id" in result:
+                    try:
+                        related = await retrieval_service.retrieve_related_content(
+                            chunk_id=result["chunk_id"],
+                            limit=3,  # Small limit to avoid overwhelming
+                            include_private=True  # Include private since this is private memory
+                        )
+                        
+                        # Add related items as separate results
+                        enriched_results.extend(related)
+                    except Exception as e:
+                        logger.warning(f"Error enriching result with related content: {e}")
+            
+            # Replace the original results with enriched ones
+            results = enriched_results
+        
+        # Convert to ContentChunk model objects (similar to context endpoint)
+        chunks = []
+        for result in results:
+            # Extract timestamp and ensure it's a proper datetime
+            timestamp = result.get("timestamp")
+            if isinstance(timestamp, (int, float)):
+                # Convert Unix timestamp to datetime
+                timestamp = datetime.fromtimestamp(timestamp)
+            elif isinstance(timestamp, str):
+                # Try parsing ISO format
+                try:
+                    timestamp = datetime.fromisoformat(timestamp)
+                except ValueError:
+                    timestamp = datetime.now()
+            else:
+                timestamp = datetime.now()
+                
+            # Create base chunk with standard fields
+            chunk = ContentChunk(
+                chunk_id=result.get("chunk_id"),
+                text=result.get("text_content"),
+                source_type=result.get("source_type"),
+                timestamp=timestamp,
+                user_id=result.get("user_id"),
+                project_id=result.get("project_id"),
+                session_id=result.get("session_id"),
+                doc_id=result.get("doc_id"),
+                doc_name=result.get("doc_name") if "doc_name" in result else None,
+                message_id=result.get("message_id"),
+                score=result.get("score"),
+            )
+            
+            # Add relationship data if available from graph enrichment
+            if "outgoing_relationships" in result:
+                chunk.metadata["outgoing_relationships"] = result["outgoing_relationships"]
+            if "incoming_relationships" in result:
+                chunk.metadata["incoming_relationships"] = result["incoming_relationships"]
+                
+            chunks.append(chunk)
+        
+        return ChunksResponse(
+            chunks=chunks,
+            total=len(chunks),
+        )
+        
+    except Exception as e:
+        logger.error(f"Error retrieving private memory: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving private memory: {str(e)}") 

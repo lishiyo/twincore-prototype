@@ -10,6 +10,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import UUID4
+from fastapi.responses import RedirectResponse
 
 from services.retrieval_service import RetrievalService
 from services.ingestion_service import IngestionService
@@ -244,109 +245,29 @@ async def retrieve_context(
 async def retrieve_private_memory(
     query: PrivateMemoryQuery,
     include_graph: bool = False,
-    retrieval_service: RetrievalService = Depends(get_retrieval_service_with_message_connector),
 ):
     """Retrieve a user's private memory based on semantic search.
     
-    This endpoint retrieves content chunks from the user's private memory based on
-    semantic similarity to the provided query text. It also ingests the query itself
-    as a twin interaction, storing it in the memory store.
+    DEPRECATED: This endpoint is deprecated and will be removed.
+    Use POST /v1/users/{user_id}/private_memory instead.
     
     Args:
-        query: The private memory query parameters, which include:
-            query_text: The text to search for
-            user_id: The user ID to filter by
-            limit: Maximum number of results to return
-            project_id: Optional filter by project ID
-            session_id: Optional filter by session ID
-            include_messages_to_twin: Whether to include retrieving user messages to the twin (default True)
+        query: The private memory query parameters
         include_graph: Whether to include graph-based enrichments
-        retrieval_service: The retrieval service dependency with message connector
     """
-    try:
-        # First call the private memory retrieval method
-        results = await retrieval_service.retrieve_private_memory(
-            query_text=query.query_text,
-            user_id=query.user_id,
-            limit=query.limit,
-            project_id=query.project_id,
-            session_id=query.session_id,
-            include_messages_to_twin=query.include_messages_to_twin
-        )
-        
-        # If include_graph is True, enhance with graph data
-        if include_graph and results:
-            # Build a new list of enriched results
-            enriched_results = []
-            for result in results:
-                # Add the basic result
-                enriched_results.append(result)
-                
-                # For each result, we could optionally get related content
-                if "chunk_id" in result:
-                    try:
-                        related = await retrieval_service.retrieve_related_content(
-                            chunk_id=result["chunk_id"],
-                            limit=3,  # Small limit to avoid overwhelming
-                            include_private=True  # Include private since this is private memory
-                        )
-                        
-                        # Add related items as separate results
-                        enriched_results.extend(related)
-                    except Exception as e:
-                        logger.warning(f"Error enriching result with related content: {e}")
-            
-            # Replace the original results with enriched ones
-            results = enriched_results
-        
-        # Convert to ContentChunk model objects (similar to context endpoint)
-        chunks = []
-        for result in results:
-            # Extract timestamp and ensure it's a proper datetime
-            timestamp = result.get("timestamp")
-            if isinstance(timestamp, (int, float)):
-                # Convert Unix timestamp to datetime
-                timestamp = datetime.fromtimestamp(timestamp)
-            elif isinstance(timestamp, str):
-                # Try parsing ISO format
-                try:
-                    timestamp = datetime.fromisoformat(timestamp)
-                except ValueError:
-                    timestamp = datetime.now()
-            else:
-                timestamp = datetime.now()
-                
-            # Create base chunk with standard fields
-            chunk = ContentChunk(
-                chunk_id=result.get("chunk_id"),
-                text=result.get("text_content"),
-                source_type=result.get("source_type"),
-                timestamp=timestamp,
-                user_id=result.get("user_id"),
-                project_id=result.get("project_id"),
-                session_id=result.get("session_id"),
-                doc_id=result.get("doc_id"),
-                doc_name=result.get("doc_name") if "doc_name" in result else None,
-                message_id=result.get("message_id"),
-                score=result.get("score"),
-            )
-            
-            # Add relationship data if available from graph enrichment
-            if "outgoing_relationships" in result:
-                chunk.metadata["outgoing_relationships"] = result["outgoing_relationships"]
-            if "incoming_relationships" in result:
-                chunk.metadata["incoming_relationships"] = result["incoming_relationships"]
-                
-            chunks.append(chunk)
-        
-        return ChunksResponse(
-            chunks=chunks,
-            total=len(chunks),
-        )
-        
-    except Exception as e:
-        logger.error(f"Error retrieving private memory: {e}")
-        raise HTTPException(status_code=500, detail=f"Error retrieving private memory: {str(e)}")
+    # Return a permanent redirect to the new endpoint
+    # Use 308 Permanent Redirect to preserve the request method and body
+    
+    # Build the URL for the new endpoint
+    new_url = f"/v1/users/{query.user_id}/private_memory"
+    if include_graph:
+        new_url += f"?include_graph={include_graph}"
+    
+    # Log the redirect
+    logger.info(f"Redirecting /v1/retrieve/private_memory to {new_url}")
+    
+    # Return 308 Permanent Redirect to preserve the POST method and body
+    return RedirectResponse(url=new_url, status_code=308)
 
 
 @router.get("/related_content", response_model=ChunksResponse)

@@ -68,7 +68,6 @@ class PrivateMemoryQuery(BaseModel):
     """Query parameters for retrieving private memory."""
     
     query_text: str = Field(..., description="The text to search for")
-    user_id: str = Field(..., description="User ID to retrieve private memory for")
     limit: int = Field(10, ge=1, le=100, description="Maximum number of results to return")
     project_id: Optional[str] = Field(None, description="Optional project ID filter")
     session_id: Optional[str] = Field(None, description="Optional session ID filter")
