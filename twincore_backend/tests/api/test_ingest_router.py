@@ -6,7 +6,6 @@ import uuid
 
 import pytest
 from fastapi import status
-from httpx import AsyncClient
 
 from ingestion.connectors.message_connector import MessageConnector
 from ingestion.connectors.document_connector import DocumentConnector

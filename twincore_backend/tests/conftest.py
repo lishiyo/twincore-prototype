@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from main import app
 from api.routers import admin_router
 from core.db_clients import clear_all_client_caches
+from api.routers import document_router
 
 
 # Create mock services
@@ -26,6 +27,7 @@ mock_data_seeder_service.return_value = mock_data_seeder_instance
 # Create mock for data management service
 mock_data_management_instance = AsyncMock()
 mock_data_management_instance.clear_all_data = AsyncMock()
+mock_data_management_instance.update_document_metadata = AsyncMock()
 
 # We'll set these up in the fixture instead of globally
 # to avoid interfering with E2E tests
@@ -40,6 +42,7 @@ def setup_mock_dependencies():
     # Apply mock overrides for unit tests
     app.dependency_overrides[admin_router.get_data_seeder_service] = lambda: mock_data_seeder_instance
     app.dependency_overrides[admin_router.get_data_management_service] = lambda: mock_data_management_instance
+    app.dependency_overrides[document_router.get_data_management_service] = lambda: mock_data_management_instance
     
     yield
     
@@ -77,6 +80,14 @@ def mock_clear_data():
     # Reset any side effects before each test
     mock_data_management_instance.clear_all_data.reset_mock()
     return mock_data_management_instance.clear_all_data
+
+
+@pytest.fixture
+def mock_update_document_metadata():
+    """Return the mock for update_document_metadata method."""
+    # Reset any side effects before each test
+    mock_data_management_instance.update_document_metadata.reset_mock()
+    return mock_data_management_instance.update_document_metadata
 
 
 @pytest.fixture(autouse=True)

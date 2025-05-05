@@ -86,9 +86,7 @@ class DataManagementService:
         self,
         doc_id: str,
         source_uri: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        user_id: Optional[str] = None,
-        timestamp: Optional[str] = None
+        metadata: Optional[Dict[str, Any]] = None
     ) -> bool:
         """Update metadata for a specific document in Neo4j.
 

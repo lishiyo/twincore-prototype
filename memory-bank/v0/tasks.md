@@ -249,8 +249,9 @@ This document outlines the development tasks for building the TwinCore backend p
             - [x] [API/Contract] Write API test verifying endpoint schema, request/response, status code.
             - [x] [E2E] Write E2E test: Call `/v1/ingest/chunk` multiple times for the same `doc_id`, verify chunks in Qdrant with correct metadata and the parent `Document` node in Neo4j.
         - [ ] **Sub-task 7.5.4: Implement Document Metadata Update API Endpoint (`/v1/documents/{doc_id}/metadata`)**
-            - [ ] Define `POST /v1/documents/{doc_id}/metadata` endpoint in a relevant router (e.g., `api/routers/admin_router.py` or `ingest_router.py`).
-            - [ ] Add service logic (e.g., in `DataManagementService` or `IngestionService`) to call the new `neo4j_dal.update_document_metadata` method.
+            - [x] Add `update_document_metadata` method to neo4j_dal.
+            - [ ] Define `POST /v1/documents/{doc_id}/metadata` endpoint in a relevant router (e.g. `document_router.py`).
+            - [x] Add service logic (e.g., in `DataManagementService` or `IngestionService`) to call the new `neo4j_dal.update_document_metadata` method.
             - [ ] [Service Int] Test service logic for metadata updates, mocking DAL.
             - [ ] [API/Contract] Write API test verifying endpoint schema, path parameter, request/response, status code.
             - [ ] [E2E] Write E2E test: Create a document via ingestion, then call `/v1/documents/{doc_id}/metadata` to update `source_uri`, verify change in Neo4j.

@@ -1,6 +1,5 @@
 """Tests for the admin router endpoints."""
 
-import pytest
 from fastapi.testclient import TestClient
 
 from services.data_seeder_service import DataSeederServiceError

@@ -3,3 +3,4 @@
 from . import admin_router
 from . import ingest_router
 from . import retrieve_router 
+from . import document_router

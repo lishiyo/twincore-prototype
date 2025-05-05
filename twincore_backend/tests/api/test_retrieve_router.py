@@ -1,15 +1,11 @@
 """API tests for the retrieve router endpoints."""
 
-import json
 from datetime import datetime, timedelta
 import pytest
 from unittest.mock import patch, AsyncMock
-import numpy as np
-from urllib.parse import urlencode
 import uuid
 
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
 
 from main import app
 from api.routers import retrieve_router

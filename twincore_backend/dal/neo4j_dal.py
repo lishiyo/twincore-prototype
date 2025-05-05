@@ -693,6 +693,8 @@ class Neo4jDAL(INeo4jDAL):
         if source_uri is None and metadata is None:
             raise ValueError("Must provide source_uri or metadata to update.")
 
+        logger.info(f"Updating metadata for document {doc_id} with source URI: {source_uri} and metadata: {metadata}")
+        
         try:
             driver = self.driver
             params = {"doc_id": doc_id}
