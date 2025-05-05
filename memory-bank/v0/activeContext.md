@@ -1,15 +1,10 @@
-# TwinCore Active Context - Sun May  4 21:26:25 PDT 2025
+# TwinCore Active Context - Sun May  4 22:10:04 PDT 2025
 
 ## Current Work Focus
-- **Implementing User and Group Context Retrieval (Task 7.6):**
-    - **Sub-task 7.6.1 (Complete):** Implemented User Context endpoint (`GET /v1/users/{user_id}/context`) in `user_router.py` with tests.
-    - **Sub-task 7.6.2 (In Progress):** Working on Group Context endpoint (`GET /v1/retrieve/group`).
-- **Transcript Strategy (Task 7.5):**
-    - **Sub-task 7.5.1 (Complete):** Updated Neo4j DAL (`neo4j_dal.py` and tests) to support document metadata updates (`source_uri`, etc.).
-    - **Sub-task 7.5.2 (Complete):** Implemented chunk ingestion logic in `DocumentConnector` (`ingestion/connectors/document_connector.py` and tests), ensuring parent `Document` nodes are handled in Neo4j.
-    - **Sub-task 7.5.3 (Complete):** Implemented Chunk Ingestion API Endpoint (`/v1/ingest/chunk`).
-    - **Sub-task 7.5.4 (Complete):** Implemented Document Metadata Update API Endpoint (`/v1/documents/{doc_id}/metadata`).
-- **Plan Adjustment:** Decided to complete Task 7.6 (User and Group Context Retrieval) before moving to Phase 8.
+- **Refactoring Preference Endpoint (Task 7.7):**
+    - **Sub-task 7.7.1:** Refactor Preference Endpoint Path & Parameters (move `GET /v1/retrieve/preferences` to `GET /v1/users/{user_id}/preferences`).
+- **Investigating E2E Test Failure:**
+    - Addressing the `AssertionError` in `test_document_ingestion_end_to_end`.
 
 ## Project State
 ### What's Working
@@ -43,28 +38,12 @@
 - MessageConnector in the ingestion/connectors directory
 - Full test coverage for the message ingestion flow
 - **Task 5.2 Complete:** Document Ingestion Endpoint implementation (connector, service logic, API endpoint) is done.
-- **Phase 6 Complete:** All retrieval endpoints are implemented and tested:
-    - `RetrievalService` implementation with all methods: `retrieve_context`, `retrieve_enriched_context`, `retrieve_private_memory`, `retrieve_related_content`, `retrieve_by_topic`
-    - Retrieval API Router (`/v1/retrieve/*`) with all planned endpoints: context, private memory, related content, and topic retrieval
-    - Unit/Integration/API tests for all retrieval components
-    - E2E tests for related content retrieval endpoint fixed and now passing
-    - All other retrieval endpoint E2E tests verified and passing
-- Test isolation improvements:
-    - Added `pytest.mark.xdist_group` markers for Qdrant and Neo4j tests
-    - Refactored `ensure_collection_exists` fixtures in E2E tests for better Qdrant setup/cleanup per test class
-    - Adjusted `clear_test_data` fixture in E2E `conftest.py` to run automatically (`autouse=True`) for consistent cleanup
-    - Corrected `async_client` fixture in E2E `conftest.py` using `ASGITransport`
-    - Added reusable `use_test_databases` fixture to properly override database connections in E2E tests
-- **Phase 7 Complete:** Preference retrieval endpoints implemented and tested:
-    - `PreferenceService` with multi-strategy `query_user_preference` method
-    - Extended DAL interfaces with `search_user_preferences` and `get_user_preference_statements`
-    - Added `/v1/retrieve/preferences` endpoint with proper request/response models and `score_threshold` parameter
-    - Comprehensive unit, integration, and E2E tests for all preference components, now passing after debugging
-    - Successfully implemented fallback strategies for preference retrieval (explicit preferences, topic-based, vector similarity with thresholding)
-- **Twin Interaction Filtering (Task 7.4)**: Updated DAL and Service layers to correctly handle `include_twin_interactions` parameter, including fixing related tests.
-- **Transcript Ingestion Strategy Design:** Detailed plan documented in `transcript_strategy.md`.
-- **Core Transcript Ingestion Logic (Task 7.5):** Implemented all subtasks including Neo4j DAL updates for metadata, `DocumentConnector` with `ingest_chunk` logic, and API endpoints for chunk ingestion and document metadata updates.
-- **User Context Retrieval (Task 7.6.1):** Implemented endpoint for retrieving context specific to a single user with proper privacy and twin interaction filtering.
+- **Phase 6 Complete:** All retrieval endpoints are implemented and tested: context, private memory, related content, and topic retrieval.
+- Test isolation improvements: `xdist_group` markers, per-class Qdrant setup/cleanup, autouse cleanup fixture, correct `ASGITransport`, `use_test_databases` fixture.
+- **Phase 7 Complete:** Preference retrieval endpoints implemented and tested, including multi-strategy retrieval and twin interaction filtering.
+- **Transcript Strategy (Task 7.5) Complete:** Implemented Neo4j DAL updates, DocumentConnector chunk ingestion, and API endpoints for chunk ingestion & metadata update.
+- **User and Group Context Retrieval (Task 7.6) Complete:** Implemented `GET /v1/users/{user_id}/context` and `GET /v1/retrieve/group` endpoints with full testing.
+- **E2E Test Refactoring:** Seeding fixtures moved to `tests/e2e/fixtures/retrieval_fixtures.py`.
 
 ### What's Broken
 - **`test_document_ingestion_end_to_end`:** Still failing with `AssertionError: No document chunks found in Qdrant`. Investigation ongoing.
@@ -89,9 +68,10 @@
 - Created new design for advanced retrieval strategies combining Qdrant and Neo4j for better results
 - Defined future expansions for retrieval endpoints to be implemented in Phase 11
 - Implemented preference retrieval with multiple fallback strategies and score thresholding to ensure useful and relevant results even with sparse knowledge graphs.
-- Refining twin interaction filtering logic (`include_twin_interactions`) across DAL, Services, and eventually APIs.
+- Refining twin interaction filtering logic (`include_messages_to_twin`) across DAL, Services, and eventually APIs.
 - Adopted dedicated API endpoints (`/v1/ingest/chunk`, `/v1/documents/{doc_id}/metadata`) for transcript chunk ingestion and metadata updates for clarity.
 - Organizing user-specific API endpoints in `user_router.py` while keeping general retrieval endpoints in `retrieve_router.py` for better API organization.
+- Centralizing E2E test data seeding logic into dedicated fixture files.
 
 ## Tech Stack
 - Backend: FastAPI (Python)
@@ -136,11 +116,12 @@
 - Neo4j `MERGE` requires care when properties might be null; use explicit constraints.
 - Separating metadata updates from content ingestion into distinct API endpoints improves clarity.
 - Maintaining a clean separation between user-specific endpoints and general retrieval endpoints improves API organization and usability.
+- Pydantic validation errors in API tests often stem from incomplete or mismatched mock data structures.
+- Proper exception handling in API routers is crucial for returning correct HTTP status codes.
+- Refactoring E2E test fixtures into dedicated files enhances maintainability.
 
 ## Next Steps
-- **Complete Task 7.6:**
-    - Implement Sub-task 7.6.2: Group Context Endpoint (`GET /v1/retrieve/group`).
 - **Complete Task 7.7:**
     - Implement Sub-task 7.7.1: Refactor Preference Endpoint Path & Parameters.
-- **Move to Phase 8:** Verification UI (Streamlit), including transcript simulation.
 - Investigate and fix the `AssertionError` in `test_document_ingestion_end_to_end`.
+- Move to Phase 8: Verification UI (Streamlit), including transcript simulation.

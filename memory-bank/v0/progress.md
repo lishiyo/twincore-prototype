@@ -2,6 +2,30 @@
 
 **IMPORTANT**: Put your changes at the top!
 
+## Sun May  4 22:10:04 PDT 2025
+
+**Changes:**
+*   **Completed Task 7.6: User and Group Context Retrieval**
+    *   Completed Sub-task 7.6.1: User Context Endpoint (`GET /v1/users/{user_id}/context`).
+    *   Completed Sub-task 7.6.2: Group Context Endpoint (`GET /v1/retrieve/group`).
+        *   Implemented service logic for group context retrieval.
+        *   Added API endpoint with proper request/response models.
+        *   Added Unit, API/Contract, and E2E tests.
+        *   Debugged and fixed issues related to parameter naming (`query` vs `query_text`), Pydantic validation errors in tests, and exception handling in the router.
+*   **Refactored E2E Test Fixtures:**
+    *   Moved all `seed_*` data fixtures from `test_retrieval_e2e.py` and `test_user_context_retrieval.py` into a dedicated file `tests/e2e/fixtures/retrieval_fixtures.py`.
+    *   Updated test files to import fixtures from the new location.
+
+**Errors & Learnings:**
+*   Pydantic validation errors often indicate mismatches between mock data structures in tests and the actual response models.
+*   Proper exception handling in API routers is crucial to return correct HTTP status codes (e.g., distinguishing 4xx validation errors from 5xx server errors).
+*   Test parameter names must exactly match the API endpoint definition.
+*   Refactoring large test files by extracting fixtures into separate files improves organization and readability.
+
+**Next Steps:**
+*   Move to Task 7.7: Refactor Preference Endpoint Path & Parameters.
+*   Continue investigating and fix the document ingestion E2E test failure (`test_document_ingestion_end_to_end`).
+
 ## Sun May  4 21:26:25 PDT 2025
 
 **Changes:**
