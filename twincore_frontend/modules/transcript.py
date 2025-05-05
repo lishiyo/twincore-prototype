@@ -77,7 +77,7 @@ def render_chunk_ingestion_form(transcript_doc_id):
                 payload = {
                     "doc_id": transcript_doc_id,
                     "user_id": selected_chunk_user_id,
-                    "chunk_text": utterance_text,
+                    "text": utterance_text,
                     "session_id": selected_chunk_session_id,
                     "project_id": selected_chunk_project_id,
                     "timestamp": current_timestamp,
