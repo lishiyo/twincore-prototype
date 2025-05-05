@@ -23,15 +23,35 @@ async def setup_qdrant_collection():
         logger.info(f"Checking if Qdrant collection '{collection_name}' exists...")
         try:
             # Check if collection exists
-            await qdrant_client.get_collection(collection_name=collection_name)
+            collection_info = await qdrant_client.get_collection(collection_name=collection_name)
             logger.info(f"Collection '{collection_name}' already exists.")
-            # Optional: Verify existing collection parameters if necessary,
-            # e.g., vector size and distance. For simplicity, we assume recreation
-            # or manual intervention if parameters mismatch severely.
+
+            # Ensure required payload indexes exist
+            required_indexes = {
+                "user_id": models.PayloadSchemaType.KEYWORD,
+                "project_id": models.PayloadSchemaType.KEYWORD,
+                "session_id": models.PayloadSchemaType.KEYWORD,
+                "is_private": models.PayloadSchemaType.BOOL,
+                "timestamp": models.PayloadSchemaType.FLOAT,  # Added for range queries
+                "source_type": models.PayloadSchemaType.KEYWORD, # document_chunk, transcript_chunk, message
+            }
+            existing_indexes = collection_info.payload_schema or {}
+
+            for field, field_type in required_indexes.items():
+                if field not in existing_indexes:
+                    logger.info(f"Payload index for field '{field}' not found. Creating...")
+                    await qdrant_client.create_payload_index(
+                        collection_name=collection_name,
+                        field_name=field,
+                        field_schema=field_type
+                    )
+                    logger.info(f"Successfully created payload index for '{field}'.")
+                else:
+                    logger.debug(f"Payload index for field '{field}' already exists.")
 
         except (UnexpectedResponse, ValueError) as e:
             # ValueError can be raised for 404 Not Found, UnexpectedResponse for others
-             if isinstance(e, ValueError) or (isinstance(e, UnexpectedResponse) and e.status_code == 404):
+            if isinstance(e, ValueError) or (isinstance(e, UnexpectedResponse) and e.status_code == 404):
                 logger.info(f"Collection '{collection_name}' not found. Creating...")
                 await qdrant_client.create_collection(
                     collection_name=collection_name,
@@ -41,9 +61,28 @@ async def setup_qdrant_collection():
                     # Add other configurations like HNSW parameters if needed later
                 )
                 logger.info(f"Successfully created Qdrant collection '{collection_name}'.")
-             else:
-                 # Re-raise unexpected errors
-                 raise e
+
+                # Create indexes after creating the collection
+                logger.info(f"Creating payload indexes for new collection '{collection_name}'...")
+                required_indexes = {
+                    "user_id": models.PayloadSchemaType.KEYWORD,
+                    "project_id": models.PayloadSchemaType.KEYWORD,
+                    "session_id": models.PayloadSchemaType.KEYWORD,
+                    "is_private": models.PayloadSchemaType.BOOL,
+                    "timestamp": models.PayloadSchemaType.FLOAT,  # Added for range queries
+                    "source_type": models.PayloadSchemaType.KEYWORD, # document_chunk, transcript_chunk, message
+                }
+                for field, field_type in required_indexes.items():
+                    await qdrant_client.create_payload_index(
+                        collection_name=collection_name,
+                        field_name=field,
+                        field_schema=field_type
+                    )
+                    logger.info(f"Successfully created payload index for '{field}'.")
+
+            else:
+                # Re-raise unexpected errors
+                raise e
 
     except Exception as e:
         logger.error(f"Failed to setup Qdrant collection '{collection_name}': {e}", exc_info=True)
