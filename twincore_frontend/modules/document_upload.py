@@ -76,6 +76,7 @@ We should prioritize performance optimizations and the new authentication system
                 "doc_name": doc_name,
                 "text": doc_content,
                 "is_private": is_private,
+                "source_type": "document",
                 "metadata": {
                     "doc_type": doc_type,
                     "importance": doc_importance,

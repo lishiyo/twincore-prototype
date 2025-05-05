@@ -177,6 +177,7 @@ async def retrieve_user_private_memory(
             for result in results:
                 # Add the basic result
                 enriched_results.append(result)
+                logger.info(f"Adding to enriched result the qdrant result: {result}")
                 
                 # For each result, we could optionally get related content
                 if "chunk_id" in result:
@@ -186,6 +187,7 @@ async def retrieve_user_private_memory(
                             limit=3,  # Small limit to avoid overwhelming
                             include_private=True  # Include private since this is private memory
                         )
+                        logger.info(f"Found related content: {related}")
                         
                         # Add related items as separate results
                         enriched_results.extend(related)
