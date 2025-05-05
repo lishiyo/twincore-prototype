@@ -1,6 +1,8 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
-**CRITICAL**: We must always use REAL uuids or integers for the ids/uuids in tests. Qdrant only accepts integers or real uuids for ids, even in payload objects.
+**CRITICAL**: For tests:
+- We must always use REAL uuids or integers for the ids/uuids in tests. Qdrant only accepts integers or real uuids for ids, even in payload objects.
+- ALWAYS use test files in `twincore_backend/tests/`. Check for existing tests first before creating new test files.

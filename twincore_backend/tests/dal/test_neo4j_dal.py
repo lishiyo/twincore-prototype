@@ -83,6 +83,30 @@ async def clean_test_database(test_neo4j_driver: AsyncDriver):
         await session.run("MATCH (n) DETACH DELETE n")
 
 
+@pytest_asyncio.fixture
+async def neo4j_dal_with_project_and_user(test_neo4j_dal: Neo4jDAL, clean_test_database):
+    """Fixture to provide a Neo4jDAL instance with a pre-existing project and user."""
+    project_id = str(uuid.uuid4())
+    user_id = str(uuid.uuid4())
+
+    # Create Project node
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Project", {"project_id": project_id, "name": "Base Project"}, {"project_id": project_id}
+    )
+    # Create User node
+    await test_neo4j_dal.create_node_if_not_exists(
+        "User", {"user_id": user_id, "name": "Base User"}, {"user_id": user_id}
+    )
+    # Link User to Project (assuming direct link for simplicity, adjust if needed)
+    await test_neo4j_dal.create_relationship_if_not_exists(
+        "User", {"user_id": user_id},
+        "Project", {"project_id": project_id},
+        "PART_OF" # Or PARTICIPATED_IN if through session is standard
+    )
+
+    yield test_neo4j_dal, {"project_id": project_id, "user_id": user_id}
+
+
 @pytest.mark.asyncio
 async def test_create_node_if_not_exists_creates_new_node(test_neo4j_dal: Neo4jDAL, clean_test_database):
     """Test creating a new node when it doesn't exist."""
@@ -1134,3 +1158,107 @@ async def test_update_document_metadata_no_updates_provided_raises_error(
     # Act & Assert
     with pytest.raises(ValueError, match="Must provide source_uri or metadata"):
         await test_neo4j_dal.update_document_metadata(doc_id=doc_id) 
+
+@pytest.mark.asyncio
+@pytest.mark.xdist_group("neo4j")
+async def test_get_project_participants(neo4j_dal_with_project_and_user):
+    """Test retrieving participants associated with a project."""
+    # Arrange
+    neo4j_dal, test_data = neo4j_dal_with_project_and_user # Unpack fixture
+    project_id = test_data["project_id"]
+    user_id = test_data["user_id"]
+    # Directly add another participant to the project for this test
+    user2_id = str(uuid.uuid4())
+    await neo4j_dal.create_node_if_not_exists(
+        "User", {"user_id": user2_id, "name": "User Two"}, {"user_id": user2_id}
+    )
+    await neo4j_dal.create_relationship_if_not_exists(
+        "User", {"user_id": user2_id},
+        "Project", {"project_id": project_id},
+        "PART_OF"
+    )
+
+    # Act
+    participants = await neo4j_dal.get_project_participants(project_id)
+
+    # Assert
+    assert isinstance(participants, list)
+    assert len(participants) == 2
+    participant_ids = {p["user_id"] for p in participants}
+    assert user_id in participant_ids
+    assert user2_id in participant_ids
+
+
+@pytest.mark.asyncio
+@pytest.mark.xdist_group("neo4j")
+async def test_get_content_by_topic(test_neo4j_dal: Neo4jDAL, clean_test_database):
+    """Test retrieving content related to a specific topic."""
+    # Arrange - Create topic and content nodes
+    topic_name = f"Test Topic {uuid.uuid4()}" # Unique topic name
+    user_id = str(uuid.uuid4())
+    project_id = str(uuid.uuid4())
+    chunk_id = str(uuid.uuid4())
+
+    # Create User node
+    await test_neo4j_dal.create_node_if_not_exists(
+        "User", {"user_id": user_id, "name": "Test User"}, {"user_id": user_id}
+    )
+    # Create Project node
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Project", {"project_id": project_id, "name": "Test Project"}, {"project_id": project_id}
+    )
+    # Create Content node
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Content", {
+            "chunk_id": chunk_id,
+            "text_content": f"Content about {topic_name}",
+            "user_id": user_id,
+            "project_id": project_id
+        },
+        {"chunk_id": chunk_id}
+    )
+    # Create Topic node
+    await test_neo4j_dal.create_node_if_not_exists(
+        "Topic", {"name": topic_name}, {"name": topic_name}
+    )
+    # Create MENTIONS relationship
+    await test_neo4j_dal.create_relationship_if_not_exists(
+        "Content", {"chunk_id": chunk_id},
+        "Topic", {"name": topic_name},
+        "MENTIONS"
+    )
+    
+    test_data = { # Define test_data locally for this test
+        "topic_name": topic_name,
+        "user_id": user_id,
+        "project_id": project_id,
+        "chunk_id": chunk_id
+    }
+
+    topic_name = test_data["topic_name"]
+    user_id = test_data["user_id"]
+    project_id = test_data["project_id"]
+    chunk_id = test_data["chunk_id"]
+    
+    # Act
+    results = await test_neo4j_dal.get_content_by_topic( # Use test_neo4j_dal here
+        topic_name=topic_name,
+        user_id=user_id,
+        project_id=project_id,
+        limit=10,
+        include_private=True  # Include private for this test setup
+    )
+    
+    # Assert
+    assert len(results) >= 1  # Should find at least the seeded content
+    found = any(r["chunk_id"] == chunk_id for r in results)
+    assert found, f"Expected chunk {chunk_id} not found in results for topic {topic_name}"
+    
+    # Verify topic metadata is included
+    for r in results:
+        if r["chunk_id"] == chunk_id:
+            assert "topic" in r
+            assert r["topic"]["name"] == topic_name
+            break
+    else:
+        pytest.fail(f"Could not verify topic metadata for chunk {chunk_id}") 

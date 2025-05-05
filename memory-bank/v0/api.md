@@ -237,7 +237,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `session_id`: `string (uuid), optional` - Scope: Required if `project_id` and `team_id` are not provided.
     *   `project_id`: `string (uuid), optional` - Scope: Required if `session_id` and `team_id` are not provided.
     *   `team_id`: `string (uuid), optional` - Scope: Required if `session_id` and `project_id` are not provided.
-    *   `query`: `string` - REQUIRED: The natural language query for semantic search across the group participants' relevant data.
+    *   `query_text`: `string` - REQUIRED: The natural language query for semantic search across the group participants' relevant data.
     *   `limit_per_user`: `integer, optional (default: 5)` - Maximum results per user included in the response.
     *   `include_messages_to_twin`: `boolean, optional (default: True)` - If true, results for each user will include chunks where `is_twin_interaction` is true.
     *   `include_private`: `boolean, optional (default: True)` - If true, include chunks marked as private associated with the users in the scope.
@@ -263,7 +263,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
         ]
       }
       ```
-    *   `400 Bad Request`: Missing required query parameter (`query`), missing scope ID, or more than one scope ID provided.
+    *   `400 Bad Request`: Missing required query parameter (`query_text`), missing scope ID, or more than one scope ID provided.
     *   `401 Unauthorized`: Missing or invalid authentication token.
     *   `404 Not Found`: If the specified scope ID (`session_id`, `project_id`, `team_id`) does not exist or has no participants.
 

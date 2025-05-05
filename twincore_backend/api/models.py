@@ -132,6 +132,17 @@ class ChunksResponse(BaseModel):
     total: int = Field(..., description="Total number of chunks returned")
 
 
+class GroupContextUserResult(BaseModel):
+    """Results for a single user within a group context query."""
+    user_id: str = Field(..., description="ID of the user.")
+    results: List[ContentChunk] = Field(..., description="List of relevant chunks for this user.")
+
+
+class GroupContextResponse(BaseModel):
+    """Response model for the group context retrieval endpoint."""
+    group_results: List[GroupContextUserResult] = Field(..., description="List of results grouped by user.")
+
+
 class MessageRequest(BaseModel):
     """Request model for ingesting a message."""
     

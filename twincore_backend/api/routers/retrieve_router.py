@@ -26,6 +26,7 @@ from api.models import (
     RelatedContentQuery,
     TopicQuery,
     PreferenceQuery,
+    GroupContextResponse,
 )
 from services.preference_service import PreferenceService
 
@@ -580,4 +581,75 @@ async def retrieve_preferences(
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving user preferences: {str(e)}"
-        ) 
+        )
+
+
+@router.get("/group", response_model=GroupContextResponse)
+async def retrieve_group_context(
+    service: RetrievalService = Depends(get_retrieval_service),
+    query_text: str = Query(..., description="The natural language query for semantic search across participants"),
+    session_id: str | None = Query(None, description="Scope: Filter by session ID"),
+    project_id: str | None = Query(None, description="Scope: Filter by project ID"),
+    team_id: str | None = Query(None, description="Scope: Filter by team ID"),
+    limit_per_user: int = Query(5, description="Maximum number of chunks to return per user"),
+    include_private: bool = Query(True, description="Whether to include private content"),
+    include_messages_to_twin: bool = Query(True, description="Whether to include twin interaction messages"),
+    # metadata: Optional[Dict[str, Any]] = Query(None, description="Advanced filtering options (TBD).") # Add later if 
+):
+    """Retrieves context from multiple users within a defined scope."""
+    try:
+        # Validate scope ID (exactly one must be provided)
+        scope_ids = [id for id in [session_id, project_id, team_id] if id is not None]
+        if len(scope_ids) == 0:
+            raise HTTPException(status_code=400, detail="Must provide one scope ID (session_id, project_id, or team_id)")
+        if len(scope_ids) > 1:
+            raise HTTPException(status_code=400, detail="Only one scope ID should be provided")
+        
+        # Call service with appropriate parameters
+        group_results = await service.retrieve_group_context(
+            query_text=query_text,
+            limit_per_user=limit_per_user,
+            session_id=session_id,
+            project_id=project_id,
+            team_id=team_id,
+            include_private=include_private,
+            include_messages_to_twin=include_messages_to_twin,
+        )
+        
+        # Normalize the results format to match ContentChunk model expectations
+        normalized_results = []
+        for group_result in group_results:
+            user_results = []
+            for result in group_result.get("results", []):
+                # Ensure all required fields are present
+                if "text_content" in result and "text" not in result:
+                    result["text"] = result["text_content"]
+                
+                # Add a timestamp if missing
+                if "timestamp" not in result:
+                    result["timestamp"] = datetime.now().isoformat()
+                
+                # Ensure user_id is in each result
+                if "user_id" not in result:
+                    result["user_id"] = group_result.get("user_id")
+                
+                # Add source_type if missing
+                if "source_type" not in result:
+                    result["source_type"] = "unknown"
+                
+                user_results.append(result)
+            
+            normalized_results.append({
+                "user_id": group_result.get("user_id"),
+                "results": user_results
+            })
+        
+        return GroupContextResponse(group_results=normalized_results)
+        
+    except HTTPException as http_exc:
+        # Re-raise HTTPException directly to preserve original status code and detail
+        raise http_exc
+    except Exception as e:
+        # Catch any other unexpected exceptions and return a 500 error
+        logger.error(f"Unexpected error retrieving group context: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal server error: An unexpected error occurred.") 

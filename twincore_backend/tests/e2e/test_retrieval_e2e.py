@@ -1397,4 +1397,163 @@ class TestRetrievalE2E:
                 has_twin_interaction = True
                 break
         
-        assert has_twin_interaction, "Default behavior should include twin interaction messages" 
+        assert has_twin_interaction, "Default behavior should include twin interaction messages"
+
+    @pytest_asyncio.fixture
+    async def seed_group_context_data(self):
+        """Seed test data for group context retrieval tests.
+
+        Creates content for multiple users within the same project/session.
+        """
+        # Generate unique IDs
+        user_a_id = str(uuid.uuid4())
+        user_b_id = str(uuid.uuid4())
+        project_id = str(uuid.uuid4())
+        session_id = str(uuid.uuid4())
+
+        # Initialize services with TEST database connections
+        from tests.e2e.test_utils import get_test_async_qdrant_client, get_test_neo4j_driver
+
+        qdrant_client = await get_test_async_qdrant_client()
+        neo4j_driver = await get_test_neo4j_driver()
+        qdrant_dal = QdrantDAL(client=qdrant_client)
+        neo4j_dal = Neo4jDAL(driver=neo4j_driver)
+        embedding_service = EmbeddingService()
+
+        ingestion_service = IngestionService(
+            qdrant_dal=qdrant_dal,
+            neo4j_dal=neo4j_dal,
+            embedding_service=embedding_service
+        )
+        message_connector = MessageConnector(ingestion_service=ingestion_service)
+
+        # Create Project and Session nodes
+        await neo4j_dal.create_node_if_not_exists("Project", {"project_id": project_id})
+        await neo4j_dal.create_node_if_not_exists("Session", {"session_id": session_id})
+        # Link session to project
+        await neo4j_dal.create_relationship_if_not_exists(
+            "Session", {"session_id": session_id},
+            "Project", {"project_id": project_id},
+            "PART_OF"
+        )
+
+        # User A data (participates in session)
+        await message_connector.ingest_message({
+            "text": "User A discussing group project features.",
+            "user_id": user_a_id,
+            "project_id": project_id,
+            "session_id": session_id,
+            "source_type": "message"
+        })
+        await message_connector.ingest_message({
+            "text": "User A's private thought on the group project.",
+            "user_id": user_a_id,
+            "project_id": project_id,
+            "session_id": session_id,
+            "source_type": "message",
+            "is_private": True # Private message
+        })
+
+        # User B data (participates in session)
+        await message_connector.ingest_message({
+            "text": "User B replying about group project timelines.",
+            "user_id": user_b_id,
+            "project_id": project_id,
+            "session_id": session_id,
+            "source_type": "message"
+        })
+
+        # Link users to session (implicitly done by message_connector)
+        # Ensure relationships exist for Neo4j participant query
+        await neo4j_dal.create_relationship_if_not_exists(
+             "User", {"user_id": user_a_id},
+             "Session", {"session_id": session_id},
+             "PARTICIPATED_IN"
+        )
+        await neo4j_dal.create_relationship_if_not_exists(
+             "User", {"user_id": user_b_id},
+             "Session", {"session_id": session_id},
+             "PARTICIPATED_IN"
+        )
+
+        # Wait for indexing
+        await asyncio.sleep(2)
+
+        return {
+            "user_a_id": user_a_id,
+            "user_b_id": user_b_id,
+            "project_id": project_id,
+            "session_id": session_id
+        }
+
+    @pytest.mark.asyncio
+    async def test_group_context_retrieval_e2e(
+        self, seed_group_context_data, async_client, use_test_databases
+    ):
+        """Test the complete group context retrieval flow using the API endpoint."""
+        # Extract test data IDs
+        user_a_id = seed_group_context_data["user_a_id"]
+        user_b_id = seed_group_context_data["user_b_id"]
+        session_id = seed_group_context_data["session_id"]
+        project_id = seed_group_context_data["project_id"]
+
+        # 1. Test with session scope, including private
+        session_params = {
+            "query_text": "group project",
+            "session_id": session_id,
+            "limit_per_user": 5,
+            "include_private": "true",
+            "include_messages_to_twin": "true"
+        }
+
+        session_response = await async_client.get("/v1/retrieve/group", params=session_params)
+
+        # Verify response
+        assert session_response.status_code == 200
+        session_data = session_response.json()
+        assert "group_results" in session_data
+        assert len(session_data["group_results"]) == 2 # Both users participated
+
+        # Check results for User A (should include public and private)
+        user_a_results = next((r for r in session_data["group_results"] if r["user_id"] == user_a_id), None)
+        assert user_a_results is not None
+        assert len(user_a_results["results"]) >= 2 # Public + Private message
+        assert any("features" in res["text"] for res in user_a_results["results"])
+        assert any("private thought" in res["text"] for res in user_a_results["results"])
+
+        # Check results for User B (should include public only)
+        user_b_results = next((r for r in session_data["group_results"] if r["user_id"] == user_b_id), None)
+        assert user_b_results is not None
+        assert len(user_b_results["results"]) >= 1
+        assert any("timelines" in res["text"] for res in user_b_results["results"])
+
+        # 2. Test with project scope, excluding private
+        project_params = {
+            "query_text": "group project",
+            "project_id": project_id,
+            "limit_per_user": 5,
+            "include_private": "false", # Exclude private content
+            "include_messages_to_twin": "true"
+        }
+
+        project_response = await async_client.get("/v1/retrieve/group", params=project_params)
+
+        # Verify response
+        assert project_response.status_code == 200
+        project_data = project_response.json()
+        assert "group_results" in project_data
+        # Note: Depending on how Neo4j get_project_participants works, might still be 2 users
+        assert len(project_data["group_results"]) >= 1 # At least one user should have public results
+
+        # Check results for User A (should *not* include private)
+        user_a_project_results = next((r for r in project_data["group_results"] if r["user_id"] == user_a_id), None)
+        if user_a_project_results:
+             assert len(user_a_project_results["results"]) >= 1
+             assert any("features" in res["text"] for res in user_a_project_results["results"])
+             assert not any("private thought" in res["text"] for res in user_a_project_results["results"])
+
+        # User B results should be the same (only public)
+        user_b_project_results = next((r for r in project_data["group_results"] if r["user_id"] == user_b_id), None)
+        if user_b_project_results:
+            assert len(user_b_project_results["results"]) >= 1
+            assert any("timelines" in res["text"] for res in user_b_project_results["results"]) 

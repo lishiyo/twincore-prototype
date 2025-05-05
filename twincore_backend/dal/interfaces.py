@@ -166,6 +166,34 @@ class INeo4jDAL(ABC):
         pass
 
     @abstractmethod
+    async def get_project_participants(
+        self, project_id: str
+    ) -> List[Dict[str, Any]]:
+        """Get the participants of a project.
+        
+        Args:
+            project_id: ID of the project
+            
+        Returns:
+            List of user nodes that participated in the project
+        """
+        pass
+
+    @abstractmethod
+    async def get_team_participants(
+        self, team_id: str
+    ) -> List[Dict[str, Any]]:
+        """Get the participants of a team.
+        
+        Args:
+            team_id: ID of the team
+            
+        Returns:
+            List of user nodes that participated in the team
+        """
+        pass
+
+    @abstractmethod
     async def get_project_context(
         self, project_id: str
     ) -> Dict[str, List[Dict[str, Any]]]:

@@ -608,3 +608,246 @@ async def test_retrieve_user_context(
         include_private=False, # Explicitly False
         include_twin_interactions=False # Explicitly False
     ) 
+
+
+# --- Tests for retrieve_group_context ---
+
+@pytest.mark.asyncio
+async def test_retrieve_group_context_by_session(
+    retrieval_service, mock_neo4j_dal, mock_qdrant_dal, mock_embedding_service
+):
+    """Test retrieve_group_context using session scope."""
+    # Arrange
+    session_id = "session-group-test"
+    query_text = "group query by session"
+    mock_participants = [
+        {"user_id": "user-a", "name": "User A"},
+        {"user_id": "user-b", "name": "User B"}
+    ]
+    mock_results_a = [{"chunk_id": "chunk-a1", "text": "A's content"}]
+    mock_results_b = [{"chunk_id": "chunk-b1", "text": "B's content"}]
+
+    mock_neo4j_dal.get_session_participants.return_value = mock_participants
+    # Mock Qdrant to return different results based on user_id filter
+    async def qdrant_side_effect(*args, **kwargs):
+        user_filter = kwargs.get("user_id")
+        if user_filter == "user-a":
+            return mock_results_a
+        elif user_filter == "user-b":
+            return mock_results_b
+        else:
+            return []
+    mock_qdrant_dal.search_vectors.side_effect = qdrant_side_effect
+    mock_embedding_vector = [0.5] * 1536 # Example vector
+    mock_embedding_service.get_embedding.return_value = mock_embedding_vector
+
+    # Act
+    group_results = await retrieval_service.retrieve_group_context(
+        query_text=query_text,
+        session_id=session_id,
+        limit_per_user=3
+    )
+
+    # Assert
+    mock_neo4j_dal.get_session_participants.assert_called_once_with(session_id)
+    mock_neo4j_dal.get_project_participants.assert_not_called()
+    mock_embedding_service.get_embedding.assert_called_once_with(query_text)
+    # Should call Qdrant search twice (once per participant)
+    assert mock_qdrant_dal.search_vectors.call_count == 2
+    
+    # Check Qdrant call arguments for each user
+    calls = mock_qdrant_dal.search_vectors.call_args_list
+    call_args_a = next(c.kwargs for c in calls if c.kwargs['user_id'] == 'user-a')
+    call_args_b = next(c.kwargs for c in calls if c.kwargs['user_id'] == 'user-b')
+
+    assert call_args_a['query_vector'] == mock_embedding_vector
+    assert call_args_a['limit'] == 3
+    assert call_args_a['session_id'] == session_id
+    assert call_args_a['include_private'] is True # Default
+    assert call_args_a['include_twin_interactions'] is True # Default
+
+    assert call_args_b['query_vector'] == mock_embedding_vector
+    assert call_args_b['limit'] == 3
+    assert call_args_b['session_id'] == session_id
+    assert call_args_b['include_private'] is True # Default
+    assert call_args_b['include_twin_interactions'] is True # Default
+
+    # Check the final aggregated result structure
+    assert len(group_results) == 2
+    result_a = next(r for r in group_results if r['user_id'] == 'user-a')
+    result_b = next(r for r in group_results if r['user_id'] == 'user-b')
+    assert result_a['results'] == mock_results_a
+    assert result_b['results'] == mock_results_b
+
+@pytest.mark.asyncio
+async def test_retrieve_group_context_by_project(
+    retrieval_service, mock_neo4j_dal, mock_qdrant_dal, mock_embedding_service
+):
+    """Test retrieve_group_context using project scope."""
+    # Arrange
+    project_id = "project-group-test"
+    query_text = "group query by project"
+    mock_participants = [
+        {"user_id": "user-c", "name": "User C"}
+    ]
+    mock_results_c = [{"chunk_id": "chunk-c1", "text": "C's content"}]
+
+    mock_neo4j_dal.get_project_participants.return_value = mock_participants
+    mock_qdrant_dal.search_vectors.return_value = mock_results_c
+    mock_embedding_vector = [0.6] * 1536
+    mock_embedding_service.get_embedding.return_value = mock_embedding_vector
+
+    # Act
+    group_results = await retrieval_service.retrieve_group_context(
+        query_text=query_text,
+        project_id=project_id,
+        limit_per_user=2,
+        include_private=False,
+        include_messages_to_twin=False
+    )
+
+    # Assert
+    mock_neo4j_dal.get_session_participants.assert_not_called()
+    mock_neo4j_dal.get_project_participants.assert_called_once_with(project_id)
+    mock_embedding_service.get_embedding.assert_called_once_with(query_text)
+    mock_qdrant_dal.search_vectors.assert_called_once()
+    call_args = mock_qdrant_dal.search_vectors.call_args.kwargs
+    
+    assert call_args['user_id'] == 'user-c'
+    assert call_args['query_vector'] == mock_embedding_vector
+    assert call_args['limit'] == 2
+    assert call_args['project_id'] == project_id
+    assert call_args['include_private'] is False # Explicitly set
+    assert call_args['include_twin_interactions'] is False # Explicitly set
+
+    assert len(group_results) == 1
+    assert group_results[0]['user_id'] == 'user-c'
+    assert group_results[0]['results'] == mock_results_c
+
+@pytest.mark.asyncio
+async def test_retrieve_group_context_no_participants(
+    retrieval_service, mock_neo4j_dal, mock_qdrant_dal, mock_embedding_service
+):
+    """Test retrieve_group_context when no participants are found for the scope."""
+    # Arrange
+    project_id = "project-empty-group"
+    mock_neo4j_dal.get_project_participants.return_value = [] # No participants
+
+    # Act
+    group_results = await retrieval_service.retrieve_group_context(
+        query_text="some query",
+        project_id=project_id
+    )
+
+    # Assert
+    mock_neo4j_dal.get_project_participants.assert_called_once_with(project_id)
+    mock_embedding_service.get_embedding.assert_not_called()
+    mock_qdrant_dal.search_vectors.assert_not_called()
+    assert group_results == []
+
+@pytest.mark.asyncio
+async def test_retrieve_group_context_participant_error(
+    retrieval_service, mock_neo4j_dal, mock_qdrant_dal, mock_embedding_service
+):
+    """Test retrieve_group_context when participant retrieval fails."""
+    # Arrange
+    session_id = "session-error"
+    mock_neo4j_dal.get_session_participants.side_effect = Exception("DB error")
+
+    # Act
+    group_results = await retrieval_service.retrieve_group_context(
+        query_text="some query",
+        session_id=session_id
+    )
+
+    # Assert
+    mock_neo4j_dal.get_session_participants.assert_called_once_with(session_id)
+    mock_embedding_service.get_embedding.assert_not_called()
+    mock_qdrant_dal.search_vectors.assert_not_called()
+    assert group_results == []
+
+@pytest.mark.asyncio
+async def test_retrieve_group_context_embedding_error(
+    retrieval_service, mock_neo4j_dal, mock_qdrant_dal, mock_embedding_service
+):
+    """Test retrieve_group_context when embedding generation fails."""
+    # Arrange
+    project_id = "project-embed-error"
+    mock_participants = [{"user_id": "user-d"}]
+    mock_neo4j_dal.get_project_participants.return_value = mock_participants
+    mock_embedding_service.get_embedding.side_effect = Exception("Embedding failed")
+
+    # Act
+    group_results = await retrieval_service.retrieve_group_context(
+        query_text="query causing error",
+        project_id=project_id
+    )
+
+    # Assert
+    mock_neo4j_dal.get_project_participants.assert_called_once_with(project_id)
+    mock_embedding_service.get_embedding.assert_called_once_with("query causing error")
+    mock_qdrant_dal.search_vectors.assert_not_called()
+    assert group_results == []
+
+@pytest.mark.asyncio
+async def test_retrieve_group_context_qdrant_error_for_one_user(
+    retrieval_service, mock_neo4j_dal, mock_qdrant_dal, mock_embedding_service
+):
+    """Test retrieve_group_context when Qdrant search fails for one user."""
+    # Arrange
+    session_id = "session-qdrant-error"
+    mock_participants = [
+        {"user_id": "user-ok", "name": "OK User"},
+        {"user_id": "user-fail", "name": "Fail User"}
+    ]
+    mock_results_ok = [{"chunk_id": "chunk-ok", "text": "OK content"}]
+    
+    mock_neo4j_dal.get_session_participants.return_value = mock_participants
+    mock_embedding_service.get_embedding.return_value = [0.7] * 1536
+
+    # Mock Qdrant to fail for 'user-fail'
+    async def qdrant_side_effect(*args, **kwargs):
+        user_filter = kwargs.get("user_id")
+        if user_filter == "user-ok":
+            return mock_results_ok
+        elif user_filter == "user-fail":
+            raise Exception("Qdrant search failed for user-fail")
+        else:
+            return []
+    mock_qdrant_dal.search_vectors.side_effect = qdrant_side_effect
+
+    # Act
+    group_results = await retrieval_service.retrieve_group_context(
+        query_text="query",
+        session_id=session_id
+    )
+
+    # Assert
+    mock_neo4j_dal.get_session_participants.assert_called_once_with(session_id)
+    mock_embedding_service.get_embedding.assert_called_once()
+    assert mock_qdrant_dal.search_vectors.call_count == 2 # Called for both users
+
+    # Should return results only for the user whose search succeeded
+    assert len(group_results) == 1
+    assert group_results[0]['user_id'] == 'user-ok'
+    assert group_results[0]['results'] == mock_results_ok
+
+@pytest.mark.asyncio
+async def test_retrieve_group_context_missing_scope_id(
+    retrieval_service
+):
+    """Test retrieve_group_context raises error if no scope ID is provided."""
+    with pytest.raises(ValueError, match="Must provide one scope ID"):
+        await retrieval_service.retrieve_group_context(query_text="query")
+
+@pytest.mark.asyncio
+async def test_retrieve_group_context_multiple_scope_ids(
+    retrieval_service
+):
+    """Test retrieve_group_context raises error if multiple scope IDs are provided."""
+    with pytest.raises(ValueError, match="Only one scope ID"):
+        await retrieval_service.retrieve_group_context(
+            query_text="query",
+            session_id="s1",
+            project_id="p1"
+        ) 

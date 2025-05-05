@@ -279,6 +279,51 @@ class Neo4jDAL(INeo4jDAL):
             logger.error(f"Unexpected error getting session participants: {str(e)}")
             raise
 
+    async def get_project_participants(
+        self, project_id: str
+    ) -> List[Dict[str, Any]]:
+        """Get participants for a given project."""
+        # Users can be linked to a project directly OR via a session within the project
+        query = """
+        MATCH (p:Project {project_id: $project_id})
+        // Find users directly linked to the project
+        OPTIONAL MATCH (u1:User)-[:PART_OF]->(p)
+        // Find users linked via sessions within the project
+        OPTIONAL MATCH (p)<-[:PART_OF]-(s:Session)<-[:PARTICIPATED_IN]-(u2:User)
+        // Collect distinct users
+        WITH collect(distinct u1) + collect(distinct u2) as all_users_list
+        UNWIND all_users_list as u
+        RETURN distinct u { .user_id, .name } as user
+        """
+        try:
+            async with self.driver.session() as session:
+                result = await session.run(query, project_id=project_id)
+                participants = [record["user"] async for record in result]
+                logger.info(f"Found {len(participants)} participants for project {project_id}")
+                return participants
+        except Exception as e:
+            logger.error(f"Error getting participants for project {project_id}: {e}", exc_info=True)
+            return []
+            
+    async def get_team_participants(
+        self, team_id: str
+    ) -> List[Dict[str, Any]]:
+        """Get participants (members) for a given team."""
+        # Assuming a 'Team' node and MEMBER_OF relationship
+        query = """
+        MATCH (t:Team {team_id: $team_id})<-[:MEMBER_OF]-(u:User)
+        RETURN u { .user_id, .name } as user
+        """
+        try:
+            async with self.driver.session() as session:
+                result = await session.run(query, team_id=team_id)
+                participants = [record["user"] async for record in result]
+                logger.info(f"Found {len(participants)} members for team {team_id}")
+                return participants
+        except Exception as e:
+            logger.error(f"Error getting members for team {team_id}: {e}", exc_info=True)
+            return []
+
     async def get_project_context(
         self, project_id: str
     ) -> Dict[str, List[Dict[str, Any]]]:

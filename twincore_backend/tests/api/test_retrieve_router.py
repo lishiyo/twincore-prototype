@@ -672,3 +672,123 @@ def test_retrieve_preferences_default_include_messages_to_twin(test_client, mock
     
     # Default for preferences endpoint should be True
     assert call_args["include_messages_to_twin"] is True 
+
+# --- Tests for Group Context Endpoint ---
+
+@pytest.mark.asyncio
+async def test_retrieve_group_context_endpoint(
+    test_client, mock_retrieval_service # Uses standard retrieval service mock
+):
+    """Test the /retrieve/group endpoint."""
+    # Arrange
+    test_session_id = str(uuid.uuid4())
+    test_user_a_id = str(uuid.uuid4())
+    test_user_b_id = str(uuid.uuid4())
+    current_time = datetime.now()
+    
+    # Mock service response structure with complete ContentChunk fields
+    mock_group_results = [
+        {
+            "user_id": test_user_a_id,
+            "results": [
+                {
+                    "chunk_id": "chunk-a1",
+                    "text_content": "User A context",
+                    "source_type": "message", # Required field
+                    "timestamp": current_time.isoformat(), # Required field
+                    "user_id": test_user_a_id, # Required field
+                    "score": 0.9
+                }
+            ]
+        },
+        {
+            "user_id": test_user_b_id,
+            "results": [
+                {
+                    "chunk_id": "chunk-b1",
+                    "text_content": "User B context",
+                    "source_type": "message", # Required field
+                    "timestamp": current_time.isoformat(), # Required field
+                    "user_id": test_user_b_id, # Required field
+                    "score": 0.85
+                }
+            ]
+        }
+    ]
+    
+    # Configure the retrieve_group_context mock method
+    mock_retrieval_service.retrieve_group_context = AsyncMock(return_value=mock_group_results)
+    
+    # Prepare query parameters
+    query_params = {
+        "query_text": "group context query",
+        "session_id": test_session_id, # Using session scope for this test
+        "limit_per_user": 3,
+        "include_private": "true", # Pass as string for query param
+        "include_messages_to_twin": "true"
+    }
+    
+    # Act
+    response = test_client.get("/v1/retrieve/group", params=query_params)
+    
+    # Assert
+    assert response.status_code == 200
+    response_data = response.json()
+    
+    # Verify the service method was called correctly
+    mock_retrieval_service.retrieve_group_context.assert_called_once()
+    call_args = mock_retrieval_service.retrieve_group_context.call_args.kwargs
+    assert call_args["query_text"] == query_params["query_text"]
+    assert call_args["session_id"] == query_params["session_id"]
+    assert call_args["limit_per_user"] == query_params["limit_per_user"]
+    assert call_args["include_private"] is True # Service expects bool
+    assert call_args["include_messages_to_twin"] is True # Service expects bool
+    assert call_args["project_id"] is None
+    assert call_args["team_id"] is None
+    
+    # Verify response structure matches the GroupContextResponse model
+    assert "group_results" in response_data
+    assert isinstance(response_data["group_results"], list)
+    assert len(response_data["group_results"]) == 2
+    
+    # Check structure of individual user results
+    user_a_result = next(r for r in response_data["group_results"] if r["user_id"] == test_user_a_id)
+    user_b_result = next(r for r in response_data["group_results"] if r["user_id"] == test_user_b_id)
+    
+    assert "user_id" in user_a_result
+    assert "results" in user_a_result
+    assert isinstance(user_a_result["results"], list)
+    assert len(user_a_result["results"]) == 1
+    assert "chunk_id" in user_a_result["results"][0]
+    assert "text" in user_a_result["results"][0]
+    # assert "score" in user_a_result["results"][0] # Add if ChunksResponse includes score
+    
+    assert "user_id" in user_b_result
+    assert "results" in user_b_result
+    assert isinstance(user_b_result["results"], list)
+    assert len(user_b_result["results"]) == 1
+    assert "chunk_id" in user_b_result["results"][0]
+    assert "text" in user_b_result["results"][0]
+    # assert "score" in user_b_result["results"][0]
+
+@pytest.mark.asyncio
+async def test_retrieve_group_context_validation_errors(test_client):
+    """Test validation errors for the /retrieve/group endpoint."""
+    # Missing required query parameter
+    response = test_client.get("/v1/retrieve/group", params={"session_id": "s1"})
+    assert response.status_code == 422 # FastAPI validation error
+    assert "query_text" in response.text
+    
+    # Missing scope ID parameter
+    response = test_client.get("/v1/retrieve/group", params={"query_text": "test"})
+    assert response.status_code == 400 # Custom validation in endpoint
+    assert "Must provide one scope ID" in response.text
+    
+    # Multiple scope ID parameters
+    response = test_client.get("/v1/retrieve/group", params={
+        "query_text": "test",
+        "session_id": "s1",
+        "project_id": "p1"
+    })
+    assert response.status_code == 400 # Custom validation in endpoint
+    assert "Only one scope ID" in response.text 

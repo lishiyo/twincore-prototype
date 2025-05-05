@@ -8,6 +8,7 @@ import logging
 from typing import Dict, List, Optional, Any
 
 import numpy as np
+import asyncio
 
 from dal.interfaces import IQdrantDAL, INeo4jDAL
 from services.embedding_service import EmbeddingService
@@ -358,10 +359,129 @@ class RetrievalService:
                 )
                 
                 logger.info(f"Retrieved {len(search_results)} content chunks for topic: {topic_name} (via vector search)")
-                return search_results
-            except Exception as e2:
-                logger.error(f"Error in fallback vector search: {e2}")
+                return search_results   
+            except Exception as e:
+                logger.error(f"Error retrieving topic content for {topic_name}: {e}", exc_info=True)
+                return [] # Return empty list on error
+
+    async def retrieve_group_context(
+        self,
+        query_text: str,
+        limit_per_user: int = 5,
+        session_id: str | None = None,
+        project_id: str | None = None,
+        team_id: str | None = None,
+        include_messages_to_twin: bool = True,
+        include_private: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """Retrieves context from multiple users within a defined scope.
+
+        Args:
+            query_text: The natural language query.
+            limit_per_user: Max results per user.
+            session_id: Scope to session.
+            project_id: Scope to project.
+            team_id: Scope to team.
+            include_messages_to_twin: Whether to include twin interactions.
+            include_private: Whether to include private content.
+
+        Returns:
+            A list of dictionaries, each containing a user_id and their relevant chunks.
+        """
+        if not any([session_id, project_id, team_id]):
+            raise ValueError("Must provide one scope ID (session_id, project_id, or team_id).")
+        if sum(bool(id) for id in [session_id, project_id, team_id]) > 1:
+            raise ValueError("Only one scope ID (session_id, project_id, or team_id) can be provided.")
+
+        participants = []
+        scope_type = None
+        scope_id = None
+
+        try:
+            if session_id:
+                scope_type = "session"
+                scope_id = session_id
+                participants = await self._neo4j_dal.get_session_participants(session_id)
+            elif project_id:
+                scope_type = "project"
+                scope_id = project_id
+                participants = await self._neo4j_dal.get_project_participants(project_id)
+            elif team_id:
+                scope_type = "team"
+                scope_id = team_id
+                # TODO: Implement get_team_participants in Neo4jDAL if needed
+                # participants = await self.neo4j_dal.get_team_participants(team_id)
+                logger.warning(f"Team scope retrieval not fully implemented yet for team {team_id}. Returning empty results.")
+                participants = [] # Placeholder
+
+            if not participants:
+                logger.info(f"No participants found for {scope_type} scope {scope_id}.")
                 return []
+
+            logger.info(f"Found {len(participants)} participants for {scope_type} scope {scope_id}.")
+
+        except Exception as e:
+            logger.error(f"Error retrieving participants for {scope_type} scope {scope_id}: {e}", exc_info=True)
+            return []
+
+        # Get embedding for the main query
+        try:
+            query_vector = await self._embedding_service.get_embedding(query_text)
+        except Exception as e:
+            logger.error(f"Error getting embedding for group query '{query_text}': {e}", exc_info=True)
+            return []
+
+        group_results = []
+        search_tasks = []
+
+        # Create search tasks for each participant
+        for participant in participants:
+            user_id = participant.get("user_id")
+            if user_id:
+                # Define search scope for this user within the overall scope
+                user_filters = {
+                    "user_id": user_id,
+                    "project_id": project_id, # Pass down original scope filters
+                    "session_id": session_id,
+                    # team_id could be added if needed
+                    "include_private": include_private,
+                    "include_twin_interactions": include_messages_to_twin
+                }
+                search_tasks.append(
+                    self._qdrant_dal.search_vectors(
+                        query_vector=query_vector,
+                        limit=limit_per_user,
+                        **user_filters
+                    )
+                )
+            else:
+                logger.warning(f"Participant missing user_id: {participant}")
+                search_tasks.append(asyncio.sleep(0, result=[])) # Placeholder for missing ID
+
+        # Run searches concurrently
+        try:
+            user_search_results = await asyncio.gather(*search_tasks, return_exceptions=True)
+        except Exception as e:
+            logger.error(f"Error during concurrent Qdrant searches for group context: {e}", exc_info=True)
+            return []
+
+        # Process results
+        for i, result in enumerate(user_search_results):
+            user_id = participants[i].get("user_id")
+            if isinstance(result, Exception):
+                logger.error(f"Error searching Qdrant for user {user_id}: {result}", exc_info=result)
+            elif user_id and result:
+                logger.info(f"Found {len(result)} results for user {user_id} in group query.")
+                group_results.append({
+                    "user_id": user_id,
+                    "results": result
+                })
+            elif user_id:
+                 logger.info(f"No results found for user {user_id} in group query.")
+                 # Optionally add an entry with empty results:
+                 # group_results.append({"user_id": user_id, "results": []})
+
+        return group_results
 
     async def retrieve_user_context(
         self,
