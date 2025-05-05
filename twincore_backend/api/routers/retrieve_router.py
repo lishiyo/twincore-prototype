@@ -134,7 +134,7 @@ async def get_retrieval_service_with_message_connector() -> RetrievalService:
 @router.get("/context", response_model=ChunksResponse)
 async def retrieve_context(
     query_text: str,
-    limit: int = 10,
+    limit: int = 20,
     user_id: Optional[str] = None,
     project_id: Optional[str] = None,
     session_id: Optional[str] = None,

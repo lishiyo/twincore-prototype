@@ -36,7 +36,7 @@ This document outlines strategies to enhance the retrieval capabilities of the T
 
 *   **Concept:** Use the knowledge graph to expand the user's initial query with related terms or concepts before performing the semantic search in Qdrant.
 *   **Implementation Strategy:**
-    1.  **Entity Linking (Optional but Recommended):** Attempt to identify key entities (Topics, People, specific Documents mentioned by name/ID) in the `query_text`. This might require a simple NLP step or potentially another LLM call in future phases.
+    1.  **Entity Linking:** Attempt to identify key entities (Topics, People, specific Documents mentioned by name/ID) in the `query_text`. This might require a simple NLP step or potentially another LLM call in future phases.
     2.  **Graph Expansion Query:** If entities are identified, query Neo4j to find directly related entities (e.g., if "Book Generator Agent" project is identified, find associated `Topic` nodes like "LLM Selection" or "Niche Research").
     3.  **Get Expansion Embeddings:** Retrieve embeddings for the text associated with these related entities (e.g., topic names/descriptions, document titles). Use the `EmbeddingService`.
     4.  **Modify Query Vector:** Combine the original `query_embedding` with the embeddings of the related entities. Strategies:
