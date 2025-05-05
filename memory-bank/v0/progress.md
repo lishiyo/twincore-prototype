@@ -1,6 +1,32 @@
 # Progress Log
 
-**IMPORTANT**: Put your changes at the top!
+**IMPORTANT**: Put your changes at the top! The most recent update is at the top.
+
+## Sun May  4 22:53:07 PDT 2025
+
+**Changes:**
+*   **Completed Task 7.7.1: Refactor Preference Endpoint Path & Parameters**
+    *   Moved endpoint from `GET /v1/retrieve/preferences` to `GET /v1/users/{user_id}/preferences`.
+    *   Updated router definitions in `user_router.py` and `retrieve_router.py` (removing the old endpoint).
+    *   Updated associated unit and E2E tests (`test_user_api.py`, `test_retrieve_router.py`).
+    *   Updated API documentation (`api.md`) and task tracking (`tasks.md`).
+*   **Corrected Neo4j Preference Retrieval:**
+    *   Identified and fixed an issue where `Neo4jDAL.get_user_preference_statements` incorrectly filtered out twin interactions.
+    *   Updated the DAL method and interface to accept and respect the `include_twin_interactions` flag.
+    *   Updated `PreferenceService` to pass the flag correctly.
+*   **Planned Task 7.7.2:** Refactor Private Memory Endpoint
+    *   Added sub-task to `tasks.md` to move `POST /v1/retrieve/private_memory` to `POST /v1/users/{user_id}/private_memory`.
+    *   Updated `api.md` to reflect the planned change and mark the old endpoint for deprecation.
+
+**Errors & Learnings:**
+*   API consistency is improved by grouping user-specific endpoints under `/v1/users/{user_id}/`.
+*   Carefully review DAL query logic to ensure it matches the intended filtering behavior from the service/API layer.
+*   Refactoring requires updating code, tests, and documentation across multiple files.
+
+**Next Steps:**
+*   Implement Task 7.7.2: Refactor Private Memory Endpoint.
+*   Continue investigating and fix the document ingestion E2E test failure (`test_document_ingestion_end_to_end`).
+
 
 ## Sun May  4 22:10:04 PDT 2025
 

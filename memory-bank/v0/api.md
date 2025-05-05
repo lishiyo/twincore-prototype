@@ -348,14 +348,15 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `400 Bad Request`: Missing required query parameter (`topic_name`).
     *   `401 Unauthorized`: Missing or invalid authentication token.
 
-### 3.6 Retrieve Private Memory (User Interaction)
+### 3.6 Retrieve Private Memory (User Interaction) - MOVED
 
+*   **This endpoint is deprecated and will be removed. Use `POST /v1/users/{user_id}/private_memory` instead.**
 *   **Endpoint:** `POST /v1/retrieve/private_memory`
 *   **Description:** Retrieves a user's private memory based on semantic search **AND ingests the query itself** as a twin interaction (marked with `is_twin_interaction: true`). This endpoint is designed specifically for the user's direct interaction loop with their twin simulation. By default, the retrieval **includes** previous user messages to the twin. Set `include_messages_to_twin` to false in the request body to exclude them. **Note:** For read-only queries *about* a user without ingestion, use `GET /v1/users/{user_id}/context`.
 *   **Request Body:**
     ```json
     {
-      "user_id": "string (uuid)", // REQUIRED
+      "user_id": "string (uuid)", // REQUIRED (Deprecated - will be moved to path parameter)
       "query_text": "string", // REQUIRED: The query for semantic search
       "project_id": "string (uuid), optional", // Optional context filter
       "session_id": "string (uuid), optional", // Optional context filter
@@ -562,6 +563,54 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `400 Bad Request`: Missing required query parameter (`decision_topic`).
     *   `401 Unauthorized`: Missing or invalid authentication token.
     *   `404 Not Found`: If the specified `user_id` does not exist.
+
+### 3.12 Create + Retrieve Private Memory (User Interaction) - NEW
+
+*   **Endpoint:** `POST /v1/users/{user_id}/private_memory`
+*   **Description:** Retrieves a user's private memory based on semantic search **AND ingests the query itself** as a twin interaction (marked with `is_twin_interaction: true`). This endpoint is designed specifically for the user's direct interaction loop with their twin simulation. By default, the retrieval **includes** previous user messages to the twin. Set `include_messages_to_twin` to false in the request body to exclude them. **Note:** For read-only queries *about* a user without ingestion, use `GET /v1/users/{user_id}/context`.
+*   **Path Parameters:**
+    *   `user_id`: `string (uuid)` - REQUIRED: The ID of the user whose memory is being queried and whose query is being ingested.
+*   **Request Body:**
+    ```json
+    {
+      "query_text": "string", // REQUIRED: The query for semantic search
+      "project_id": "string (uuid), optional", // Optional context filter
+      "session_id": "string (uuid), optional", // Optional context filter
+      "limit": "integer, optional (default: 10)",
+      "include_messages_to_twin": "boolean, optional (default: True)" // Control inclusion of interaction history
+    }
+    ```
+*   **Query Parameters:**
+    *   `include_graph`: `boolean, optional (default: False)` - If true, results will be enriched with related graph context.
+*   **Responses:**
+    *   `200 OK`: Successfully retrieved private memory chunks.
+      ```json
+      {
+        "chunks": [
+          {
+            "chunk_id": "string (uuid)",
+            "text": "string",
+            "score": "float", // Relevance score from Qdrant
+            "metadata": {
+              "source_type": "string (e.g., 'message', 'document')",
+              "user_id": "string (uuid)",
+              "session_id": "string (uuid), optional",
+              "project_id": "string (uuid), optional",
+              "doc_id": "string (uuid), optional",
+              "message_id": "string (uuid), optional",
+              "timestamp": "string (isoformat)",
+              "outgoing_relationships": [ /* ... */ ],
+              "incoming_relationships": [ /* ... */ ]
+            }
+          }
+        ],
+        "total": "integer"
+      }
+      ```
+    *   `400 Bad Request`: Invalid request body.
+    *   `401 Unauthorized`: Missing or invalid authentication token.
+    *   `404 Not Found`: If the specified `user_id` does not exist.
+    *   `422 Unprocessable Entity`: Validation error (e.g., missing `query_text`).
 
 ---
 
