@@ -335,11 +335,12 @@ This document outlines the development tasks for building the TwinCore backend p
         - [x] Pass appropriate data (selected user ID, text inputs, context IDs) to the API calls.
         - [x] Display API responses in the Output Display area.
 
-- [x] **Task 8.4: (Bonus) DB Stats Display** (D: 8.3, potentially new admin endpoints)
+- [x] **Task 8.4: DB Stats Display** (D: 8.3, potentially new admin endpoints)
     - [x] Steps:
-        - [x] (Optional) Create simple backend endpoints in `admin_router.py` to return counts from Qdrant/Neo4j (e.g., `/v1/stats/qdrant_count`, `/v1/stats/neo4j_nodes`). Test these endpoints.
-        - [x] Add a "Show DB Stats" button to Streamlit UI.
-        - [x] Call the stats endpoints and display results.
+        - [x] Create backend endpoints in `admin_router.py` to return counts from Qdrant/Neo4j (e.g., `/v1/admin/api/stats/qdrant`, `/v1/admin/api/stats/neo4j`). Test these endpoints.
+        - [x] Implement DAL methods for retrieving node/relationship counts and collection info.
+        - [x] Add service methods to get and format database statistics.
+        - [x] Update the Streamlit UI to call these endpoints and display the results in a user-friendly format.
 
 ---
 

@@ -794,4 +794,113 @@ class Neo4jDAL(INeo4jDAL):
                 await self._driver.close()
                 logger.info("Neo4j driver closed successfully")
             except Exception as e:
-                logger.error(f"Error closing Neo4j driver: {e}") 
+                logger.error(f"Error closing Neo4j driver: {e}")
+
+    async def get_node_counts(self) -> Dict[str, int]:
+        """Get counts of nodes by label.
+        
+        Returns:
+            Dict mapping node labels to counts
+        """
+        try:
+            # Try APOC first for efficiency
+            apoc_query = """
+                CALL apoc.meta.stats() YIELD labels
+                RETURN labels
+            """
+            
+            # Fallback query using standard Cypher (works without APOC)
+            fallback_query = """
+                MATCH (n)
+                RETURN distinct labels(n) as labels, count(n) as count
+            """
+            
+            async with self._driver.session() as session:
+                try:
+                    # First try with APOC
+                    result = await session.run(apoc_query)
+                    record = await result.single()
+                    if record and "labels" in record:
+                        return record["labels"]
+                    
+                    # If we got here, APOC call succeeded but returned no data
+                    logger.warning("APOC meta.stats returned no labels data")
+                    return {}
+                    
+                except Exception as apoc_error:
+                    # Log the APOC error and try fallback
+                    logger.warning(f"Error using APOC for node counts: {str(apoc_error)}")
+                    logger.info("Falling back to standard Cypher for node counts")
+                    
+                    result = await session.run(fallback_query)
+                    node_counts = {}
+                    
+                    # Process records by iterating directly
+                    async for record in result:
+                        labels = record["labels"]
+                        count = record["count"]
+                        
+                        # Handle multi-label nodes (process each label)
+                        if isinstance(labels, list) and len(labels) > 0:
+                            for label in labels:
+                                node_counts[label] = node_counts.get(label, 0) + count
+                        elif isinstance(labels, str):
+                            # Single label as string
+                            node_counts[labels] = node_counts.get(labels, 0) + count
+                    
+                    return node_counts
+                    
+        except Exception as e:
+            logger.error(f"Error getting node counts: {str(e)}")
+            return {}
+            
+    async def get_relationship_counts(self) -> Dict[str, int]:
+        """Get counts of relationships by type.
+        
+        Returns:
+            Dict mapping relationship types to counts
+        """
+        try:
+            # Try APOC first for efficiency
+            apoc_query = """
+                CALL apoc.meta.stats() YIELD relTypes
+                RETURN relTypes
+            """
+            
+            # Fallback query using standard Cypher (works without APOC)
+            fallback_query = """
+                MATCH ()-[r]->()
+                RETURN type(r) as rel_type, count(r) as count
+            """
+            
+            async with self._driver.session() as session:
+                try:
+                    # First try with APOC
+                    result = await session.run(apoc_query)
+                    record = await result.single()
+                    if record and "relTypes" in record:
+                        return record["relTypes"]
+                    
+                    # If we got here, APOC call succeeded but returned no data
+                    logger.warning("APOC meta.stats returned no relationship data")
+                    return {}
+                    
+                except Exception as apoc_error:
+                    # Log the APOC error and try fallback
+                    logger.warning(f"Error using APOC for relationship counts: {str(apoc_error)}")
+                    logger.info("Falling back to standard Cypher for relationship counts")
+                    
+                    result = await session.run(fallback_query)
+                    rel_counts = {}
+                    
+                    # Process records by iterating directly
+                    async for record in result:
+                        rel_type = record["rel_type"]
+                        count = record["count"]
+                        rel_counts[rel_type] = count
+                    
+                    return rel_counts
+                    
+        except Exception as e:
+            logger.error(f"Error getting relationship counts: {str(e)}")
+            return {} 

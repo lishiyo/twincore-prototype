@@ -47,7 +47,7 @@ with seed_col1:
         
 with seed_col2:
     if st.button("🧹 Clear Data", key="sidebar_clear"):
-        make_api_call("DELETE", "/admin/api/clear_data")
+        make_api_call("POST", "/admin/api/clear_data")
 
 st.sidebar.markdown("---")
 st.sidebar.info("Remember to seed data first if you've just started the backend!")

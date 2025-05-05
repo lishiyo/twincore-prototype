@@ -78,4 +78,46 @@ async def clear_data(
             "data": result
         }
     except DataManagementServiceError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/stats/qdrant")
+async def get_qdrant_stats(
+    management_service: DataManagementService = Depends(get_data_management_service)
+) -> Dict[str, Any]:
+    """Get statistics about the Qdrant database.
+    
+    This endpoint retrieves information about the Qdrant collection,
+    including the number of vectors and points.
+    
+    Returns:
+        JSON object containing Qdrant statistics.
+    
+    Raises:
+        HTTPException: If retrieving stats fails
+    """
+    try:
+        result = await management_service.get_qdrant_stats()
+        return result
+    except DataManagementServiceError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/stats/neo4j")
+async def get_neo4j_stats(
+    management_service: DataManagementService = Depends(get_data_management_service)
+) -> Dict[str, Any]:
+    """Get statistics about the Neo4j database.
+    
+    This endpoint retrieves information about the Neo4j database,
+    including node and relationship counts by label/type.
+    
+    Returns:
+        JSON object containing Neo4j statistics.
+    
+    Raises:
+        HTTPException: If retrieving stats fails
+    """
+    try:
+        result = await management_service.get_neo4j_stats()
+        return result
+    except DataManagementServiceError as e:
         raise HTTPException(status_code=500, detail=str(e)) 

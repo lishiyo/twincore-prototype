@@ -23,6 +23,13 @@ def make_api_call(method, endpoint, payload=None, params=None, response_placehol
         
     url = f"{BACKEND_URL}{endpoint}"
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    
+    # DEBUG: Print the payload before making the API call
+    if payload:
+        st.write("DEBUG - Sending payload:")
+        st.json(payload)
+        print(f"DEBUG - Sending to {method} {url}: {json.dumps(payload, default=str)}")
+    
     try:
         if method.upper() == "GET":
             response = requests.get(url, headers=headers, params=params)

@@ -129,4 +129,63 @@ class DataManagementService:
         except Exception as e:
             error_msg = f"Failed to update metadata for document {doc_id}: {str(e)}"
             logger.error(error_msg, exc_info=True)
+            raise DataManagementServiceError(error_msg)
+            
+    async def get_qdrant_stats(self) -> Dict[str, Any]:
+        """Get statistics about the Qdrant database.
+        
+        Returns:
+            Dict containing Qdrant collection statistics
+            
+        Raises:
+            DataManagementServiceError: If retrieving stats fails
+        """
+        try:
+            logger.info("Retrieving Qdrant stats")
+            
+            # Get point count
+            collection_info = await self._qdrant_dal.get_collection_info()
+            
+            return {
+                "status": "success",
+                "collection_info": collection_info,
+                "vectors_count": collection_info.get("vectors_count", 0),
+                "indexed_vectors_count": collection_info.get("indexed_vectors_count", 0),
+                "points_count": collection_info.get("points_count", 0)
+            }
+            
+        except Exception as e:
+            error_msg = f"Failed to retrieve Qdrant stats: {str(e)}"
+            logger.error(error_msg)
+            raise DataManagementServiceError(error_msg)
+    
+    async def get_neo4j_stats(self) -> Dict[str, Any]:
+        """Get statistics about the Neo4j database.
+        
+        Returns:
+            Dict containing Neo4j node and relationship counts by label/type
+            
+        Raises:
+            DataManagementServiceError: If retrieving stats fails
+        """
+        try:
+            logger.info("Retrieving Neo4j stats")
+            
+            # Get node counts by label
+            node_counts = await self._neo4j_dal.get_node_counts()
+            
+            # Get relationship counts by type
+            relationship_counts = await self._neo4j_dal.get_relationship_counts()
+            
+            return {
+                "status": "success",
+                "node_counts": node_counts,
+                "relationship_counts": relationship_counts,
+                "total_nodes": sum(node_counts.values()),
+                "total_relationships": sum(relationship_counts.values())
+            }
+            
+        except Exception as e:
+            error_msg = f"Failed to retrieve Neo4j stats: {str(e)}"
+            logger.error(error_msg)
             raise DataManagementServiceError(error_msg) 

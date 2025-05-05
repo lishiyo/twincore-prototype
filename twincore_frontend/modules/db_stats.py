@@ -19,13 +19,13 @@ def render_db_stats_tab():
     with db_col1:
         st.write("**Initial Data Seeding**")
         if st.button("Seed Initial Data", key="seed_data"):
-            make_api_call("POST", "/api/seed_data")
+            make_api_call("POST", "/admin/api/seed_data")
     
     # Clear Data 
     with db_col2:
         st.write("**Danger Zone**")
         if st.button("Clear All Data", key="clear_data", type="primary", help="WARNING: This will delete all data!"):
-            make_api_call("DELETE", "/api/clear_data")
+            make_api_call("POST", "/admin/api/clear_data")
     
     # Stats section
     st.subheader("Database Statistics")
@@ -43,47 +43,39 @@ def render_qdrant_stats():
     """Render the Qdrant stats section."""
     st.write("**Qdrant Vector Database**")
     if st.button("Get Qdrant Stats", key="qdrant_stats"):
-        # Since this endpoint doesn't exist yet, we're preparing for when it does
-        try:
-            make_api_call("GET", "/stats/qdrant")
-        except Exception as e:
-            st.warning("Qdrant stats endpoint not implemented yet. This is part of Task 8.4 (Bonus).")
-            # Placeholder for future implementation
-            st.json({
-                "note": "Placeholder for actual stats",
-                "vectors_count": "?",
-                "collection_size": "?",
-                "entities": {
-                    "documents": "?",
-                    "messages": "?",
-                    "chunks": "?"
-                }
-            })
+        result = make_api_call("GET", "/admin/api/stats/qdrant")
+        if result:
+            # Format and display the stats
+            st.metric("Points Count", result.get("points_count", 0))
+            st.metric("Vectors Count", result.get("vectors_count", 0))
+            st.metric("Indexed Vectors", result.get("indexed_vectors_count", 0))
+            
+            # Display the full response as JSON for detailed view
+            with st.expander("Detailed Qdrant Stats"):
+                st.json(result)
             
 def render_neo4j_stats():
     """Render the Neo4j stats section."""
     st.write("**Neo4j Graph Database**")
     if st.button("Get Neo4j Stats", key="neo4j_stats"):
-        # Since this endpoint doesn't exist yet, we're preparing for when it does
-        try:
-            make_api_call("GET", "/stats/neo4j")
-        except Exception as e:
-            st.warning("Neo4j stats endpoint not implemented yet. This is part of Task 8.4 (Bonus).")
-            # Placeholder for future implementation
-            st.json({
-                "note": "Placeholder for actual stats",
-                "nodes_count": {
-                    "User": "?",
-                    "Document": "?",
-                    "Message": "?",
-                    "Topic": "?",
-                    "Project": "?",
-                    "Session": "?"
-                },
-                "relationships_count": {
-                    "AUTHORED": "?",
-                    "PARTICIPATED_IN": "?",
-                    "MENTIONS": "?",
-                    "STATES_PREFERENCE": "?"
-                }
-            }) 
+        result = make_api_call("GET", "/admin/api/stats/neo4j")
+        if result:
+            # Display top-level metrics
+            st.metric("Total Nodes", result.get("total_nodes", 0))
+            st.metric("Total Relationships", result.get("total_relationships", 0))
+            
+            # Display node counts by label
+            if "node_counts" in result and result["node_counts"]:
+                st.write("**Node Counts by Label:**")
+                for label, count in result["node_counts"].items():
+                    st.write(f"- {label}: {count}")
+            
+            # Display relationship counts by type
+            if "relationship_counts" in result and result["relationship_counts"]:
+                st.write("**Relationship Counts by Type:**")
+                for rel_type, count in result["relationship_counts"].items():
+                    st.write(f"- {rel_type}: {count}")
+            
+            # Display the full response as JSON for detailed view
+            with st.expander("Detailed Neo4j Stats"):
+                st.json(result) 

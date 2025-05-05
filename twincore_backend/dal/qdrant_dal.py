@@ -448,3 +448,34 @@ class QdrantDAL(IQdrantDAL):
         except Exception as e:
             logger.error(f"Unexpected error searching user preferences: {str(e)}")
             raise 
+
+    async def get_collection_info(self) -> Dict[str, Any]:
+        """Get information about the Qdrant collection.
+        
+        Returns:
+            Dict containing collection statistics
+        """
+        try:
+            collection_info = await self._client.get_collection(collection_name=self._collection_name)
+            
+            # Extract relevant statistics
+            stats = {
+                "vectors_count": collection_info.vectors_count,
+                "indexed_vectors_count": collection_info.indexed_vectors_count,
+                "points_count": collection_info.points_count,
+                "segments_count": collection_info.segments_count,
+                "status": str(collection_info.status),
+                "config": {
+                    "params": {
+                        "vectors": {
+                            "size": collection_info.config.params.vectors.size,
+                            "distance": str(collection_info.config.params.vectors.distance),
+                        }
+                    }
+                }
+            }
+            
+            return stats
+        except Exception as e:
+            logger.error(f"Error getting collection info: {str(e)}")
+            return {} 
