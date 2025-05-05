@@ -33,7 +33,7 @@ TwinCore is a prototype backend service that demonstrates the Digital Twin's abi
    ```
    pip install -r requirements.txt
    ```
-4. Create a `.env` file based on the example variables in `core/config.py`
+4. Create a `.env` file based on the example variables in `.env.example`
 
 ### Running the Database Services
 
@@ -94,7 +94,7 @@ python main.py
 Or using uvicorn directly:
 
 ```
-uvicorn main:app --reload
+uvicorn main:app --reload --port 8000
 ```
 
 The API will be available at http://localhost:8000. API documentation is available at http://localhost:8000/docs.
