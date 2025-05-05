@@ -7,20 +7,21 @@ Contains the API base URL, mock data, and other constants.
 # Assuming the backend runs locally on port 8000
 BACKEND_URL = "http://localhost:8000/v1"
 
-# --- Mock Data (from backend's mock_data.py) ---
+# --- Mock Data (Consistent with backend core/mock_data.py) ---
+# Use the same predefined UUIDs as the backend mock data
 MOCK_USERS = {
-    "Alice": "user_1_alice",
-    "Bob": "user_2_bob",
-    "Charlie": "user_3_charlie",
+    "Alice": "a11ce000-0000-0000-0000-000000000001",
+    "Bob": "b0b0b0b0-0000-0000-0000-000000000002",
+    "Charlie": "c4a111e0-0000-0000-0000-000000000003",
 }
 
 MOCK_PROJECTS = {
-    "Project Alpha": "project_alpha",
-    "Project Beta": "project_beta",
+    "Book Generator Agent": "b0000000-6e40-0000-0000-000000000001",
+    "Past Web Project": "web00000-0000-0000-0000-000000000002",
 }
 
 MOCK_SESSIONS = {
-    "Session 1 (Alpha)": "session_1_alpha",
-    "Session 2 (Alpha)": "session_2_alpha",
-    "Session 3 (Beta)": "session_3_beta",
+    "Book Gen - Current": "5e551011-c41e-0000-0000-000000000001",
+    "Book Gen - Past": "5e551011-a570-0000-0000-000000000002",
+    "Web Project - Past": "5e551011-web0-0000-0000-000000000003",
 } 

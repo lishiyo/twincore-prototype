@@ -10,9 +10,10 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
 # --- Entities (Mocking Postgres/Shared Service) ---
-USER_ALICE_ID = str(uuid.uuid4())
-USER_BOB_ID = str(uuid.uuid4())
-USER_CHARLIE_ID = str(uuid.uuid4())
+# Define constant UUIDs for predictability
+USER_ALICE_ID = "a11ce000-0000-0000-0000-000000000001"
+USER_BOB_ID = "b0b0b0b0-0000-0000-0000-000000000002"
+USER_CHARLIE_ID = "c4a111e0-0000-0000-0000-000000000003"
 
 USERS = {
     USER_ALICE_ID: {"name": "Alice"},
@@ -20,16 +21,27 @@ USERS = {
     USER_CHARLIE_ID: {"name": "Charlie"}
 }
 
-PROJECT_BOOK_GEN_ID = str(uuid.uuid4())   # Current Project: Book Generator Agent
-PROJECT_PAST_WEB_ID = str(uuid.uuid4())   # Past Project: Web Development
+PROJECT_BOOK_GEN_ID = "b0000000-6e40-0000-0000-000000000001"   # Current Project: Book Generator Agent
+PROJECT_PAST_WEB_ID = "web00000-0000-0000-0000-000000000002"   # Past Project: Web Development
 
-SESSION_BOOK_CURRENT_ID = str(uuid.uuid4())  # Current Session for Book Gen
-SESSION_BOOK_PAST_ID = str(uuid.uuid4())     # Past Session for Book Gen
-SESSION_WEB_PAST_ID = str(uuid.uuid4())      # Past Session for Web project
+PROJECTS = {
+    PROJECT_BOOK_GEN_ID: {"name": "Book Generator Agent"},
+    PROJECT_PAST_WEB_ID: {"name": "Past Web Project"}
+}
+
+SESSION_BOOK_CURRENT_ID = "5e551011-c41e-0000-0000-000000000001"  # Current Session for Book Gen
+SESSION_BOOK_PAST_ID = "5e551011-a570-0000-0000-000000000002"     # Past Session for Book Gen
+SESSION_WEB_PAST_ID = "5e551011-web0-0000-0000-000000000003"      # Past Session for Web project
+
+SESSIONS = {
+    SESSION_BOOK_CURRENT_ID: {"name": "Book Gen - Current", "project_id": PROJECT_BOOK_GEN_ID},
+    SESSION_BOOK_PAST_ID: {"name": "Book Gen - Past", "project_id": PROJECT_BOOK_GEN_ID},
+    SESSION_WEB_PAST_ID: {"name": "Web Project - Past", "project_id": PROJECT_PAST_WEB_ID}
+}
 
 # Organizations and Teams (for additional context)
-ORG_TWIN_LABS_ID = str(uuid.uuid4())       # Organization: Twin Labs
-TEAM_PRODUCT_ID = str(uuid.uuid4())        # Team: Product
+ORG_TWIN_LABS_ID = "04600000-1ab5-0000-0000-000000000001"       # Organization: Twin Labs
+TEAM_PRODUCT_ID = "7e410000-940d-0000-0000-000000000001"        # Team: Product
 
 # Topic IDs for enriched examples (to be used in future phases)
 TOPIC_LLM_ID = str(uuid.uuid4())           # Topic: LLM
