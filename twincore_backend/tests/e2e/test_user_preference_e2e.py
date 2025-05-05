@@ -11,7 +11,7 @@ import asyncio
 @pytest.mark.xdist_group(name="qdrant")  # Group Qdrant-dependent tests
 @pytest.mark.xdist_group(name="neo4j")   # Group Neo4j-dependent tests
 class TestPreferenceEndpoint:
-    """End-to-end tests for the preferences API endpoint."""
+    """End-to-end tests for the user preferences API endpoint."""
     
     @pytest_asyncio.fixture
     async def ensure_collection_exists(self):
