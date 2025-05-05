@@ -7,11 +7,27 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Path
 from api.models import ChunksResponse, ContentChunk # Import ContentChunk
 from services.retrieval_service import RetrievalService
 from services.preference_service import PreferenceService
-from api.routers.retrieve_router import get_retrieval_service, get_preference_service
+from dal.qdrant_dal import QdrantDAL
+from dal.neo4j_dal import Neo4jDAL
+from api.routers.retrieve_router import get_retrieval_service, get_qdrant_dal, get_neo4j_dal, get_embedding_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1/users", tags=["User Retrieval"])
+
+# Dependency injection
+async def get_preference_service(
+    qdrant_dal: QdrantDAL = Depends(get_qdrant_dal),
+    neo4j_dal: Neo4jDAL = Depends(get_neo4j_dal),
+    embedding_service = Depends(get_embedding_service),
+):
+    """Get PreferenceService instance."""
+    service = PreferenceService(
+        qdrant_dal=qdrant_dal,
+        neo4j_dal=neo4j_dal,
+        embedding_service=embedding_service,
+    )
+    return service
 
 @router.get(
     "/{user_id}/context",

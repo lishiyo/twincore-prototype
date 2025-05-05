@@ -4,7 +4,7 @@ This document outlines the strategy for representing and storing actions and con
 
 ## Context: Twin Representation in v0
 
-In the initial prototype (v0), the "Digital Twin" is primarily a conceptual role fulfilled by the Canvas Agent system (Developer A). This agent uses the TwinCore backend API (Developer B) to retrieve relevant data from a user's memory store (`/v1/retrieve/private_memory`, `/v1/retrieve/preferences`, etc.) and then performs LLM-based synthesis to generate responses or simulate the user's perspective.
+In the initial prototype (v0), the "Digital Twin" is primarily a conceptual role fulfilled by the Canvas Agent system (Developer A). This agent uses the TwinCore backend API (Developer B) to retrieve relevant data from a user's memory store (`/v1/retrieve/private_memory`, `/v1/user/{user_id}/context`, `/v1/user/{user_id}/preferences`, etc.) and then performs LLM-based synthesis to generate responses or simulate the user's perspective.
 
 Crucially, in v0:
 *   There is **no distinct `Twin` entity** stored within the TwinCore backend's databases (Qdrant, Neo4j).

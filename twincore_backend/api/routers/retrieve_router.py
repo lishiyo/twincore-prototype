@@ -28,7 +28,6 @@ from api.models import (
     PreferenceQuery,
     GroupContextResponse,
 )
-from services.preference_service import PreferenceService
 
 logger = logging.getLogger(__name__)
 
@@ -94,20 +93,6 @@ async def get_retrieval_service(
         neo4j_dal=neo4j_dal,
         embedding_service=embedding_service,
         message_connector=message_connector,
-    )
-    return service
-
-
-async def get_preference_service(
-    qdrant_dal: QdrantDAL = Depends(get_qdrant_dal),
-    neo4j_dal: Neo4jDAL = Depends(get_neo4j_dal),
-    embedding_service: EmbeddingService = Depends(get_embedding_service),
-):
-    """Get PreferenceService instance."""
-    service = PreferenceService(
-        qdrant_dal=qdrant_dal,
-        neo4j_dal=neo4j_dal,
-        embedding_service=embedding_service,
     )
     return service
 
@@ -531,59 +516,6 @@ async def retrieve_by_topic(
     except Exception as e:
         logger.error(f"Error retrieving topic content: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving topic content: {str(e)}")
-
-
-# Add the preference endpoint
-@router.get("/preferences", response_model=Dict[str, Any], deprecated=True)
-async def retrieve_preferences(
-    user_id: str,
-    decision_topic: str,
-    project_id: Optional[str] = None,
-    session_id: Optional[str] = None,
-    limit: int = 5,
-    score_threshold: Optional[float] = 0.6,
-    include_messages_to_twin: bool = Query(True, description="Whether to include messages to the twin"),
-    preference_service: PreferenceService = Depends(get_preference_service)
-):
-    """Retrieve the user's preference statements related to a specific decision topic.
-    
-    DEPRECATED: Use '/v1/users/{user_id}/preferences' instead.
-    
-    This endpoint combines both vector search and graph relationships to find 
-    user statements expressing preferences about a specific topic or decision.
-    
-    Args:
-        user_id: ID of the user whose preferences to query
-        decision_topic: The topic to find preferences for (e.g., "dark mode", "notification settings")
-        project_id: Optional project ID for context
-        session_id: Optional session ID for context
-        limit: Maximum number of preference statements to return
-        score_threshold: Optional score threshold for vector search
-        include_messages_to_twin: Whether to include messages to the twin
-        preference_service: The preference service dependency
-    
-    Returns:
-        A dictionary containing preference statements and metadata
-    """
-    try:
-        preference_data = await preference_service.query_user_preference(
-            user_id=user_id,
-            decision_topic=decision_topic,
-            project_id=project_id,
-            session_id=session_id,
-            limit=limit,
-            score_threshold=score_threshold,
-            include_messages_to_twin=include_messages_to_twin
-        )
-        
-        return preference_data
-        
-    except Exception as e:
-        logger.error(f"Error retrieving user preferences: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving user preferences: {str(e)}"
-        )
 
 
 @router.get("/group", response_model=GroupContextResponse)
