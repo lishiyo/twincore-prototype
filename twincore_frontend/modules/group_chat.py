@@ -56,7 +56,8 @@ def render_group_chat_tab():
             # Prepare payload for the API call
             payload = {
                 "user_id": selected_user_id,
-                "content": message_text,
+                "text": message_text,
+                "source_type": "message",
                 "session_id": selected_chat_session_id,
                 "project_id": selected_chat_project_id,
                 "metadata": {
