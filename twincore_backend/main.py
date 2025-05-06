@@ -15,6 +15,7 @@ from services.data_seeder_service import DataSeederService
 from services.data_management_service import DataManagementService
 from api.routers import admin_router, ingest_router, retrieve_router, document_router
 from api.routers import user_router
+from core.db_setup import initialize_databases
 
 app = FastAPI(
     title="TwinCore API",
@@ -195,6 +196,11 @@ app.dependency_overrides[retrieve_router.get_retrieval_service] = get_retrieval_
 app.dependency_overrides[retrieve_router.get_retrieval_service_with_message_connector] = get_retrieval_service_with_message_connector
 app.dependency_overrides[document_router.get_data_management_service] = get_data_management_service
 app.dependency_overrides[user_router.get_retrieval_service] = get_retrieval_service
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize databases when the application starts."""
+    await initialize_databases()
 
 @app.get("/")
 async def root():
