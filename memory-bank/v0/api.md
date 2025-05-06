@@ -12,9 +12,9 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 
 ## 1. Admin Endpoints
 
-### 1.1 Seed Data
+### 1.1 Seed Data - COMPLETED
 
-*   **Endpoint:** `POST /admin/api/seed_data`
+*   **Endpoint:** `POST /v1/admin/api/seed_data`
 *   **Description:** Seeds the system with initial mock data for testing and demonstration purposes.
 *   **Request Body:** None
 *   **Responses:**
@@ -35,9 +35,9 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `500 Internal Server Error`: If seeding operation fails. Details in response body.
     *   `401 Unauthorized`: Missing or invalid authentication token.
 
-### 1.2 Clear Data
+### 1.2 Clear Data - COMPLETED
 
-*   **Endpoint:** `POST /admin/api/clear_data`
+*   **Endpoint:** `POST /v1/admin/api/clear_data`
 *   **Description:** Clears all data from the system. This is a destructive operation useful for testing, development, or resetting the system to a clean state.
 *   **Request Body:** None
 *   **Responses:**
@@ -63,13 +63,65 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `500 Internal Server Error`: If clearing operation fails. Details in response body.
     *   `401 Unauthorized`: Missing or invalid authentication token.
 
+### 1.3 Get Qdrant Statistics - COMPLETED
+
+*   **Endpoint:** `GET /v1/admin/api/stats/qdrant`
+*   **Description:** Retrieves statistics about the Qdrant vector database collection (`twin_memory`).
+*   **Request Body:** None
+*   **Responses:**
+    *   `200 OK`: Successfully retrieved Qdrant statistics.
+      ```json
+      {
+        "collection_name": "twin_memory",
+        "vectors_count": 150,
+        "points_count": 150,
+        "segments_count": 1,
+        "status": "green",
+        "optimizer_status": "ok"
+        // ... other Qdrant collection info fields
+      }
+      ```
+    *   `500 Internal Server Error`: If retrieving stats fails. Details in response body.
+    *   `401 Unauthorized`: Missing or invalid authentication token.
+
+### 1.4 Get Neo4j Statistics - COMPLETED
+
+*   **Endpoint:** `GET /v1/admin/api/stats/neo4j`
+*   **Description:** Retrieves statistics about the Neo4j graph database, including node counts by label and relationship counts by type.
+*   **Request Body:** None
+*   **Responses:**
+    *   `200 OK`: Successfully retrieved Neo4j statistics.
+      ```json
+      {
+        "node_labels": {
+          "User": 5,
+          "Chunk": 150,
+          "Document": 10,
+          "Project": 2,
+          "Session": 3,
+          "Topic": 25
+        },
+        "relationship_types": {
+          "PART_OF": 140,
+          "BELONGS_TO": 150,
+          "MENTIONS": 50,
+          "CREATED_IN": 150
+          // ... other relationship types and counts
+        },
+        "total_nodes": 195,
+        "total_relationships": 490
+      }
+      ```
+    *   `500 Internal Server Error`: If retrieving stats fails. Details in response body.
+    *   `401 Unauthorized`: Missing or invalid authentication token.
+
 ---
 
 ## 2. Ingestion Endpoints
 
-### 2.1 Ingest Message
+### 2.1 Ingest Message - COMPLETED
 
-*   **Endpoint:** `POST /ingest/message`
+*   **Endpoint:** `POST /v1/ingest/message`
 *   **Description:** Ingests a single message into the user's memory within a specific session context. The service handles embedding and storage.
 *   **Request Body:**
     ```json
@@ -95,9 +147,9 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `401 Unauthorized`: Missing or invalid authentication token.
     *   `422 Unprocessable Entity`: Validation error (FastAPI default).
 
-### 2.2 Ingest Document (Text Content)
+### 2.2 Ingest Document (Text Content) - COMPLETED
 
-*   **Endpoint:** `POST /ingest/document`
+*   **Endpoint:** `POST /v1/ingest/document`
 *   **Description:** Ingests **pre-extracted text content** of a document. The service handles chunking, embedding, and storage, associating it with the user and appropriate context (project/session). Use this when the calling service already has the document's text. 
 *   **Request Body (application/json):**
     ```json
@@ -153,7 +205,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `415 Unsupported Media Type`: File type is not supported for text extraction (e.g., image without OCR).
     *   `422 Unprocessable Entity`: Validation error.
 
-### 2.4 Ingest Chunk (e.g., Transcript Snippet)
+### 2.4 Ingest Chunk (e.g., Transcript Snippet) - COMPLETED
 
 *   **Endpoint:** `POST /v1/ingest/chunk`
 *   **Description:** Ingests a single chunk of text, typically a transcript snippet, associated with a parent document (like a full transcript). Handles embedding and storage. Designed for streaming individual utterances or small text pieces belonging to a larger logical document.
@@ -186,7 +238,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 
 ## 3. Retrieval Endpoints
 
-### 3.1 Retrieve Context (Shared Scope)
+### 3.1 Retrieve Context (Shared Scope) - COMPLETED
 
 *   **Endpoint:** `GET /v1/retrieve/context`
 *   **Description:** Retrieves relevant text chunks based on a semantic query within a **shared scope** (project or session). This endpoint focuses on the collective *public* content within that scope. By default, this excludes content generated during direct user-twin interactions (use the `include_messages_to_twin` parameter to include them) and the user's private docs. Can optionally enrich results with related graph context. **Note**: For user-specific context including their private docs and interactions, use `GET /user/{user_id}/context`. For multiple users, use `GET /retrieve/group`.
@@ -229,7 +281,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 ### 3.2 Retrieve Preferences - MOVED
 *   **This endpoint has been moved to `GET /v1/users/{user_id}/preferences` (see Section 3.x below).**
 
-### 3.3 Retrieve Group Context
+### 3.3 Retrieve Group Context - COMPLETED
 
 *   **Endpoint:** `GET /v1/retrieve/group`
 *   **Description:** Retrieves relevant information (experiences, preferences, or memories) from **multiple participants** associated with a defined group scope (session, project, or team) based on a query. This endpoint aims to gather context reflecting the perspectives of individuals within the group. By default, this *includes* content marked as private to those users and messages generated during direct user-twin interactions for those users within the scope.
@@ -267,7 +319,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `401 Unauthorized`: Missing or invalid authentication token.
     *   `404 Not Found`: If the specified scope ID (`session_id`, `project_id`, `team_id`) does not exist or has no participants.
 
-### 3.4 Retrieve Related Content (Graph Traversal)
+### 3.4 Retrieve Related Content (Graph Traversal) - COMPLETED
 
 *   **Endpoint:** `GET /retrieve/related_content`
 *   **Description:** Retrieves content chunks related to a specific starting chunk by traversing the Neo4j graph based on relationship types. This method does **not** use Qdrant vector similarity search.
@@ -308,7 +360,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `401 Unauthorized`: Missing or invalid authentication token.
     *   `404 Not Found`: If the starting `chunk_id` does not exist.
 
-### 3.5 Retrieve by Topic
+### 3.5 Retrieve by Topic - COMPLETED
 
 *   **Endpoint:** `GET /retrieve/topic`
 *   **Description:** Retrieves content chunks related to a specific topic name. Primarily uses Neo4j graph relationships (e.g., `MENTIONS`), potentially falling back to vector search if no direct graph connections are found.
@@ -492,7 +544,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 
 ## User-Specific Retrieval Endpoints
 
-### 3.10 Retrieve User Context (Read-Only)
+### 3.10 Retrieve User Context (Read-Only) - COMPLETED
 
 *   **Endpoint:** `GET /v1/users/{user_id}/context`
 *   **Description:** Retrieves relevant text chunks associated **specifically with a given user** based on a semantic query. This searches across all user's relevant data (private docs, group messages, twin interactions, etc.), optionally filtered by project/session scope. This endpoint is **read-only** and performs **no ingestion**. Ideal for external agents (like the Canvas Agent) querying *about* a user's perspective or knowledge.
@@ -526,7 +578,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `404 Not Found`: If the specified `user_id` does not exist.
 
 
-### 3.11 Retrieve User Preferences
+### 3.11 Retrieve User Preferences - COMPLETED
 
 *   **Endpoint:** `GET /v1/users/{user_id}/preferences`
 *   **Description:** Retrieves known preferences for a specific user, filtered by a required decision topic and optionally by project/session scope. Combines explicit statements, inferred preferences, and relevant chat history. Private docs are always included. By default, this **includes** content generated during direct user-twin interactions. Use `include_messages_to_twin=false` to exclude them.
@@ -564,7 +616,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
     *   `401 Unauthorized`: Missing or invalid authentication token.
     *   `404 Not Found`: If the specified `user_id` does not exist.
 
-### 3.12 Create + Retrieve Private Memory (User Interaction) - NEW
+### 3.12 Create + Retrieve Private Memory (User Interaction) - COMPLETED
 
 *   **Endpoint:** `POST /v1/users/{user_id}/private_memory`
 *   **Description:** Retrieves a user's private memory based on semantic search **AND ingests the query itself** as a twin interaction (marked with `is_twin_interaction: true`). This endpoint is designed specifically for the user's direct interaction loop with their twin simulation. By default, the retrieval **includes** previous user messages to the twin. Set `include_messages_to_twin` to false in the request body to exclude them. **Note:** For read-only queries *about* a user without ingestion, use `GET /v1/users/{user_id}/context`.
@@ -616,7 +668,7 @@ This document outlines the API endpoints provided by the Digital Twin Layer (Dev
 
 ## 4. Metadata Update Endpoints
 
-### 4.1 Update Document Metadata
+### 4.1 Update Document Metadata - COMPLETED
 
 *   **Endpoint:** `POST /v1/documents/{doc_id}/metadata`
 *   **Description:** Updates metadata for an existing document identified by `doc_id`. Primarily used to add or update the `source_uri` for a completed transcript document after its raw file has been stored elsewhere, but can update other metadata fields.
