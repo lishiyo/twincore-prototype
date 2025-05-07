@@ -8,3 +8,5 @@ The files consist of:
 - private chat logs between all the users and their twins
 - each user has 2 personal docs, some related to this project and some not
 - the current meeting transcript (assume it's 45 minutes long) - this is session 4
+
+There are 25 files totaling 161442 characters.
