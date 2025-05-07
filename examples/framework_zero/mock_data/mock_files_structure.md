@@ -1,4 +1,4 @@
-framework_zero_mock_data/
+mock_data/
 ├── README.txt
 ├── session_transcripts/
 │   ├── transcript_session1_kickoff.txt         (50 mins, All 5 users)
