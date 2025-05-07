@@ -13,7 +13,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import sample data and IDs
 try:
-    from data.sample_data import memory_chunks_data, example_queries, USER_ALICE_ID, USER_BOB_ID, SESSION_P1_KICKOFF_ID, PROJECT_F0_CANVAS_ID, PROJECT_TWIN_RND_ID
+    from examples.basic_scripts.sample_data import memory_chunks_data, example_queries, USER_ALICE_ID, USER_BOB_ID, SESSION_P1_KICKOFF_ID, PROJECT_F0_CANVAS_ID, PROJECT_TWIN_RND_ID
 except ImportError:
     print("Error: Could not import from sample_data.py. Make sure it's in the same directory.")
     exit()
