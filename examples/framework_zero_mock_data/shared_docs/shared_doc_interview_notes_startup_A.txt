@@ -1,0 +1,31 @@
+Interview Notes: Startup A (AI Data Annotation Tool)
+Date: 2025-03-19
+Interviewee: CEO
+Interviewer: Ethan
+
+Context: Startup A has a distributed team of 15 people (engineers, data labelers, sales). Heavy Slack usage, Google Meet for syncs, Jira for tasks, Confluence for docs.
+
+Key Pain Points Expressed:
+*   "Slack spaghetti": Important discussions get lost in channels. Hard to track decisions made in DMs or ad-hoc huddles.
+*   Meeting follow-up is manual and time-consuming. Someone takes notes (often incomplete), tries to extract action items, posts summary somewhere... process is inconsistent.
+*   Onboarding new engineers takes weeks as they try to piece together project history from Confluence, Jira, and asking veterans.
+*   Cross-functional communication gaps, especially between engineering and sales regarding feature requests and timelines.
+
+Reaction to Framework Zero Concept (High-Level Pitch):
+*   Intrigued by the idea of a "living meeting record".
+*   Real-time diagramming: "Wow, if that works, it could save us hours of whiteboard cleanup and documentation."
+*   Digital Twin: Sees value in quickly catching up ("What did I miss?") but expressed strong privacy concerns. "My team needs to trust that their private chats or notes aren't being surfaced inappropriately." Needs absolute clarity on data boundaries.
+*   Integration: Immediately asked how it would connect to Jira and Slack. Views it as essential for adoption. "We won't move core workflows to a new island." Feedback: Integration with Jira/Slack seen as critical requirement, not just nice-to-have.
+*   AI Reliability: Skeptical about AI perfectly capturing nuance or complex technical debates. Worried about "garbage in, garbage out" if transcription is poor, or AI misinterprets things.
+
+Specific Questions Asked:
+*   How do you handle corrections to the transcript or AI summaries? (Relates to our open question on immutability/editing)
+*   Can we export the diagrams and summaries easily? (Formats?)
+*   What happens if the AI assigns an action item to the wrong person? (Needs the confirmation step we discussed)
+*   How much manual tidying of the AI output is expected?
+
+Willingness to Pilot:
+*   Open to trying an early version *if* the privacy concerns are thoroughly addressed and it integrates with at least Slack notifications.
+*   Not willing to pay initially, needs to see clear value first.
+
+Key Takeaway: Strong validation of the pain points. High interest in the potential value, but privacy and integration are major hurdles/requirements. Reliability of AI output needs to be high.

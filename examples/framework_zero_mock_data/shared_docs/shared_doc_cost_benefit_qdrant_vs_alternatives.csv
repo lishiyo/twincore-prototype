@@ -1,0 +1,17 @@
+Feature,Qdrant (Self-hosted/Cloud),Pinecone,Weaviate (Self-hosted/Cloud),Notes
+Vector Indexing Algorithms,HNSW primarily,Proprietary (approx HNSW),HNSW primarily,"HNSW is standard, performance varies by implementation"
+Metadata Filtering,Strong (pre-filtering),Strong,Strong,"Crucial for our permission model, all seem capable"
+Scalability,Good (Horizontal scaling possible),Very Good (Managed service designed for scale),Good (Requires careful setup for scaling),"Qdrant/Weaviate require more Ops if self-hosted"
+Open Source,Yes (Rust),No,Yes (Go),"OSS aligns with F0 principle, allows self-hosting/customization"
+Cloud Offering,Yes (Qdrant Cloud),Yes (Primary model),Yes (Weaviate Cloud Services),"Managed service reduces Ops burden initially"
+Pricing (Cloud Estimates),Potentially lower cost depending on usage/instance size,Usage-based (reads/writes/storage) - can get expensive at scale,"Usage-based, potentially competitive with Qdrant Cloud"
+Language Clients,Python, Go, Rust, TS,Python, TS, Go,Python, Java, Go, TS,"Good Python support is key for us"
+Knowledge Graph Integration,"None built-in, requires separate KG (Neo4j)",None built-in,"Can integrate some graph-like features, but not a full KG"
+Maturity / Community,Growing rapidly,Mature,Mature,"All have active communities, Pinecone had early market lead"
+Ease of Setup (Self-hosted),"Moderate (Docker available)",N/A,Moderate (Docker available)
+Ease of Use (API),Good,Good,Good,"APIs are generally straightforward for core operations"
+Hybrid Search (Keyword + Vector),"Yes (Limited / developing)",Yes (Sparse-Dense),Yes,"Useful for some queries, Qdrant's is newer"
+Multi-tenancy / Collections,Yes,Yes (Namespaces),Yes (Classes/Tenants),"Good support across the board"
+Backups / HA,"Manual or Cloud provider features",Managed by Pinecone,"Manual or Cloud provider features","Managed services typically handle this better"
+Recommendation Summary,"Good balance of OSS, performance, filtering, and has a cloud option. Integration with Neo4j is manual but standard.",Mature and scalable managed service, but vendor lock-in and potentially higher cost.,"Strong OSS alternative, similar capabilities to Qdrant, Go-based."
+Decision Factor for F0,"OSS option, strong filtering, good Python client, growing community. Cloud option available for easier start. Seems like a good default choice.",Consider if hyperscaling becomes an issue and managed simplicity outweighs OSS preference/cost.,Viable alternative if Qdrant shows limitations, but Qdrant seems slightly more aligned currently.

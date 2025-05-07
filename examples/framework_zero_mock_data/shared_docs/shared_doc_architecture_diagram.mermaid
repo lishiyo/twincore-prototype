@@ -1,0 +1,100 @@
+graph TD
+    subgraph User Interface (React/Vite)
+        A[Canvas - Yjs/React Flow]
+        B[Live Transcript Panel]
+        C[Twin Chat Panel]
+        D[Control Buttons - Make Diagram, Upload]
+    end
+
+    subgraph Backend API (FastAPI)
+        E[Ingestion Endpoint]
+        F[Canvas Sync Logic - Yjs Persistence]
+        G[AI Orchestration - LangGraph]
+        H[Retrieval Endpoint - Twin Q&A]
+        I[Auth/Authz Middleware]
+    end
+
+    subgraph Core Services
+        J[AssemblyAI API - Streaming Transcription/Diarization]
+        K[Anthropic Claude 3 API - LLM Tasks]
+        L[Qdrant - Vector Store]
+        M[Neo4j - Knowledge Graph]
+        N[Supabase - Postgres DB & Auth]
+    end
+
+    subgraph Data Flow - Live Meeting
+        UserVoice -- Mic --> J
+        J -- Transcript Snippets --> E
+        E -- Store Chunk/Embedding --> L
+        E -- Create Nodes/Relationships --> M
+        E -- Notify Frontend --> B
+        B -- Display Transcript --> User
+    end
+
+    subgraph Data Flow - Make Diagram
+        User -- Selects Text & Clicks Button --> D
+        D -- API Call w/ Text --> G
+        G -- Prepare Prompt & Call LLM --> K
+        K -- Diagram Structure --> G
+        G -- Parse & Format Canvas Objects --> F
+        F -- Update Yjs State --> A
+        A -- Render Diagram --> User
+        F -- Persist Snapshot --> N[Postgres via Supabase]
+    end
+
+    subgraph Data Flow - Twin Q&A
+        User -- Types Query --> C
+        C -- API Call w/ Query & UserID --> H
+        H -- Auth Check --> I
+        I -- Verify User Access --> H
+        H -- Embed Query & Search --> L[Qdrant w/ Filters]
+        L -- Relevant Chunks --> H
+        H -- Query Neo4j for Context? --> M
+        M -- Contextual Info --> H
+        H -- Prepare Context & Call LLM --> K
+        K -- Answer --> H
+        H -- Send Response --> C
+        C -- Display Answer --> User
+    end
+
+    subgraph Data Flow - Document Upload
+        User -- Uploads File & Privacy Flag --> D
+        D -- API Call w/ File Content --> E
+        E -- Chunk & Embed --> L
+        E -- Add Doc/Chunk Nodes --> M
+        E -- Respect Privacy Flag for Filters --> L
+        E -- Respect Privacy Flag for Relationships --> M
+    end
+
+    %% Connections
+    A <--> F
+    B --> E
+    C --> H
+    D --> E
+    D --> G
+
+    E --> L
+    E --> M
+    E --> N
+
+    F --> N
+    F --> A
+
+    G --> K
+    G --> F
+
+    H --> L
+    H --> M
+    H --> K
+    H --> C
+    H --> I
+
+    I --> N
+
+    %% Styling (Optional)
+    classDef services fill:#f9f,stroke:#333,stroke-width:2px;
+    class J,K,L,M,N services;
+    classDef api fill:#ccf,stroke:#333,stroke-width:2px;
+    class E,F,G,H,I api;
+    classDef ui fill:#cfc,stroke:#333,stroke-width:2px;
+    class A,B,C,D ui;

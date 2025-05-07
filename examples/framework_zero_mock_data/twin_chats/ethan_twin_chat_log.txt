@@ -1,0 +1,23 @@
+[2025-03-18 10:03:00] Ethan: What was my action item from kickoff?
+[2025-03-18 10:03:05] Twin: Your action item from Session 1 (Project Kickoff) on 2025-03-10 was: Research and compile a list of 5-10 potential early adopter companies/groups (AI startups, research labs).
+
+[2025-03-25 09:45:00] Ethan: I missed Session 2, was anything decided about the target market or user?
+[2025-03-25 09:45:08] Twin: Session 2 was primarily a technical deep dive and you were absent. Reviewing the transcript, there were no significant decisions made regarding the target market or user profile. The focus was on CRDTs (Yjs chosen), persistence, LLM provider (Anthropic chosen), voice ingest (AssemblyAI chosen), database choices (Neo4j confirmed for V0), ingestion pipeline design, and refining the V0 Twin scope (retrieval-focused).
+
+[2025-04-01 11:35:00] Ethan: (Simulated - asking after conference) I missed Session 4. What was the final MVP feature set decided? Need to know what we'll actually be able to demo soon.
+[2025-04-01 11:35:07] Twin: Session 4 finalized the MVP scope. The core features included are:
+1.  Real-time transcription/diarization display.
+2.  Basic manual canvas interaction (notes, shapes).
+3.  User-triggered 'Make Diagram' from transcript selection (simple AI concept map).
+4.  Basic Twin Q&A (summary, AI retrieval from transcripts/docs, respecting permissions).
+5.  Document upload (.txt, .md, basic .pdf) with a privacy flag.
+*   Features explicitly deferred post-MVP are proactive AI suggestions (like auto-detecting AIs/Decisions) and proactive surfacing of relevant historical context during meetings.
+*   The internal target for having this MVP code-complete is the end of April 2025.
+
+[2025-04-01 11:40:00] Ethan: Based on Fiona's feedback in Session 3 and my interviews with Startup A & B, what are the most critical requirements potential customers seem to have?
+[2025-04-01 11:40:09] Twin: Synthesizing feedback from Session 3 (Fiona) and your interview notes (Startup A, Startup B):
+*   **Data Privacy & Security:** This is paramount. Concerns about handling sensitive data, access controls (including Twin access), data lifecycle, and the need for compliance (like SOC 2) were strongly emphasized by Fiona and Startup A. Granular permissions were mentioned by Startup B.
+*   **AI Reliability & Trust:** Users need to trust the AI's output (summaries, diagrams, Q&A). Concerns about accuracy, hallucination, and misinterpretation were raised by Fiona and Startup A. Trust in the Twin is critical.
+*   **Integration:** Strong desire, especially from Startup A (Jira/Slack critical) and Fiona (Slack/GWorkspace), to integrate with existing tools rather than operate as another silo. Startup B saw it more as future value.
+*   **Clear Value Prop / ROI:** Needs to solve tangible pain points like meeting inefficiency (Fiona), lost action items/decisions (Startup A/B), and knowledge retrieval (Startup B). Fiona provided a potential price point ($15-25/user/month) conditional on clear value.
+*   **Usability:** While not the top concern, avoiding complexity and tool fatigue was mentioned (Fiona, Startup A).

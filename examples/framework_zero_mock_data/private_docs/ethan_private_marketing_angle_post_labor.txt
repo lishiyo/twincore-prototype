@@ -1,0 +1,38 @@
+```txt
+Ethan - Private Notes - Marketing Angle: "Post-Labor" Narrative (March 2025)
+
+The "Post-Labor Autonomous Organization" vision is intellectually stimulating and potentially differentiates us in the long run (aligns with F0 Vision Doc). But is it the right *marketing hook* for V0/V1?
+
+Pros of the Narrative:
+*   Unique, provocative, grabs attention in certain circles (AI researchers, futurists, specific VC niches).
+*   Taps into growing discourse about AI's impact on work.
+*   Aligns with grander vision, attracts mission-oriented talent/contributors.
+*   Potentially good for thought leadership (blog posts, conference talks).
+
+Cons of the Narrative for Early Marketing/Sales:
+*   Too abstract / academic for pragmatic buyers (startup founders, PMs) focused on immediate pain points. They care about *saving time* and *reducing chaos*, not achieving post-labor utopia tomorrow.
+*   Can sound buzzwordy or disconnected from the actual MVP features (which are more grounded: better meetings, context retrieval).
+*   Might alienate potential users who are skeptical or fearful of AI replacing jobs.
+*   Harder to quantify the value proposition in concrete ROI terms ("Achieve post-labor" vs. "Save 5 hours per employee per week").
+
+Alternative Angles (more pragmatic):
+1.  **"The Meeting is the Knowledge Base":** Focus on automatically building searchable institutional memory from conversations. Pain point: Lost info, onboarding time. Value: Efficiency, knowledge retention.
+2.  **"Stop Chasing Action Items":** Focus on reliable capture, tracking (future), and context around tasks generated in meetings. Pain point: Things fall through the cracks. Value: Accountability, productivity.
+3.  **"Context at your Fingertips":** Focus on the Twin's ability to instantly provide relevant info, summaries, past decisions. Pain point: Wasting time searching/asking. Value: Speed, better decisions.
+4.  **"Human-AI Collaboration, Supercharged":** More general, focuses on augmenting team intelligence. Less specific pain point, maybe less compelling?
+
+Recommendation for V0/V1 Marketing:
+*   **Lead with pragmatic pain points:** Use angles 1, 2, 3 in outreach and website copy. Focus on solving immediate, tangible problems like meeting inefficiency, lost action items, and context retrieval. Use language like "Reduce meeting follow-up time", "Never lose track of a decision", "Get instant context".
+*   **Use "Post-Labor" / "Autonomous Org" selectively:** Reserve it for thought leadership content (blog, talks), investor narrative (where grand vision matters more), and community building among aligned individuals. Don't make it the primary product marketing message.
+*   **Emphasize Augmentation, Not Replacement:** Frame AI as a tool that *empowers* humans, making them more strategic and less burdened by busywork. Avoid language that triggers replacement fears.
+
+Refining ICP based on Session 3 Feedback (Fiona):
+*   Fiona (CEO, established but innovative company) resonated strongly with "reducing follow-up meetings" and "institutional memory". Less so with abstract future-of-work ideas.
+*   Privacy/security are table stakes for this type of buyer. Need prominent messaging around this.
+*   Clear ROI ($15-25/user/month value perception) needs to be demonstrable through time savings or error reduction.
+
+Next Steps:
+*   [Done] Refine ICP description.
+*   [In Progress] Draft outreach templates focusing on pragmatic pain points (Angles 1, 2, 3).
+*   [Todo] Draft website landing page copy emphasizing efficiency, knowledge capture, context retrieval.
+*   [Todo] Outline first thought leadership blog post using the "Post-Labor" angle carefully.

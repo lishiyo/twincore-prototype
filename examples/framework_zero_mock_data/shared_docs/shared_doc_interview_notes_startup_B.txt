@@ -1,0 +1,31 @@
+Interview Notes: Startup B (Vertical SaaS for Logistics)
+Date: 2025-03-21
+Interviewee: Head of Product
+Interviewer: Ethan
+
+Context: Team of 25, hybrid work model. Use Teams for chat/meetings, Asana for tasks, Notion for knowledge base. Product team works closely with sales and customer support.
+
+Key Pain Points Expressed:
+*   Connecting customer feedback (from support tickets, sales calls) to product decisions. Info lives in different systems (Zendesk, Salesforce, meeting notes).
+*   "Meeting amnesia": Forgetting decisions or rationale from previous product strategy meetings. Spending time rehashing old ground.
+*   Difficulty synthesizing long discussions or documents quickly. Product specs can be dense; meeting recordings are long.
+*   Ensuring everyone is aligned on priorities after roadmap planning sessions.
+
+Reaction to Framework Zero Concept (High-Level Pitch):
+*   Digital Twin Q&A: Very positive reaction. "Being able to ask 'What was the final decision on the pricing model?' and get a sourced answer instantly would be amazing." Sees this as a major time saver. Preference: High value placed on Twin's ability to retrieve past decisions/rationale.
+*   Real-time Diagramming: Less immediately excited than Startup A, but saw potential for visualizing user flows or system interactions discussed in meetings.
+*   Privacy: Asked about permission levels – e.g., can we have project spaces only accessible to the product team versus company-wide spaces? Need granular access control. Feedback: Requirement for granular, role-based access control within projects.
+*   AI Reliability: Asked about the accuracy of summaries and analysis. How do we know the AI isn't missing key nuances?
+*   Knowledge Base Integration: "Ideally, this wouldn't *replace* Notion for us, but augment it. Could the Twin also query our Notion database?" (Highlights need for external data integration - V.next)
+
+Specific Questions Asked:
+*   How does the twin know what's 'important' to summarize?
+*   Can we feed it existing documents from our Notion? (V.next feature)
+*   Does it integrate with Asana for action item tracking? (V.next feature)
+*   What languages does the transcription support?
+
+Willingness to Pilot:
+*   Yes, very interested in piloting, especially the Twin Q&A feature. Seems less concerned about immediate integration if the core features are strong.
+*   Would consider paying if it demonstrably improves decision tracking and speeds up context retrieval for the product team.
+
+Key Takeaway: Strong validation for the knowledge retrieval and decision tracking aspects. Twin Q&A is a major hook. Privacy/permissions are important. Less dependent on immediate integration than Startup A, but sees it as future value. Need to manage expectations about AI nuance/accuracy.

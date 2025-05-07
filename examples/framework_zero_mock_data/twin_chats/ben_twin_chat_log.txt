@@ -1,0 +1,33 @@
+[2025-03-18 09:55:00] Ben: Remind me what I need to research after the kickoff meeting.
+[2025-03-18 09:55:05] Twin: Based on Session 1 (Project Kickoff) on 2025-03-10, your action items were:
+1.  Research and compare top LLM providers (OpenAI, Anthropic, Google) for core reasoning/generation tasks and LangGraph compatibility.
+2.  Evaluate AssemblyAI streaming API for voice ingest.
+
+[2025-03-25 09:35:00] Ben: What were the main technical decisions made in Session 2?
+[2025-03-25 09:35:06] Twin: Key technical decisions recorded in Session 2 (Technical Deep Dive) on 2025-03-17 were:
+*   Adopt Yjs for real-time state synchronization (based on Chloe's research).
+*   Use periodic Yjs state snapshots to Postgres for initial persistence.
+*   Adopt AssemblyAI for voice ingest (based on your evaluation).
+*   Proceed with Anthropic Claude 3 (Opus/Sonnet) as the primary LLM provider for V0 (based on your evaluation and preference).
+*   Adopt Dana's proposed interaction model for AI suggestions (highlight + confirm) vs. user commands (direct generation).
+*   Focus V0 Digital Twin scope on personalized Q&A and context retrieval, not active representation.
+*   Include Neo4j from V0 for richer context capture (based on your preference overruling Chloe's suggestion to potentially defer).
+
+[2025-04-01 10:05:00] Ben: Did we ever resolve the question about handling edits/deletions of source data?
+[2025-04-01 10:05:08] Twin: The issue of handling edits/deletions of source data (like uploaded documents or chat messages) after ingestion was raised in Session 2. An action item was assigned to you, Alex, and Chloe to define a V0 policy. Reviewing subsequent meeting transcripts (Session 3 and the current Session 4), there is no record of this policy being finalized or a decision being made. It appears to still be an open action item.
+
+[2025-04-01 11:10:00] Ben: Summarize Fiona's feedback regarding data privacy from Session 3.
+[2025-04-01 11:10:06] Twin: In Session 3, Fiona from FutureWorks expressed significant concerns about data privacy and security. Key points included:
+*   Questioning where transcript data goes and who controls access, especially for the Twin.
+*   Highlighting the need to handle sensitive client information appropriately.
+*   Asking about the data lifecycle, particularly what happens when an employee leaves.
+*   Suggesting SOC 2 compliance would likely be a requirement for her company.
+*   Emphasizing that user trust in the Twin's handling of data is critical and easily broken. You and Alex acknowledged these points and took an action item to define detailed policies.
+
+[2025-04-01 11:15:00] Ben: What are my main development tasks for the MVP sprint decided in Session 4?
+[2025-04-01 11:15:07] Twin: Based on the discussion in Session 4 (MVP Feature Finalization), your main development responsibilities for the MVP sprint are:
+*   Implementing the end-to-end LangGraph chain for the 'Make Diagram' feature, including robust prompt engineering for Claude Opus to ensure quality output.
+*   Implementing the basic Twin Q&A retrieval logic (RAG using Qdrant with correct permission filtering, prompting Claude Sonnet/Opus).
+*   Ensuring the document ingestion pipeline correctly handles the 'private' flag (with Chloe when she returns).
+*   Contributing to the definition of the V0 policy for handling edits/deletions (with Alex & Chloe - appears still open).
+*   Contributing to the definition of detailed data security, privacy, and offboarding policies (with Alex - appears ongoing).
