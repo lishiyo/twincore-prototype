@@ -235,7 +235,7 @@ def main():
         })
     
     # Save results to a file for later comparison
-    output_file = "whole_context_results.json"
+    output_file = "./examples/framework_zero/whole_context_results.json"
     with open(output_file, "w") as f:
         json.dump(results, f, indent=2)
     
