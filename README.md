@@ -58,10 +58,41 @@ pip install -r requirements.txt
 
 #### Environment Variables
 
-Create a `.env` file in the `twincore_backend` directory with your OpenAI API key:
+Create a `.env` file in the `twincore_backend` directory with the following variables. You can use [`.env.example`](./twincore_backend/.env.example) as a template:
 
 ```
-OPENAI_API_KEY=your_openai_api_key
+# Set to true or false to enable/disable debug mode.
+API_DEBUG=True
+
+# Regular Qdrant settings
+QDRANT_HOST=localhost
+QDRANT_PORT=6333
+QDRANT_API_KEY=
+QDRANT_GRPC_PORT=6334
+QDRANT_PREFER_GRPC=false
+
+# Test Qdrant settings (different ports to avoid conflicts)
+QDRANT_TEST_HOST=localhost
+QDRANT_TEST_PORT=7333
+QDRANT_TEST_API_KEY=
+QDRANT_TEST_GRPC_PORT=7334
+
+# Common settings
+QDRANT_COLLECTION_NAME=twin_memory
+
+# Connection URI for Neo4j (default: "bolt://localhost:7687")
+NEO4J_URI=bolt://localhost:7687
+
+# Neo4j username (default: "neo4j")
+NEO4J_USER=neo4j
+
+# Neo4j password (default: "password")
+NEO4J_PASSWORD=password
+
+# Name of sentence transformer model 
+EMBEDDING_MODEL_NAME=text-embedding-3-small
+EMBEDDING_DIMENSION=1536
+OPENAI_API_KEY=your-api-key
 ```
 
 #### Running the Backend
