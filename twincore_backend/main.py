@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from functools import lru_cache
 
 from core.config import settings
-from core.db_clients import get_async_qdrant_client, get_neo4j_driver
+from core.db_clients import get_async_qdrant_client, get_neo4j_driver, _async_qdrant_client as qdrant_client_instance
 from dal.qdrant_dal import QdrantDAL
 from dal.neo4j_dal import Neo4jDAL
 from services.embedding_service import EmbeddingService
@@ -210,8 +210,16 @@ async def root():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up resources when the application stops."""
-    # There are no global connections to clean up now,
-    # as we create fresh connections for each request
+    # Close the Qdrant client if it was initialized
+    if qdrant_client_instance:
+        try:
+            await qdrant_client_instance.close()
+            print("Qdrant client closed.") # Optional: for logging/confirmation
+        except Exception as e:
+            print(f"Error closing Qdrant client: {e}") # Optional: log error
+
+    # Neo4j drivers are typically created per-request or managed within specific functions,
+    # so no global driver needs closing here based on the current setup.
     pass
 
 if __name__ == "__main__":

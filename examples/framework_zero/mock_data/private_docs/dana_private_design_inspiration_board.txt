@@ -1,0 +1,49 @@
+Dana - Private Design Notes - F0 Inspiration & Thoughts (March/April 2025)
+
+Core Interaction Principles:
+- Fluidity: Moving between conversation (transcript), structure (diagrams), and retrieval (twin) should feel seamless.
+- Clarity: User should always understand *why* something appeared on the canvas (user action vs. AI suggestion). Provenance is key.
+- Control: AI augments, doesn't dominate. User can always edit, delete, or ignore AI outputs.
+- Calm Technology: Avoid excessive notifications or visual noise. Surface information when needed, not constantly. Minimalist aesthetic.
+
+Inspiration Sources:
+- Figma / FigJam: Gold standard for collaborative canvas UI. Smooth, intuitive, powerful. Need that level of responsiveness.
+- Miro / Mural: More structured diagramming, good examples of object libraries and templates (maybe V2?). Miro's AI diagramming is a competitor feature - need to differentiate (real-time, conversational source, twin integration).
+- Notion / Obsidian: Linking ideas, back-references. The concept of connecting diagram nodes back to transcript snippets borrows from this. Canvas should feel like a spatial knowledge graph.
+- Arc Browser: Interesting UI patterns for sidebars, context switching. Maybe relevant for integrating the Twin chat without it feeling tacked on.
+- Kinopio: Playful, spatial thinking canvas. Less formal than Figma. Reminds me to keep it somewhat inviting.
+
+UI Challenges & Ideas:
+- **Canvas Clutter:** How to manage potentially many AI-generated diagrams?
+    - Auto-layout options? (Simple grid, force-directed?)
+    - Manual grouping / framing?
+    - Layers? (e.g., Show/hide all AI diagrams, show only diagrams related to 'budget')
+    - Zoom-based visibility? (Details appear as you zoom in)
+    - **Decision (V0):** Keep it simple first. Manual placement. Clutter management is V.next problem. Rely on linking, not necessarily spatial proximity.
+- **Linking Transcript to Diagram:**
+    - Highlight source transcript on node hover/select.
+    - Maybe show source snippet in a tooltip on the node?
+    - Visual indicator on transcript lines that have been diagrammed?
+- **Twin Chat Integration:**
+    - Sidebar feels standard. How to make it feel integrated?
+    - Can Twin responses include direct links to canvas objects or transcript snippets? (e.g., "Decision X was made here [link to transcript line]"). Ben says technically feasible if objects have stable IDs. YES - crucial feature.
+    - Visual distinction between user query and twin response.
+- **AI Suggestions (Post-MVP):**
+    - My mockup used subtle highlights + click-to-confirm icon. Need user testing to see if this is discoverable / annoying.
+    - Where do confirmed items go? Added to a list? A dedicated section on canvas? Needs flow design.
+- **"Make Diagram" Parameters?:** Just generate default concept map? Or offer choices (mind map, flowchart?)?
+    - **Decision (V0):** Keep it simple. Default concept map only. Options add complexity.
+
+Accessibility:
+- Need good color contrast, keyboard navigation, screen reader support (especially for transcript and twin chat).
+- Diagrams are inherently visual - need text alternatives or summaries. Linking back to transcript helps.
+
+V0 UI Polish Checklist:
+- [ ] Consistent typography and spacing.
+- [ ] Clear visual hierarchy.
+- [ ] Responsive layout (desktop focus first).
+- [ ] Loading indicators for AI actions (Make Diagram, Twin Q&A).
+- [ ] Basic error handling display (e.g., "Diagram generation failed").
+- [ ] Simple, clean node/edge style for diagrams (React Flow).
+- [ ] Intuitive transcript selection mechanism.
+- [ ] Functional upload button and privacy toggle.

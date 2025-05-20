@@ -42,12 +42,12 @@ Based on `tasks.md` (Phase 8), `vision_doc.md`, and `separationStrategy.md`, thi
 
 1.  Ensure the TwinCore backend FastAPI server is running.
 2.  Navigate to this directory: `cd twincore_frontend`
-3.  Create a virtual environment if necessary (you may already have one in root, sharing between frontend and backend):
+3.  Create a virtual environment, only if necessary (you may already have one in root, sharing between frontend and backend):
     ```bash
     python -m venv venv
     source venv/bin/activate # or venv\Scripts\activate on Windows
     ```
-4. Instll dependencies:
+4. Install dependencies:
     ```bash
     pip install -r requirements.txt
     ```

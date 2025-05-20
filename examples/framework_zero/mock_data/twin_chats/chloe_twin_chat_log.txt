@@ -1,0 +1,24 @@
+[2025-03-18 09:58:00] Chloe: What were my action items from the kickoff meeting?
+[2025-03-18 09:58:05] Twin: From Session 1 (Project Kickoff) on 2025-03-10, your action items were:
+1.  Research CRDT options (Yjs vs Automerge) focusing on complex objects & persistence.
+2.  Research Neo4j best practices for knowledge graph alongside vector DB.
+
+[2025-03-18 10:05:00] Chloe: Did Ben mention which vector DB he preferred?
+[2025-03-18 10:05:06] Twin: Yes, in Session 1, Ben mentioned Qdrant as his default choice, citing its popularity, integration with LangChain/LangGraph, and good filtering capabilities. He suggested assuming Qdrant for now unless a strong reason against it was found.
+
+[2025-03-25 10:00:00] Chloe: (Simulated message - assuming Chloe checks in after being sick) What were the key outcomes of Session 3?
+[2025-03-25 10:00:07] Twin: Session 3 involved getting feedback from an external client, Fiona from FutureWorks. Key outcomes included:
+*   **Positive Feedback:** Fiona liked the real-time diagramming and saw value in reducing follow-ups and building institutional memory.
+*   **Major Concerns:** She raised significant concerns about data privacy/security, the need for SOC 2, AI reliability, tool fatigue (requesting integrations like Slack/GWorkspace), and emphasized the critical need for Twin trustworthiness.
+*   **Action Items:** New AIs were assigned to Ben/Alex regarding security/privacy policies and V1/V2 integration strategy, to Dana regarding UI clutter management, and to Ethan regarding refining the ICP based on the feedback.
+*   **Demo Status:** The minimal end-to-end demo prep Ben was working on was not quite ready, blocked slightly by needing your input on Neo4j schema details. The goal was adjusted to aim for an internal demo the following week.
+
+[2025-04-01 11:20:00] Chloe: (Simulated message - checking in after leave) What decisions were made about the MVP scope in Session 4? I need to know what my priorities are when I get back.
+[2025-04-01 11:20:08] Twin: Welcome back! Session 4 finalized the MVP scope. The key features decided upon are:
+1.  Real-time transcription/diarization display.
+2.  Basic manual canvas interaction (notes, shapes).
+3.  User-triggered 'Make Diagram' from transcript selection (simple concept map via AI).
+4.  Basic Twin Q&A (summary, AI retrieval from transcripts/docs, respecting permissions).
+5.  Document upload (.txt, .md, basic .pdf) with a privacy flag.
+*   **Deferred Features:** Proactive AI suggestions (auto-detecting AIs/Decisions) and proactive surfacing of relevant historical context were explicitly deferred post-MVP.
+*   **Your Priorities:** While you were out, Ben mentioned being slightly blocked on Neo4j schema details. Your main tasks upon return will likely involve finalizing and testing the data ingestion pipeline across AssemblyAI, Qdrant, Neo4j, and Postgres (AI assigned in Session 2), ensuring Qdrant/Neo4j retrieval logic includes robust permission filtering (AI assigned in Session 2), ensuring the ingestion pipeline correctly handles the 'private' flag for document uploads (AI assigned to you/Ben in Session 4), and contributing to the definition of the V0 policy for handling edits/deletions (AI assigned to you/Alex/Ben in Session 2, still open).

@@ -1,0 +1,29 @@
+Framework Zero - Customer Feedback Summary (Compiled 2025-03-20)
+
+Source: Interviews with 5 potential users (startup founders, project managers) + survey (20 respondents)
+
+Key Pain Points Identified:
+*   Meeting Inefficiency: Too many meetings, meetings run long, discussions go in circles, hard to track who said what. (Mentioned by 80% of interviewees, 90% survey)
+*   Action Item Tracking: AIs get lost in notes/email/Slack, lack of clear ownership/deadlines, difficult to follow up. (Mentioned by 100% interviewees, 85% survey)
+*   Knowledge Silos: Information exists but is hard to find (scattered across drives, Slack channels, meeting notes), onboarding new team members takes too long. (Mentioned by 60% interviewees, 70% survey)
+*   Decision Documentation: Hard to remember *why* a decision was made, rationale gets lost, leads to re-litigating past choices. (Mentioned by 60% interviewees, 65% survey)
+*   Tool Overload: Reluctance to adopt *another* tool unless it significantly consolidates workflows or provides unique value. (Mentioned by 40% interviewees, 50% survey)
+
+Feedback on Framework Zero Concept (based on pitch/mockups):
+*   Positive Reaction to Real-time Diagramming: Seen as a potentially powerful way to clarify complex discussions instantly. Excitement about turning talk into structured visuals. (High interest)
+*   Intrigue around Digital Twin: Recognized potential for personalized context and memory aid. Efficiency gains ("ask my twin what I missed") are appealing. (Moderate to High interest)
+*   Concerns Raised:
+    *   AI Accuracy/Reliability: Worries about hallucination, incorrect summaries, or mis-assigned action items. Trust is paramount.
+    *   Data Privacy/Security: Major concern, especially regarding sensitive project info or personal notes potentially used by the twin. Need clear guarantees and controls.
+    *   Usability/Complexity: Canvas could become cluttered, learning curve for interacting with AI/twin needs to be gentle.
+    *   Integration: Strong desire for integration with existing tools (Slack, Google Workspace, Jira, etc.) eventually. Standalone is a barrier for some.
+    *   Cost Justification: Needs to provide clear ROI (time saved, meetings reduced, errors avoided) to justify cost.
+
+Quotes:
+*   "If the diagramming thing actually works reliably in real-time, that's a game-changer for our design sprints." - Startup CTO
+*   "I love the idea of asking my 'twin' what happened in a meeting I missed, but I'd be terrified of it accidentally sharing my private thoughts." - Project Manager
+*   "Tracking decisions is chaos. If this creates an audit trail automatically, huge win." - Founder
+*   "Please don't make me learn another complex tool. If it doesn't talk to Slack or Google Docs, it's dead on arrival for us long-term." - Operations Lead
+
+Overall Sentiment:
+High potential, addresses real pain points. Success hinges on execution quality (accuracy, usability), robust security/privacy, and eventually, integration. The core concepts resonate, but the devil is in the details.

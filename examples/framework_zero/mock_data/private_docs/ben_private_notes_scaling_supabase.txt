@@ -1,0 +1,33 @@
+Ben's Private Notes - Supabase Scaling Concerns (Mid-March 2025)
+
+Okay, we're leaning on Supabase pretty heavily for V0:
+1.  Auth (User logins, JWTs)
+2.  Postgres DB (User profiles, Project metadata, Yjs snapshots, maybe basic document metadata?)
+3.  Realtime (Initially thought for broadcasting updates, but Yjs might handle sync directly via y-webrtc or a dedicated Yjs backend. Maybe use Supabase Realtime just for simple notifications?)
+4.  Row Level Security (RLS) for data access control in Postgres.
+
+Potential Scaling Issues / Things to Watch:
+
+*   **Postgres Performance:**
+    *   **Yjs Snapshots:** How often are we snapshotting? How large are the snapshots? This could put significant write load on the DB. Need to optimize frequency and maybe compress data. Can we query *inside* the JSON snapshots easily if needed, or is it purely for restore? Probably need structured metadata alongside the blob.
+    *   **RLS Complexity:** Our permission model (user <-> project, user <-> session, private docs) might require complex RLS policies. Need to benchmark query performance with RLS enabled, especially for queries hitting Qdrant/Neo4j that *first* need to check Postgres permissions. Could this become a bottleneck?
+    *   **Connection Limits:** Supabase has connection limits on lower tiers. Will our API backend + potential Yjs persistence workers exceed this? Need connection pooling. FastAPI includes good options.
+
+*   **Realtime Service:**
+    *   If we *do* use it for broadcasting Yjs updates or other frequent messages, how does it scale compared to a dedicated solution like `y-websocket` or Redis Pub/Sub? What are the message limits / costs?
+    *   Might be simpler to just use it for low-frequency notifications (e.g., "New document uploaded") rather than high-frequency canvas updates. Let Yjs handle its own sync.
+
+*   **Vendor Lock-in:**
+    *   While Supabase uses standard Postgres, their specific libraries/integrations (Auth, Realtime) create some lock-in. Migrating off would require replacing those components. Acceptable for V0 speed, but need long-term strategy.
+
+*   **Cost:**
+    *   Pay-as-you-go is nice, but need to monitor usage closely, especially DB compute, egress, Realtime messages if we use it heavily.
+
+Mitigation Ideas for V0/V1:
+*   Optimize Yjs snapshot frequency and consider offloading snapshots to cheaper blob storage (S3) if Postgres load becomes an issue, just storing metadata/pointers in PG.
+*   Keep RLS policies as simple as possible while ensuring correctness. Index relevant columns used in policies.
+*   Use Supabase Realtime sparingly, primarily for notifications. Explore `y-webrtc` or a minimal `y-websocket` server if direct P2P/dedicated sync is needed.
+*   Implement connection pooling in the FastAPI backend from day one.
+*   Set up monitoring/alerts for Supabase usage and performance metrics.
+
+Conclusion: Supabase is great for getting started quickly and covers many bases. Need to be mindful of potential scaling bottlenecks, particularly around Postgres write load (Yjs snapshots) and RLS performance. Plan for potential optimizations post-MVP if needed.

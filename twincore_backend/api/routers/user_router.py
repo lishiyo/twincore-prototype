@@ -169,7 +169,9 @@ async def retrieve_user_private_memory(
             session_id=query.session_id,
             include_messages_to_twin=query.include_messages_to_twin
         )
-        
+        # Right after the retrieve_private_memory call
+        logger.info(f"Got {len(results)} results from retrieve_private_memory")
+   
         # If include_graph is True, enhance with graph data
         if include_graph and results:
             # Build a new list of enriched results

@@ -1,0 +1,24 @@
+Alex - Private Leadership Notes - March 2025
+
+Team Dynamics:
+- Ben is the technical powerhouse, crucial for vision but need to ensure he doesn't go too deep into rabbit holes without validating practicality/scope. His push for Neo4j early makes sense strategically but adds workload.
+- Chloe is methodical and great at thinking through edge cases (like the edit/delete problem). Need to make sure she feels empowered to push back if complexity seems too high. Her absence this week highlights dependency.
+- Dana has a great eye for clean UX and understands the core value prop. Need to give her space to define the interaction patterns. Her pushback on AI suggestions for MVP was smart.
+- Ethan is excellent at connecting with potential users and understanding market needs. Need to channel his enthusiasm into concrete feedback loops and realistic early adopter targets. His ICP refinement is key.
+
+Project Risks:
+- Technical Complexity: Integrating all these services (AssemblyAI, Yjs, Qdrant, Neo4j, LangGraph, Anthropic) is ambitious. Need rigorous testing. Dependency on Chloe for Neo4j/ingestion is a current bottleneck.
+- Scope Creep: Easy to add "just one more thing". Sticking to the tight MVP defined in Session 4 is critical. Need to ruthlessly prioritize.
+- User Trust: Fiona's and Startup A's feedback hammered this home. One privacy slip-up or major AI error in early demos could be fatal. Security/permissions implementation needs to be flawless.
+- Funding Runway: Need to show significant progress by end of April to build confidence for seed round prep. MVP needs to be compelling.
+
+Strategic Thoughts:
+- The "post-labor" narrative is interesting but might be too abstract for early adopters. Focus messaging on concrete pain points: meeting chaos, lost knowledge.
+- The Twin is the unique hook, but also the riskiest part. Need to manage expectations carefully - start with retrieval, not simulation.
+- Community building (as per vision doc) is important long-term, but need product-market fit first. Focus on early adopter feedback loops for now.
+
+Personal Action Items:
+- Keep team focused on MVP deadline. Shield them from distractions.
+- Finalize MVP scope in PRD and ensure everyone is aligned. (Done in Session 4)
+- Work with Ben on drafting clear security/privacy policy statements based on Session 3 discussion.
+- Start outlining Seed Deck narrative based on validated pain points and MVP solution.

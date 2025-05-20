@@ -1,0 +1,33 @@
+[2025-03-18 10:00:00] Alex: What were the main action items assigned in the kickoff meeting last week?
+[2025-03-18 10:00:05] Twin: Based on the transcript from Session 1 (Project Kickoff) on 2025-03-10, the main action items assigned were:
+*   Chloe: Research CRDT options (Yjs vs Automerge) focusing on complex objects & persistence.
+*   Ben: Research and compare top LLM providers (OpenAI, Anthropic, Google) for core reasoning/generation tasks and LangGraph compatibility.
+*   Ben: Evaluate AssemblyAI streaming API for voice ingest.
+*   Alex: Draft initial PRD focusing on V0 scope (Canvas, real-time transcription/diarization, basic AI actions 'Make Diagram', 'Summarize', Twin Q&A based on F0 data only).
+*   Dana: Create initial mockups/wireframes for the canvas UI, focusing on the 'Make Diagram' interaction flow.
+*   Ethan: Research and compile a list of 5-10 potential early adopter companies/groups (AI startups, research labs).
+*   Chloe: Research Neo4j best practices for knowledge graph alongside vector DB.
+
+[2025-03-18 10:01:15] Alex: Thanks. Did we decide on a CRDT approach?
+[2025-03-18 10:01:20] Twin: In Session 1, the discussion leaned towards Yjs based on maturity and community support, but the decision wasn't finalized. Chloe was assigned the action item to research Yjs vs. Automerge. In Session 2 (Technical Deep Dive) on 2025-03-17, Chloe presented her findings recommending Yjs, and the team decided to adopt Yjs for real-time state synchronization.
+
+[2025-03-25 09:30:00] Alex: Summarize the key feedback from Fiona in Session 3 yesterday.
+[2025-03-25 09:30:07] Twin: Based on the transcript from Session 3 (Client Feedback & Design Review) on 2025-03-24, Fiona from FutureWorks provided the following key feedback:
+*   **Positive:** Liked the real-time diagramming for clarity and saw major value in reducing follow-up meetings and building institutional memory automatically.
+*   **Concerns:** Raised significant concerns about data privacy, security, access control (especially for the Twin), and data lifecycle (employee departure). Mentioned SOC 2 compliance as a likely future requirement. Also questioned AI reliability (hallucinations, misinterpretations) and tool fatigue (asked about Slack/GWorkspace integration).
+*   **Trust:** Emphasized that user trust in the Twin (accuracy, privacy) is absolutely critical and fragile.
+*   **Pricing:** Suggested a potential willingness to pay $15-$25/user/month if robust, secure, and valuable.
+
+[2025-04-01 11:00:00] Alex: What was the decision on handling edits/deletions for V0?
+[2025-04-01 11:00:05] Twin: In Session 2 (Technical Deep Dive), the challenge of handling edits/deletions of source data after ingestion was discussed. Several options were mentioned (immutability, short edit windows, versioning). An action item was assigned to Alex, Ben, and Chloe to define a V0 policy. Reviewing Session 3 and the current Session 4 transcripts, there doesn't appear to be a record of a final decision being made or the policy being defined yet. This remains an open point.
+
+[2025-04-01 11:05:00] Alex: What are my current outstanding action items based on the last few meetings?
+[2025-04-01 11:05:08] Twin: Based on transcripts from Sessions 1, 2, 3, and 4, here are your recent action items:
+*   **From Session 1:** Draft initial PRD focusing on V0 scope. (Status: Seems largely complete based on Session 2 & 4 discussions, updates ongoing).
+*   **From Session 2:** Define V0 policy for handling edits/deletions of ingested data (with Ben & Chloe). (Status: Still appears open based on my previous answer).
+*   **From Session 2:** Update PRD clarifying V0 Twin scope (retrieval, not representation). (Status: Likely done as part of general PRD updates).
+*   **From Session 3:** Define detailed data security, privacy, and offboarding policies (with Ben). (Status: Discussed, policy definition likely ongoing).
+*   **From Session 4:** Set internal target deadline for code-complete MVP by end of April. (Status: Done during Session 4).
+*   **From Session 4:** Update PRD with finalized MVP feature list and scope decisions. (Status: Assigned in Session 4, likely in progress).
+*   **From Private Notes (investor_updates_draft.md):** Start outlining Seed Deck narrative. (Status: Draft initiated based on file content).
+*   **From Private Notes (leadership_thoughts.txt):** Work with Ben on drafting security/privacy policy statements. (Status: Same as Session 3 AI, ongoing).
