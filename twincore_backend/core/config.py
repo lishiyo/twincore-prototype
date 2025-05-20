@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # Database Settings - Neo4j
     neo4j_uri: str = Field(default="bolt://localhost:7687", description="Neo4j connection URI")
     neo4j_user: str = Field(default="neo4j", description="Neo4j username")
-    neo4j_password: str = Field(default="password", description="Neo4j password")
+    neo4j_password: str
     neo4j_database: str = Field(default="neo4j", description="Neo4j database name")
     
     # Neo4j Test Settings

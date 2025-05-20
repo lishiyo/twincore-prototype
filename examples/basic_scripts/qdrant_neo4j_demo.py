@@ -25,7 +25,7 @@ EMBEDDING_MODEL = 'text-embedding-3-small'
 
 NEO4J_URI = os.getenv("NEO4J_URI", "neo4j://localhost:7687")
 NEO4J_USERNAME = os.getenv("NEO4J_USERNAME", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password") # Replace with your password
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD") 
 
 # --- Initialize Clients ---
 print(f"Initializing Qdrant client (location: {QDRANT_LOCATION})...")
@@ -51,6 +51,8 @@ try:
     print("Neo4j connection successful.")
 except Exception as e:
     print(f"Error connecting to Neo4j: {e}")
+    if NEO4J_PASSWORD is None:
+        print("Error: NEO4J_PASSWORD environment variable not set. Please set it to your Neo4j password.")
     exit()
 
 # --- Neo4j Helper Functions (copied from neo4j_only_demo.py) ---
